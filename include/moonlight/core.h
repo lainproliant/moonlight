@@ -598,32 +598,16 @@ C1 sorted(const C1& src, std::function<bool (const typename C1::value_type& a,
    std::sort(result.begin(), result.end(), comp);
    return result;
 }
+
+//-------------------------------------------------------------------
+template<class T, class C1>
+std::vector<T> map(const C1& src, std::function<T (const typename C1::value_type&)> f) {
+   std::vector<T> result;
+   for (auto v : src) {
+      result.push_back(f(v));
+   }
+   return result;
 }
-
-namespace memory {
-//-------------------------------------------------------------------
-class polymorphic_shared_from_this_base :
-public std::enable_shared_from_this<polymorphic_shared_from_this_base> {
-public:
-   virtual ~polymorphic_shared_from_this_base() { }
-};
-
-//-------------------------------------------------------------------
-template<typename T>
-class polymorphic_shared_from_this :
-virtual public polymorphic_shared_from_this_base {
-public:
-   std::shared_ptr<T> shared_from_this() {
-      return std::dynamic_pointer_cast<T>(
-          polymorphic_shared_from_this_base::shared_from_this());
-   }
-
-   template<typename D>
-   std::shared_ptr<D> poly_shared_from_this() {
-      return std::dynamic_pointer_cast<D>(
-          polymorphic_shared_from_this_base::shared_from_this());
-   }
-};
 }
 
 namespace file {
@@ -685,6 +669,18 @@ std::fstream open_rw(const std::string& filename,
       throw FileException(sb.str());
    }
 }
+
+//-------------------------------------------------------------------
+std::string to_string(std::istream& infile) {
+   return std::string(std::istreambuf_iterator<char>(infile), {});
+}
+
+//-------------------------------------------------------------------
+std::string to_string(const std::string& filename) {
+   auto infile = open_r(filename);
+   return to_string(infile);
+}
+
 }
 
 }

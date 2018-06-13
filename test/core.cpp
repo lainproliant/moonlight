@@ -33,31 +33,5 @@ int main() {
          assert_true(lists_equal(mmaps::collect(mmap, "fruit"),
                   {"apple", "orange", "banana", "pear"}));
       })
-      .test("memory::polymorphic_shared_from_this test", [&]() {
-         class Base : public memory::polymorphic_shared_from_this<Base> {
-         public:
-            virtual string get_type () const {
-               return "Base";
-            }
-         };
-
-         class Implementation : public Base {
-         public:
-            virtual string get_type() const {
-               return "Implementation";
-            }
-
-            shared_ptr<Implementation> self() {
-               return poly_shared_from_this<Implementation>();
-            }
-         };
-         auto impl = make_shared<Implementation>();
-         shared_ptr<Implementation> self = impl->self();
-         
-         // The only real test is whether or not the code above compiles,
-         // but let's put this here anyway.
-         assert_equal(impl->get_type(), self->get_type());
-         return true;
-      })
       .run();
 }
