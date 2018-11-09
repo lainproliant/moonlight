@@ -35,16 +35,16 @@ template <class T>
 T get_value(const picojson::value& obj_value,
             const std::string& name) {
    if (! obj_value.contains(name)) {
-      throw WrapperException(str::cat({
+      throw WrapperException(str::cat(
          "Missing value for key '", name, "'."
-      }));
+      ));
    }
 
    picojson::value value = obj_value.get(name);
    if (! value.is<T>()) {
-      throw WrapperException(str::cat({
+      throw WrapperException(str::cat(
          "Unexpected value type for key '", name, "'."
-      }));
+      ));
    }
 
    return value.get<T>();
@@ -99,24 +99,24 @@ std::vector<T> get_array(const picojson::value& obj_value,
    std::vector<T> vec;
 
    if (! obj_value.contains(name)) {
-      throw WrapperException(str::cat({
+      throw WrapperException(str::cat(
          "Missing array for key '", name, "'."
-      }));
+      ));
    }
 
    const picojson::value& array_value = obj_value.get(name);
    if (! array_value.is<picojson::array>()) {
-      throw WrapperException(str::cat({
+      throw WrapperException(str::cat(
          "Key '", name, "' does not refer to an array."
-      }));
+      ));
    }
 
    const picojson::array& array = array_value.get<picojson::array>();
    for (picojson::value val : array) {
       if (! val.is<T>()) {
-         throw WrapperException(str::cat({
+         throw WrapperException(str::cat(
             "Unexpected heterogenous value type in array for key '", name, "'."
-         }));
+         ));
       }
 
       vec.push_back(val.get<T>());
@@ -220,9 +220,9 @@ public:
       infile >> (*obj_value);
 
       if (! obj_value->is<picojson::object>()) {
-         throw WrapperException(str::cat({
+         throw WrapperException(str::cat(
             "Wrapper file does not contain an object: '", filename, "'."
-         }));
+         ));
       }
 
       return Wrapper(obj_value);
@@ -300,9 +300,9 @@ public:
       picojson::value obj_values_array_value = obj_value->get(name);
 
       if (! obj_values_array_value.is<picojson::array>()) {
-         throw WrapperException(str::cat({
+         throw WrapperException(str::cat(
             "Key '", name, "' does not refer to an object array."
-         }));
+         ));
       }
 
       picojson::array& obj_values_array = obj_values_array_value.get<picojson::array>();
@@ -310,9 +310,9 @@ public:
 
       for (picojson::value val : obj_values_array) {
          if (! val.is<picojson::object>()) {
-            throw WrapperException(str::cat({
+            throw WrapperException(str::cat(
                "Wrapper array contains non-object: '", name, "'."
-            }));
+            ));
          }
 
          obj_array.push_back(Wrapper(std::make_shared<picojson::value>(val)));
@@ -335,9 +335,9 @@ public:
    Wrapper get_object(const std::string& name, bool must_exist = false) const {
       if (! obj_value->contains(name)) {
          if (must_exist) {
-            throw WrapperException(str::cat({
+            throw WrapperException(str::cat(
                "Missing object for key '", name, "'."
-            }));
+            ));
          } else {
             return Wrapper();
          }
@@ -345,9 +345,9 @@ public:
 
       picojson::value object_json = obj_value->get(name);
       if (! object_json.is<picojson::object>()) {
-         throw WrapperException(str::cat({
+         throw WrapperException(str::cat(
             "Key '", name, "' does not refer to an object."
-         }));
+         ));
       }
 
       return Wrapper(std::make_shared<picojson::value>(object_json));

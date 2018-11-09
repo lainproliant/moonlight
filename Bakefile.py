@@ -5,10 +5,13 @@ CXX.CXX = 'clang++'
 CXX.CFLAGS = [
     '-g',
     '--std=c++17',
-    '-I./include'
+    '-I./include',
+    '-DMOONLIGHT_ENABLE_STACKTRACE',
+    '-DMOONLIGHT_STACKTRACE_IN_DESCRIPTION'
 ]
+CXX.LDFLAGS = ['-g', '-lpthread']
 
-@recipe('executable', check='src')
+@recipe('executable', check='src', temp='executable')
 async def compile_and_link(src, executable):
     object_file = await CXX.compile(src, executable + '.o')
     executable = await CXX.link(object_file, executable)
@@ -24,7 +27,7 @@ class Moonlight:
     @provide
     def test_sources(self):
         return File.glob('test/*.cpp')
-
+    
     @provide
     def tests(self, test_sources):
         return [compile_and_link(src, File.drop_ext(src)) for src in test_sources]

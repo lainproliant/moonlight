@@ -87,7 +87,7 @@ public:
             } catch (const std::exception& e) {
                out << "    FAILED (" << typeid(e).name() << "): " << e.what() << std::endl;
 #ifdef MOONLIGHT_ENABLE_STACKTRACE
-               out << format_stacktrace(generate_stacktrace()) << std::endl;
+               out << core::format_stacktrace(core::generate_stacktrace()) << std::endl;
 #endif
             }
 
@@ -111,7 +111,7 @@ private:
       << std::endl;
 
 #ifdef MOONLIGHT_ENABLE_STACKTRACE
-      std::cerr << format_stacktrace(generate_stacktrace())) << std::endl;
+      std::cerr << core::format_stacktrace(core::generate_stacktrace()) << std::endl;
 #endif
       exit(1);
    }

@@ -137,9 +137,9 @@ public:
                   results.multi_opts.insert({opt, value});
 
                } else {
-                  throw CommandLineException(str::cat({
+                  throw CommandLineException(str::cat(
                      "Unknown option '", opt, "'."
-                  }));
+                  ));
                }
 
             } else if (collect::contains(flag_names, longopt)) {
@@ -154,15 +154,15 @@ public:
                   results.multi_opts.insert({longopt, value});
 
                } else {
-                  throw CommandLineException(str::cat({
+                  throw CommandLineException(str::cat(
                      "Missing required value for option '--", longopt, "'."
-                  }));
+                  ));
                }
 
             } else {
-               throw CommandLineException(str::cat({
+               throw CommandLineException(str::cat(
                   "Unknown flag or option '--", longopt, "'."
-               }));
+               ));
             }
 
          } else if (str::startswith(arg, "-") && arg.size() > 1) {
@@ -185,14 +185,14 @@ public:
                      results.opts.insert({shortopt, argv[++x]});
 
                   } else {
-                     throw CommandLineException(str::cat({
+                     throw CommandLineException(str::cat(
                         "Missing required parameter for '-", shortopt, "'."
-                     }));
+                     ));
                   }
                } else {
-                  throw CommandLineException(str::cat({
+                  throw CommandLineException(str::cat(
                      "Unknown flag or option '-", shortopt, "'."
-                  }));
+                  ));
                }
             }
 

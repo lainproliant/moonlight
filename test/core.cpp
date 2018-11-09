@@ -26,7 +26,7 @@ int main() {
             {"fruit", {"apple", "orange", "banana", "pear"}},
             {"meat", {"beef", "chicken", "pork", "fish", "lamb"}},
             {"drink", {"coffee", "tea", "ice water"}}});
-
+         
          assert_true(! lists_equal(mmaps::collect(mmap, "fruit"),
                   {"apple", "banana", "pear"}));
 

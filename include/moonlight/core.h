@@ -26,6 +26,19 @@
 #include <execinfo.h>
 #endif
 
+//-------------------------------------------------------------------
+#define ALIAS_TYPEDEFS(T) \
+typedef std::shared_ptr<T> pointer; \
+typedef std::shared_ptr<const T> const_pointer; \
+typedef std::vector<pointer> list; \
+typedef std::vector<const_pointer> const_list;
+
+//-------------------------------------------------------------------
+template<typename T, typename... TD>
+std::shared_ptr<T> make(TD&&... params) {
+   return std::make_shared<T>(std::forward<TD>(params)...);
+}
+
 namespace moonlight {
 namespace variadic {
 /**------------------------------------------------------------------
@@ -57,20 +70,20 @@ struct pass {
 };
 
 //-------------------------------------------------------------------
-template<class T, class... TD>
+template<typename T, typename... TD>
 void _to_vector(std::vector<T>& vec) {
    (void)vec;
 }
 
 //-------------------------------------------------------------------
-template<class T, class... TD>
+template<typename T, typename... TD>
 void _to_vector(std::vector<T>& vec, const T& item, const TD&... items) {
    vec.push_back(item);
    _to_vector(vec, items...);
 }
 
 //-------------------------------------------------------------------
-template<class T, class... TD>
+template<typename T, typename... TD>
 std::vector<T> to_vector(const T& item, const TD&... items) {
    std::vector<T> vec;
    _to_vector(vec, item, items...);
@@ -79,24 +92,21 @@ std::vector<T> to_vector(const T& item, const TD&... items) {
 }
 
 namespace str {
-/**------------------------------------------------------------------
- * Concatenate a list of strings together.
- */
-std::string cat(const std::vector<std::string>& strings) {
-   std::ostringstream sb;
-   for (auto s : strings) {
-      sb << s;
-   }
-   return sb.str();
+void _cat(std::ostringstream& sb) {
+   (void) sb;
 }
 
-/**------------------------------------------------------------------
- * Variadic variant of str::cat() that accepts all types
- * which can be shifted into an output stream.
- */
+template<typename T, typename... TD>
+void _cat(std::ostringstream& sb, const T& element, const TD&... elements) {
+   sb << element;
+   _cat(sb, elements...);
+}
+
 template<typename T, typename... TD>
 std::string cat(const T element, const TD&... elements) {
-   return cat(variadic::to_vector(element, elements...));
+   std::ostringstream sb;
+   _cat(sb, element, elements...);
+   return sb.str();
 }
 
 /**------------------------------------------------------------------
@@ -269,10 +279,10 @@ std::vector<std::string> generate_stacktrace(int max_frames = 256) {
    void* frames[max_frames];
    char** formatted_frames;
    size_t num_frames = backtrace(frames, max_frames);
-   std::vector<string> btvec;
+   std::vector<std::string> btvec;
    formatted_frames = backtrace_symbols(frames, num_frames);
    for (size_t x = 0; x < num_frames; x++) {
-      string formatted_frame = string(formatted_frames[x]);
+      std::string formatted_frame = std::string(formatted_frames[x]);
       if (formatted_frame.size() > 0) {
          btvec.push_back(formatted_frame);
       }
@@ -298,8 +308,8 @@ class Exception : public std::runtime_error {
 public:
    Exception(const std::string& message) : std::runtime_error(message.c_str()) {
       stacktrace = generate_stacktrace();
-#ifdef LAIN_STACKTRACE_IN_DESCRIPTION
-      ostringstream sb;
+#ifdef MOONLIGHT_STACKTRACE_IN_DESCRIPTION
+      std::ostringstream sb;
       sb << message << "\n" << format_stacktrace() << "\n";
       this->message = sb.str();
 #else
@@ -509,12 +519,12 @@ void build(std::multimap<K, T>& mmap) { (void) mmap; }
  */
 template<typename M>
 std::vector<typename M::mapped_type> collect(const M& mmap,
-                                             const typename M::key_type& key) {
+                                   const typename M::key_type& key) {
    std::vector<typename M::mapped_type> values;
    auto range = mmap.equal_range(key);
 
    for (auto iter = range.first; iter != range.second; iter++) {
-      values.push_back(iter->second);
+      values.insert(values.end(), iter->second);
    }
 
    return values;
@@ -558,11 +568,11 @@ void flatten(std::vector<typename T::value_type>& flattened, const T& coll, cons
 }
 
 //-------------------------------------------------------------------
-template<class T>
+template<typename T>
 void flatten(std::vector<T>& flattened) { (void) flattened; }
 
 //-------------------------------------------------------------------
-template<class T>
+template<typename T>
 T filter(const T& coll, const std::function<bool(typename T::value_type)>& f) {
    T result;
    for (auto v : coll) {
@@ -574,14 +584,14 @@ T filter(const T& coll, const std::function<bool(typename T::value_type)>& f) {
 }
 
 //-------------------------------------------------------------------
-template<class T>
+template<typename T>
 std::shared_ptr<T> filter(const std::shared_ptr<T>& coll,
                           const std::function<bool(typename T::value_type)>& f) {
    return std::make_shared<T>(filter<typename std::shared_ptr<T>::element_type>(*coll, f));
 }
 
 //-------------------------------------------------------------------
-template<class C1>
+template<typename C1>
 C1 sorted(const C1& src) {
    C1 result;
    std::copy(src.begin(), src.end(), std::back_inserter(result));
@@ -590,7 +600,7 @@ C1 sorted(const C1& src) {
 }
 
 //-------------------------------------------------------------------
-template<class C1>
+template<typename C1>
 C1 sorted(const C1& src, std::function<bool (const typename C1::value_type& a,
                                              const typename C1::value_type& b)> comp) {
    C1 result;
@@ -600,12 +610,20 @@ C1 sorted(const C1& src, std::function<bool (const typename C1::value_type& a,
 }
 
 //-------------------------------------------------------------------
-template<class T, class C1>
+template<typename T, typename C1>
 std::vector<T> map(const C1& src, std::function<T (const typename C1::value_type&)> f) {
    std::vector<T> result;
    for (auto v : src) {
       result.push_back(f(v));
    }
+   return result;
+}
+
+//-------------------------------------------------------------------
+template<typename C>
+std::set<typename C::value_type> set(const C& src) {
+   std::set<typename C::value_type> result;
+   std::copy(src.begin(), src.end(), std::back_inserter(result));
    return result;
 }
 }
