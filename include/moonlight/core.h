@@ -302,15 +302,21 @@ std::string format_stacktrace(const std::vector<std::string>& stacktrace) {
 }
 
 /**------------------------------------------------------------------
+ * A generic base class for throwables that may or may not be
+ * runtime exceptions.
+ */
+class Throwable { };
+
+/**------------------------------------------------------------------
  * A generic base exception class.
  */
-class Exception : public std::runtime_error {
+class Exception : public std::runtime_error, Throwable {
 public:
    Exception(const std::string& message) : std::runtime_error(message.c_str()) {
       stacktrace = generate_stacktrace();
 #ifdef MOONLIGHT_STACKTRACE_IN_DESCRIPTION
       std::ostringstream sb;
-      sb << message << "\n" << format_stacktrace() << "\n";
+      sb << message << "\n" << format_stacktrace(stacktrace) << "\n";
       this->message = sb.str();
 #else
       this->message = message;
@@ -324,24 +330,6 @@ public:
 
    virtual const std::string& get_message() const {
       return message;
-   }
-
-   std::string format_stacktrace() const {
-      std::ostringstream sb;
-
-      for (size_t x = 0; x < stacktrace.size(); x++) {
-         sb << x << ": " << stacktrace[x] << std::endl;
-      }
-
-      return sb.str();
-   }
-
-   void print_stacktrace(std::ostream& out) const {
-      out << format_stacktrace();
-   }
-
-   const std::vector<std::string>& get_stacktrace() const {
-      return stacktrace;
    }
 
 private:
