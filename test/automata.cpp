@@ -104,6 +104,7 @@ int main() {
          m.context().x++;
 
          if (m.current()->name() == "init") {
+            assert_true(lists_equal(m.stack_trace(), {"init"}));
             std::cout << "init state is current" << std::endl;
             m.push("a");
          }
@@ -115,6 +116,7 @@ int main() {
          m.context().y++;
 
          if (m.current() == c) {
+            assert_true(lists_equal(m.stack_trace(), {"a", "init"}));
             std::cout << "a state is current" << std::endl;
             m.transition("b");
          }
@@ -122,6 +124,7 @@ int main() {
       .state("b", [] (auto& m) {
          std::cout << "b state" << std::endl;
          std::cout << "trace: " << str::join(m.stack_trace(), ",") << std::endl;
+         assert_true(lists_equal(m.stack_trace(), {"b", "init"}));
          m.parent();
          m.context().x++;
          m.terminate();
