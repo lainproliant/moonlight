@@ -1,5 +1,5 @@
 /*
- * moonlight/automata.h: Templates for finite-state and other automata.
+ * moonlight/automata.h: Templates for finite-state automata.
  *
  * Author: Lain Supe (lainproliant)
  * Date: Tuesday, Jun 12 2018
@@ -8,17 +8,14 @@
 
 #include "moonlight/core.h"
 
-#include <memory>
 #include <vector>
 #include <optional>
 #include <future>
-#include <mutex>
-#include <shared_mutex>
 
 namespace moonlight {
 namespace automata {
 
-template<class C> class State;
+template<class C, class K> class Lambda;
 
 //-------------------------------------------------------------------
 class Error : public core::Exception {
@@ -27,21 +24,30 @@ class Error : public core::Exception {
 
 //-------------------------------------------------------------------
 template<class S>
-class StackMachine {
+class StateMachine {
 public:
-   friend class State<typename S::Context>;
-
    typedef std::shared_ptr<S> StatePointer;
-   
+
    template<class T, class... TD>
-   void init(typename T::Context& context_, TD... params) {
-      auto initial_state = make<T>(*this, context_);
-      push(initial_state);
-      initial_state->init(std::forward<TD>(params)...); 
+   static StateMachine<S> init(typename S::Context& context, TD... params) {
+      StateMachine<S> machine;
+      auto state = make<T>(machine, context);
+      machine.push(state);
+      state->init(std::forward<TD>(params)...);
+      return machine;
    }
-   
+
+   static StateMachine<S> init_empty() {
+      return StateMachine<S>();
+   }
+
    void run_until_complete() {
-      while (auto state = current()) {
+      if (! current()) {
+         throw Error("StateMachine has no initial state.");
+      }
+
+      StatePointer state;
+      while ((state = current())) {
          state->run();
       }
    }
@@ -53,190 +59,293 @@ public:
    }
 
    void terminate() {
-      std::unique_lock<std::shared_mutex> lock(mutex);
       stack.clear();
    }
 
-protected:
    void push(StatePointer state) {
-      std::unique_lock<std::shared_mutex> lock(mutex);
       stack.push_back(state);
    }
-   
+
    void transition(StatePointer state) {
-      std::unique_lock<std::shared_mutex> lock(mutex);
       pop();
       push(state);
    }
-   
+
    void reset(StatePointer state) {
-      std::unique_lock<std::shared_mutex> lock(mutex);
       terminate();
       push(state);
    }
-   
+
    void pop() {
-      std::unique_lock<std::shared_mutex> lock(mutex);
       if (stack.size() > 0) {
          stack.pop_back();
       }
    }
 
    StatePointer current() const {
-      std::shared_lock<std::shared_mutex> lock(mutex);
+      return current_state();
+   }
+
+   StatePointer current_state() const {
       return stack.size() > 0 ? stack.back() : nullptr;
    }
 
-   StatePointer previous(int n = 1) {
-      std::shared_lock<std::shared_mutex> lock(mutex);
-      auto result = splice::at(stack, -1 * n);
-      return result ? *result : nullptr;
+   void parent() {
+      if (! snapshot) {
+         core::Finalizer finally([&]() {
+            snapshot = {};
+         });
+
+         snapshot = stack;
+         _parent_impl();
+
+      } else {
+         _parent_impl();
+      }
    }
 
-   StatePointer parent(StatePointer child) {
-      std::shared_lock<std::shared_mutex> lock(mutex);
-      for (int n = 1; n < stack.size(); n++) {
-         if (previous(n) == child) {
-            return previous(n + 1);
-         }
+
+protected:
+   StateMachine() { }
+
+   void _parent_impl() {
+      if (snapshot->size() <= 1) {
+         throw Error("There are no more states on the stack.");
       }
-      
-      return nullptr;
+
+      snapshot->pop_back();
+      snapshot->back()->run();
    }
 
 private:
    std::vector<StatePointer> stack;
-   mutable std::shared_mutex mutex;
+   std::optional<std::vector<StatePointer>> snapshot = {};
 };
 
 //-------------------------------------------------------------------
 template<class C>
 class State : public std::enable_shared_from_this<State<C>> {
 public:
-   friend class StackMachine<State<C>>;
-
-   ALIAS_TYPEDEFS(State<C>)
    typedef C Context;
-   typedef StackMachine<State<C>> Machine;
+   typedef StateMachine<State<C>> Machine;
+   typedef std::shared_ptr<State<C>> Pointer;
 
-   State(Machine& machine_, C& context_)
-   : machine_(machine_), context_(context_) { }
+   State(StateMachine<State<C>>& machine, C& context)
+   : machine_(machine), context_(context) { }
+   virtual ~State() { }
 
    virtual void run() = 0;
-
-protected:
    void init() { }
 
-   template<class T, class... TD>
-   void push(TD&&... params) {
-      auto state = make<T>(machine_, context_);
-      machine_.push(state);
-      state->init(std::forward<TD>(params)...);
-   }
-   
-   template<class T, class... TD>
-   void transition(TD&&... params) {
-      auto state = make<T>(machine_, context_);
-      machine_.transition(state);
-      state->init(std::forward<TD>(params)...);
-   }
-
-   template<class T, class... TD>
-   void reset(TD&&... params) {
-      auto state = make<T>(machine_, context_);
-      machine_.reset(state);
-      state->init(std::forward<TD>(params)...);
-   }
-   
-   void pop() {
-      machine_.pop();
-   }
-
    void terminate() {
-      machine_.terminate();
+      machine().terminate();
    }
-   
+
+protected:
+   StateMachine<State<C>>& machine() {
+      return machine_;
+   }
+
    C& context() {
       return context_;
    }
 
-   Machine& machine() {
-      return machine_;
+   template<class T, class... TD>
+   void push(TD... params) {
+      auto state = derive<T>();
+      machine().push(state);
+      state->init(std::forward<TD>(params)...);
    }
-   
+
+   template<class T, class... TD>
+   void transition(TD... params) {
+      auto state = derive<T>();
+      machine().transition(state);
+      state->init(std::forward<TD>(params)...);
+   }
+
+   template<class T, class... TD>
+   void reset(TD... params) {
+      auto state = derive<T>();
+      machine().reset(state);
+      state->init(std::forward<TD>(params)...);
+   }
+
+   template<class T, class... TD>
+   std::shared_ptr<T> derive(TD... params) {
+      return make<T>(machine_, context_, std::forward<TD>(params)...);
+   }
+
+   void pop() {
+      machine().pop();
+   }
+
    bool is_current() {
       return current() ? current().get() == this : false;
    }
 
-   pointer current() {
+   Pointer current() {
       return machine_.current();
    }
 
-   pointer parent() {
-      return machine_.parent(this->shared_from_this());
+   void parent() {
+      return machine_.parent();
    }
 
 private:
+   StateMachine<State<C>>& machine_;
    C& context_;
-   Machine& machine_;
 };
 
 //-------------------------------------------------------------------
-template<class C>
-class LambdaState : public State<C> {
+template<class C, class K = std::string>
+class Lambda : public State<C> {
 public:
-   typedef std::function<void(typename LambdaState::Machine&,
-                              typename LambdaState::Context&)> LambdaImpl;
-   typedef std::function<LambdaImpl ()> Factory;
+   class Builder;
+   class Machine;
+   typedef std::shared_ptr<Lambda<C, K>> Pointer;
+   typedef std::function<void(Lambda<C, K>::Machine&)> Impl1;
+   typedef std::function<void(Lambda<C, K>::Machine&, Pointer)> Impl2;
 
-   LambdaState(typename LambdaState::Machine& machine,
-               typename LambdaState::Context& context,
-               LambdaImpl impl) :
-   State<C>(machine, context), impl_(impl) { }
+   using State<C>::shared_from_this;
+
+   class Machine : public StateMachine<State<C>> {
+   public:
+      friend class Builder;
+      using StateMachine<State<C>>::push;
+
+      void push(const K& name) {
+         push(state(name));
+      }
+
+      void transition(const K& name) {
+         push(state(name));
+      }
+
+      void reset(const K& name) {
+         push(state(name));
+      }
+
+      Pointer state(const K& name) {
+         auto iter = state_map.find(name);
+         if (iter != state_map.end()) {
+            return iter->second;
+         } else {
+            throw Error(str::cat("Unknown state: ", name));
+         }
+      }
+
+      C& context() {
+         return context_;
+      }
+
+      Pointer current() {
+         return std::static_pointer_cast<Lambda<C, K>>(this->current_state());
+      }
+
+      Machine& def_state(const K& name,
+                         const typename Lambda<C, K>::Impl1& impl) {
+         state_map.insert({name, make<Lambda<C, K>>(*this, context(), name, impl)});
+         return *this;
+      }
+
+      Machine& def_state(const K& name,
+                         const typename Lambda<C, K>::Impl2& impl) {
+         state_map.insert({name, make<Lambda<C, K>>(*this, context(), name, impl)});
+         return *this;
+      }
+
+   protected:
+      Machine(const C& context)
+      : context_(context) { }
+
+   private:
+      C context_;
+      std::map<K, typename Lambda<C, K>::Pointer> state_map;
+   };
+
+   class Builder {
+   public:
+      Machine build() {
+         if (! context_) {
+            throw Error("Context must be provided via Builder::context()");
+         }
+
+         if (! init_state_) {
+            throw Error("Initial state must be provided via Builder::init()");
+         }
+
+         Machine machine = Machine(*context_);
+         for (auto iter : state_map_1) {
+            machine.def_state(iter.first, iter.second);
+         }
+         for (auto iter : state_map_2) {
+            machine.def_state(iter.first, iter.second);
+         }
+
+         machine.push(machine.state(*init_state_));
+         return machine;
+      }
+
+      Builder& context(const C& context) {
+         context_ = context;
+         return *this;
+      }
+
+      Builder& init(const K& name) {
+         init_state_ = name;
+         return *this;
+      }
+
+      Builder& state(const K& name,
+                     const typename Lambda<C, K>::Impl1& impl) {
+         state_map_1.insert({name, impl});
+         return *this;
+      }
+
+      Builder& state(const K& name,
+                     const typename Lambda<C, K>::Impl2& impl) {
+         state_map_2.insert({name, impl});
+         return *this;
+      }
+
+   private:
+      std::optional<C> context_;
+      std::optional<K> init_state_;
+      std::map<K, typename Lambda<C, K>::Impl1> state_map_1;
+      std::map<K, typename Lambda<C, K>::Impl2> state_map_2;
+   };
+
+   Lambda(Machine& machine, C& context,
+               K name, const Impl1& impl)
+   : State<C>(machine, context), machine_(machine), name_(name), impl1(impl) { }
+
+   Lambda(Machine& machine, C& context,
+               K name, const Impl2& impl)
+   : State<C>(machine, context), machine_(machine), name_(name), impl2(impl) { }
+
+   static Builder builder() {
+      return Builder();
+   }
 
    void run() override {
-      impl_(this->machine(), this->context());
-   }
-
-private:
-   LambdaImpl impl_;
-};
-
-//-------------------------------------------------------------------
-template<class C>
-class FactoryContext {
-public:
-   void declare(const std::string& state_name,
-                      LambdaState<C>& state) {
-      declare(state_name, [&]() { return state; });
-   }
-
-   void declare(const std::string& state_name,
-                      typename LambdaState<C>::Factory& factory) {
-      factory_map_.insert(state_name, factory);
-   }
-
-   void create(const std::string& state_name) {
-      auto iter = factory_map_.find(state_name);
-      if (iter != factory_map_.end()) {
-         return *iter;
+      if (impl1) {
+         impl1.value()(machine_);
       } else {
-         throw Error("Undefined state name: " + state_name);
+         impl2.value()(machine_, std::static_pointer_cast<Lambda<C, K>>(
+                 shared_from_this()));
       }
    }
 
-   void transition(typename LambdaState<C>::Machine& machine,
-                   const std::string& name) {
-      machine.transition(make<LambdaState>(machine, *this, create(name)));
-   }
-
-   void reset(typename LambdaState<C>::Machine& machine,
-              const std::string& name) {
-      machine.reset(make<LambdaState>(machine, *this, create(name)));
+   const K& name() const {
+      return name_;
    }
 
 private:
-   std::map<std::string, typename LambdaState<C>::Factory> factory_map_;
+   Machine& machine_;
+   std::optional<const Impl1> impl1;
+   std::optional<const Impl2> impl2;
+   K name_;
 };
 
 }

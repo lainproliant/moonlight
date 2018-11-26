@@ -221,7 +221,7 @@ public:
 
       if (! obj_value->is<picojson::object>()) {
          throw WrapperException(str::cat(
-            "Wrapper file does not contain an object: '", filename, "'."
+            "JSON file does not contain an object: '", filename, "'."
          ));
       }
 
@@ -248,7 +248,7 @@ public:
    std::vector<std::string> get_keys() const {
       return maps::keys(obj_value->get<picojson::object>());
    }
-   
+
    picojson::value& get() {
       return *obj_value;
    }
@@ -311,7 +311,7 @@ public:
       for (picojson::value val : obj_values_array) {
          if (! val.is<picojson::object>()) {
             throw WrapperException(str::cat(
-               "Wrapper array contains non-object: '", name, "'."
+               "JSON array contains non-object: '", name, "'."
             ));
          }
 

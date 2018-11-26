@@ -81,7 +81,7 @@ public:
          return {};
       }
    }
-   
+
    std::optional<const std::string> get() const {
       return {};
    }

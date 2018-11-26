@@ -14,7 +14,7 @@ int main() {
          auto cmd = cli::parse(argv,
                                { "verbose", "v" },
                                { "a", "apples", "b", "bananas" });
-         
+
          assert_equal(std::string("test"), cmd.get_program_name());
          assert_equal(std::string("1"), cmd.require("b", "bananas"));
          assert_equal(std::string("2"), cmd.require("a", "apples"));

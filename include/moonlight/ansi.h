@@ -101,7 +101,7 @@ class Library {
 public:
    static Library create() {
       Library library;
-      
+
       for (size_t x = 0; x < COLORS.size(); x++) {
          library
          .add(COLORS[x], Decorator(attr(30 + x), reset))
@@ -132,7 +132,7 @@ public:
    const Decorator operator[](const std::string& name) const {
       auto components = str::split(name, " ");
       auto decorator = none;
-      
+
       for (auto component : components) {
          auto iter = decorator_map.find(component);
          if (iter == decorator_map.end()) {
@@ -144,7 +144,7 @@ public:
 
       return decorator;
    }
-   
+
 private:
    DecoratorMap decorator_map;
 };

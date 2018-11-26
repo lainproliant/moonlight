@@ -1,7 +1,7 @@
 import bakery.recipes.file as File
 import bakery.recipes.cxx as CXX
 
-CXX.CXX = 'clang++'
+CXX.CXX = 'g++'
 CXX.CFLAGS = [
     '-g',
     '--std=c++17',
@@ -14,8 +14,10 @@ CXX.LDFLAGS = ['-g', '-lpthread']
 @recipe('executable', check='src', temp='executable')
 async def compile_and_link(src, executable):
     object_file = await CXX.compile(src, executable + '.o')
-    executable = await CXX.link(object_file, executable)
-    File.remove(object_file)
+    try:
+        executable = await CXX.link(object_file, executable)
+    finally:
+        File.remove(object_file)
     return executable
 
 @build
@@ -27,7 +29,7 @@ class Moonlight:
     @provide
     def test_sources(self):
         return File.glob('test/*.cpp')
-    
+
     @provide
     def tests(self, test_sources):
         return [compile_and_link(src, File.drop_ext(src)) for src in test_sources]
@@ -37,3 +39,4 @@ class Moonlight:
     async def run_tests(self, temp, tests):
         for test in tests:
             await shell(File.abspath(test), cwd='test')
+

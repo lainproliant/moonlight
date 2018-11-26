@@ -121,6 +121,12 @@ private:
 };
 
 //-------------------------------------------------------------------
+inline void fail(const std::string& message = "Failed.")
+{
+   throw TestException(message);
+}
+
+//-------------------------------------------------------------------
 inline void assert_true(bool expr, const std::string& message = "Assertion failed.") {
    if (! expr) {
       throw AssertionFailed(message);

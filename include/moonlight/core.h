@@ -357,7 +357,7 @@ std::optional<typename T::value_type> at(const T& coll, int offset) {
    }
 
    if (offset >= coll.size()) {
-      return {}; 
+      return {};
    } else {
       return coll[offset];
    }
@@ -492,7 +492,7 @@ std::multimap<K, T> build(const K& key, const T& value, const KTV&... mappings) 
 
 //-------------------------------------------------------------------
 template<typename K, typename T, typename... KTV>
-void build(std::multimap<K, T>& mmap, const K& key, const T& value, 
+void build(std::multimap<K, T>& mmap, const K& key, const T& value,
            const KTV&... mappings) {
    mmap.insert({key, value});
    build(mmap, mappings...);
@@ -523,7 +523,7 @@ namespace collect {
 //-------------------------------------------------------------------
 template<typename T>
 inline bool contains(const T& coll, const typename T::value_type& v) {
-   return std::find(coll.begin(), coll.end(), v) != coll.end();   
+   return std::find(coll.begin(), coll.end(), v) != coll.end();
 }
 
 //-------------------------------------------------------------------
