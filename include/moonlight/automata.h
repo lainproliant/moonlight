@@ -77,8 +77,10 @@ public:
    }
 
    void pop() {
-      if (stack.size() > 0) {
+      try {
          stack.pop_back();
+      } catch (...) {
+         throw Error("The stack is empty.");
       }
    }
 
@@ -104,6 +106,9 @@ public:
       }
    }
 
+   std::vector<StatePointer> stack_trace() const {
+      return stack; 
+   }
 
 protected:
    StateMachine() { }
@@ -116,7 +121,7 @@ protected:
       snapshot->pop_back();
       snapshot->back()->run();
    }
-
+   
 private:
    std::vector<StatePointer> stack;
    std::optional<std::vector<StatePointer>> snapshot = {};
@@ -213,17 +218,19 @@ public:
    public:
       friend class Builder;
       using StateMachine<State<C>>::push;
+      using StateMachine<State<C>>::transition;
+      using StateMachine<State<C>>::reset;
 
       void push(const K& name) {
          push(state(name));
       }
 
       void transition(const K& name) {
-         push(state(name));
+         transition(state(name));
       }
 
       void reset(const K& name) {
-         push(state(name));
+         reset(state(name));
       }
 
       Pointer state(const K& name) {
@@ -253,6 +260,18 @@ public:
                          const typename Lambda<C, K>::Impl2& impl) {
          state_map.insert({name, make<Lambda<C, K>>(*this, context(), name, impl)});
          return *this;
+      }
+
+      std::vector<K> stack_trace() {
+         auto stacktrace = this->StateMachine<State<C>>::stack_trace();
+         std::vector<K> trace;
+         for (auto iter = stacktrace.rbegin();
+              iter != stacktrace.rend();
+              iter++) {
+            trace.push_back(std::static_pointer_cast<Lambda<C, K>>(*iter)->name());
+         }
+
+         return trace;
       }
 
    protected:

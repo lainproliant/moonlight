@@ -100,6 +100,7 @@ int main() {
       .context(Context())
       .state("init", [&] (auto& m) {
          std::cout << "init state" << std::endl;
+         std::cout << "trace: " << str::join(m.stack_trace(), ",") << std::endl;
          m.context().x++;
 
          if (m.current()->name() == "init") {
@@ -109,6 +110,7 @@ int main() {
       })
       .state("a", [] (auto& m, auto c) {
          std::cout << "a state" << std::endl;
+         std::cout << "trace: " << str::join(m.stack_trace(), ",") << std::endl;
          m.parent();
          m.context().y++;
 
@@ -119,6 +121,7 @@ int main() {
       })
       .state("b", [] (auto& m) {
          std::cout << "b state" << std::endl;
+         std::cout << "trace: " << str::join(m.stack_trace(), ",") << std::endl;
          m.parent();
          m.context().x++;
          m.terminate();
@@ -144,7 +147,7 @@ int main() {
       std::cout << "machine.context().x = " << machine.context().x << std::endl;
       std::cout << "machine.context().y = " << machine.context().y << std::endl;
       assert_equal(machine.context().x, (int) 8);
-      assert_equal(machine.context().y, (int) 4);
+      assert_equal(machine.context().y, (int) 2);
    })
    .run();
 }
