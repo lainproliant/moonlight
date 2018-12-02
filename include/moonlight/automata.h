@@ -221,6 +221,35 @@ public:
       using StateMachine<State<C>>::transition;
       using StateMachine<State<C>>::reset;
 
+      Machine(const C& context) :
+      context_(context), StateMachine<State<C>>() { }
+
+      template<class T, class... TD>
+      void push_state(TD... params) {
+         auto state = derive_state<T>();
+         push(state);
+         state->init(std::forward<TD>(params)...);
+      }
+
+      template<class T, class... TD>
+      void transition_state(TD... params) {
+         auto state = derive_state<T>();
+         transition(state);
+         state->init(std::forward<TD>(params)...);
+      }
+
+      template<class T, class... TD>
+      void reset_state(TD... params) {
+         auto state = derive_state<T>();
+         reset(state);
+         state->init(std::forward<TD>(params)...);
+      }
+
+      template<class T, class... TD>
+      std::shared_ptr<T> derive_state(TD... params) {
+         return make<T>(*this, context(), std::forward<TD>(params)...);
+      }
+
       void push(const K& name) {
          push(state(name));
       }
@@ -274,10 +303,6 @@ public:
          return trace;
       }
 
-   protected:
-      Machine(const C& context)
-      : context_(context) { }
-
    private:
       C context_;
       std::map<K, typename Lambda<C, K>::Pointer> state_map;
@@ -285,13 +310,11 @@ public:
 
    class Builder {
    public:
+      friend class Lambda<C, K>;
+
       Machine build() {
          if (! context_) {
             throw Error("Context must be provided via Builder::context()");
-         }
-
-         if (! init_state_) {
-            throw Error("Initial state must be provided via Builder::init()");
          }
 
          Machine machine = Machine(*context_);
@@ -301,8 +324,11 @@ public:
          for (auto iter : state_map_2) {
             machine.def_state(iter.first, iter.second);
          }
+         
+         if (init_state_) {
+            machine.push(machine.state(*init_state_));
+         }
 
-         machine.push(machine.state(*init_state_));
          return machine;
       }
 

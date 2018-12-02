@@ -152,5 +152,35 @@ int main() {
       assert_equal(machine.context().x, (int) 8);
       assert_equal(machine.context().y, (int) 2);
    })
+   .test("mixed lambdas and OOP states", []() {
+      struct Context {
+         int x = 0, y = 0;
+      };
+
+      class MixedState : public automata::State<Context> {
+      public:
+         using State::State;
+
+         void run() {
+            context().y ++;
+            machine().terminate();
+         }
+      };
+      
+      auto machine = automata::Lambda<Context>::builder()
+      .context(Context())
+      .build();
+
+      machine.def_state("init", [](auto& m) {
+         m.context().x ++;
+         m.template push_state<MixedState>();
+      });
+      
+      machine.push("init");
+      machine.run_until_complete();
+
+      assert_equal(machine.context().x, (int) 1);
+      assert_equal(machine.context().y, (int) 1);
+   })
    .run();
 }

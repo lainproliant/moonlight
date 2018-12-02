@@ -52,5 +52,22 @@ int main() {
 
          assert_equal(x, (int) 1);
       })
+      .test("file::Writable test", []() {
+         class Junk : public file::Writable<Junk> {
+         public:
+            Junk(int x)
+            : x(x) { }
+
+            std::string repr() const {
+               return str::cat("<Junk ", x, ">");
+            }
+
+         private:
+            int x;
+         };
+
+         std::cout << Junk(1) << std::endl;
+         assert_equal(std::string("<Junk 1>"), Junk(1).repr());
+      })
       .run();
 }

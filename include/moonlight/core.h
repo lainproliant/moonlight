@@ -687,7 +687,17 @@ std::string to_string(const std::string& filename) {
    return to_string(infile);
 }
 
-}
+//-------------------------------------------------------------------
+template<class T>
+class Writable {
+public:
+   virtual std::string repr() const = 0;
+   friend std::ostream& operator<<(std::ostream& out, const T& obj) {
+      out << obj.repr();
+      return out;
+   }
+};
 
+}
 }
 
