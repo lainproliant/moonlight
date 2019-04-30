@@ -108,6 +108,10 @@ public:
       }
    }
 
+   const std::vector<std::string>& args() const {
+      return args_;
+   }
+
    static CommandLine parse(const std::vector<std::string>& argv,
                             const std::set<std::string>& flag_names = {},
                             const std::set<std::string>& opt_names = {}) {
@@ -119,7 +123,7 @@ public:
          if (arg == "--") {
             // All following args are true args.
             for (x++; x < argv.size(); x++) {
-               results.args.push_back(argv[x]);
+               results.args_.push_back(argv[x]);
             }
 
          } else if (str::startswith(arg, "--")) {
@@ -198,7 +202,7 @@ public:
 
          } else {
             // This is just a plain old arg.
-            results.args.push_back(arg);
+            results.args_.push_back(arg);
          }
       }
 
@@ -211,7 +215,7 @@ private:
    std::map<std::string, int> flag_counts;
    std::map<std::string, std::string> opts;
    std::multimap<std::string, std::string> multi_opts;
-   std::vector<std::string> args;
+   std::vector<std::string> args_;
 };
 
 //-------------------------------------------------------------------

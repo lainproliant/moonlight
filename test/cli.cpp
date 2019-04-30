@@ -21,6 +21,7 @@ int main() {
          assert_equal(std::string("1"), cmd.require("b", "bananas"));
          assert_true(cmd.check("v", "verbose"));
          assert_true(!cmd.check("f", "force"));
+         lists_equal(cmd.args(), {"oranges"});
       })
       .run();
 }
