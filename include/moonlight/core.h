@@ -71,20 +71,20 @@ struct pass {
 
 //-------------------------------------------------------------------
 template<typename T, typename... TD>
-void _to_vector(std::vector<T>& vec) {
+inline void _to_vector(std::vector<T>& vec) {
    (void)vec;
 }
 
 //-------------------------------------------------------------------
 template<typename T, typename... TD>
-void _to_vector(std::vector<T>& vec, const T& item, const TD&... items) {
+inline void _to_vector(std::vector<T>& vec, const T& item, const TD&... items) {
    vec.push_back(item);
    _to_vector(vec, items...);
 }
 
 //-------------------------------------------------------------------
 template<typename T, typename... TD>
-std::vector<T> to_vector(const T& item, const TD&... items) {
+inline std::vector<T> to_vector(const T& item, const TD&... items) {
    std::vector<T> vec;
    _to_vector(vec, item, items...);
    return vec;
@@ -92,18 +92,18 @@ std::vector<T> to_vector(const T& item, const TD&... items) {
 }
 
 namespace str {
-void _cat(std::ostringstream& sb) {
+inline void _cat(std::ostringstream& sb) {
    (void) sb;
 }
 
 template<typename T, typename... TD>
-void _cat(std::ostringstream& sb, const T& element, const TD&... elements) {
+inline void _cat(std::ostringstream& sb, const T& element, const TD&... elements) {
    sb << element;
    _cat(sb, elements...);
 }
 
 template<typename T, typename... TD>
-std::string cat(const T element, const TD&... elements) {
+inline std::string cat(const T element, const TD&... elements) {
    std::ostringstream sb;
    _cat(sb, element, elements...);
    return sb.str();
@@ -112,16 +112,16 @@ std::string cat(const T element, const TD&... elements) {
 /**------------------------------------------------------------------
  * Determine if one string starts with another's characters.
  */
-bool startswith(const std::string& str,
-                const std::string& prefix) {
+inline bool startswith(const std::string& str,
+                       const std::string& prefix) {
    return ! str.compare(0, prefix.size(), prefix);
 }
 
 /**------------------------------------------------------------------
  * Determine if one string ends with another's characters.
  */
-bool endswith(const std::string& str,
-              const std::string& suffix) {
+inline bool endswith(const std::string& str,
+                     const std::string& suffix) {
    return suffix.length() <= str.length() &&
    ! str.compare(str.length() - suffix.length(),
                  suffix.length(), suffix);
@@ -131,7 +131,7 @@ bool endswith(const std::string& str,
  * Join the given iterable collection into a token delimited string.
  */
 template<typename T>
-std::string join(const T& coll, const std::string& token = "") {
+inline std::string join(const T& coll, const std::string& token = "") {
    std::ostringstream sb;
 
    for (typename T::const_iterator i = coll.begin(); i != coll.end();
@@ -152,7 +152,7 @@ std::string join(const T& coll, const std::string& token = "") {
  *    elements will be appended.
  */
 template <typename T>
-void split(T& tokens, const std::string& s, const std::string& delimiter) {
+inline void split(T& tokens, const std::string& s, const std::string& delimiter) {
    std::string::size_type from = 0;
    std::string::size_type to = 0;
 
@@ -173,8 +173,8 @@ void split(T& tokens, const std::string& s, const std::string& delimiter) {
  * @return The contents of the string, minus the delimiters,
  *    split along the delimiter boundaries in a linked list.
  */
-std::vector<std::string> split(const std::string& s,
-                               const std::string& delimiter) {
+inline std::vector<std::string> split(const std::string& s, const std::string&
+                                      delimiter) {
    std::vector<std::string> tokens;
    split(tokens, s, delimiter);
    return tokens;
@@ -183,7 +183,7 @@ std::vector<std::string> split(const std::string& s,
 /**------------------------------------------------------------------
  * Create a string consisting of a single character.
  */
-std::string chr(char c) {
+inline std::string chr(char c) {
    std::string str;
    str.push_back(c);
    return str;
@@ -192,7 +192,7 @@ std::string chr(char c) {
 /**------------------------------------------------------------------
  * Trim all whitespace from the left.
  */
-std::string trim_left(const std::string& s) {
+inline std::string trim_left(const std::string& s) {
    std::string copy = s;
    copy.erase(copy.begin(),
               std::find_if(copy.begin(),
@@ -204,7 +204,7 @@ std::string trim_left(const std::string& s) {
 /**------------------------------------------------------------------
  * Trim all whitespace from the right.
  */
-std::string trim_right(const std::string& s) {
+inline std::string trim_right(const std::string& s) {
    std::string copy = s;
    copy.erase(
        std::find_if(
@@ -219,7 +219,7 @@ std::string trim_right(const std::string& s) {
 /**------------------------------------------------------------------
  * Trim all whitespace from the left or right.
  */
-std::string trim(const std::string& s) {
+inline std::string trim(const std::string& s) {
    return trim_left(trim_right(s));
 }
 }
@@ -273,7 +273,7 @@ private:
 };
 
 //-------------------------------------------------------------------
-std::vector<std::string> generate_stacktrace(int max_frames = 256) {
+inline std::vector<std::string> generate_stacktrace(int max_frames = 256) {
    (void) max_frames;
 #ifdef MOONLIGHT_ENABLE_STACKTRACE
    void* frames[max_frames];
@@ -295,7 +295,7 @@ std::vector<std::string> generate_stacktrace(int max_frames = 256) {
 }
 
 //-------------------------------------------------------------------
-std::string format_stacktrace(const std::vector<std::string>& stacktrace) {
+inline std::string format_stacktrace(const std::vector<std::string>& stacktrace) {
    std::ostringstream sb;
    sb << "Stack Trace --> \n\t" << str::join(stacktrace, "\n\t");
    return sb.str();
@@ -351,7 +351,7 @@ class NotImplementedException : public Exception {
 namespace splice {
 template<typename T>
 //-------------------------------------------------------------------
-std::optional<typename T::value_type> at(const T& coll, int offset) {
+inline std::optional<typename T::value_type> at(const T& coll, int offset) {
    if (offset < 0) {
       offset += coll.size();
    }
@@ -365,7 +365,7 @@ std::optional<typename T::value_type> at(const T& coll, int offset) {
 
 //-------------------------------------------------------------------
 template<typename T>
-T from_to(const T& coll, int begin_offset, int end_offset) {
+inline T from_to(const T& coll, int begin_offset, int end_offset) {
    T spliced;
 
    if (begin_offset < 0) {
@@ -389,13 +389,13 @@ T from_to(const T& coll, int begin_offset, int end_offset) {
 
 //-------------------------------------------------------------------
 template<typename T>
-T begin(const T& coll, int begin_offset) {
+inline T begin(const T& coll, int begin_offset) {
    return from_to(coll, begin_offset, coll.size());
 }
 
 //-------------------------------------------------------------------
 template<typename T>
-T end(const T& coll, int end_offset) {
+inline T end(const T& coll, int end_offset) {
    return from_to(coll, 0, end_offset);
 }
 }
@@ -405,7 +405,7 @@ namespace maps {
  * Copy a vector of the keys from the given map-like iterable.
  */
 template<typename T>
-std::vector<typename T::key_type> keys(const T& map) {
+inline std::vector<typename T::key_type> keys(const T& map) {
    std::vector<typename T::key_type> kvec;
 
    for (auto iter = map.cbegin(); iter != map.cend(); iter++) {
@@ -419,7 +419,7 @@ std::vector<typename T::key_type> keys(const T& map) {
  * Copy a vector of the values from the given map-like iterable.
  */
 template<typename T>
-std::vector<typename T::mapped_type> values(const T& map) {
+inline std::vector<typename T::mapped_type> values(const T& map) {
    std::vector<typename T::mapped_type> vvec;
 
    for (auto iter = map.cbegin(); iter != map.cend(); iter++) {
@@ -430,7 +430,7 @@ std::vector<typename T::mapped_type> values(const T& map) {
 }
 
 template<typename T>
-const typename T::mapped_type& const_value(const T& map, const typename T::key_type& key) {
+inline const typename T::mapped_type& const_value(const T& map, const typename T::key_type& key) {
    auto iter = map.find(key);
    if (iter != map.end()) {
       return iter->second;
@@ -462,7 +462,7 @@ struct mapping {
  * ```
  */
 template<typename K, typename T>
-std::multimap<K, T> build(const std::vector<mapping<K, T>>& mappings) {
+inline std::multimap<K, T> build(const std::vector<mapping<K, T>>& mappings) {
    std::multimap<K, T> mmap;
    for (auto mapping : mappings) {
       for (auto value : mapping.values) {
@@ -484,7 +484,7 @@ std::multimap<K, T> build(const std::vector<mapping<K, T>>& mappings) {
  * ```
  */
 template<typename K, typename T, typename... KTV>
-std::multimap<K, T> build(const K& key, const T& value, const KTV&... mappings) {
+inline std::multimap<K, T> build(const K& key, const T& value, const KTV&... mappings) {
    std::multimap<K, T> mmap;
    build(mmap, key, value, mappings...);
    return mmap;
@@ -492,22 +492,22 @@ std::multimap<K, T> build(const K& key, const T& value, const KTV&... mappings) 
 
 //-------------------------------------------------------------------
 template<typename K, typename T, typename... KTV>
-void build(std::multimap<K, T>& mmap, const K& key, const T& value,
-           const KTV&... mappings) {
+inline void build(std::multimap<K, T>& mmap, const K& key, const T& value,
+                  const KTV&... mappings) {
    mmap.insert({key, value});
    build(mmap, mappings...);
 }
 
 template<typename K, typename T>
-void build(std::multimap<K, T>& mmap) { (void) mmap; }
+inline void build(std::multimap<K, T>& mmap) { (void) mmap; }
 
 /**------------------------------------------------------------------
  * Collect all values from the given multimap-like iterable that match
  * the given key.
  */
 template<typename M>
-std::vector<typename M::mapped_type> collect(const M& mmap,
-                                   const typename M::key_type& key) {
+inline std::vector<typename M::mapped_type> collect(const M& mmap,
+                                                    const typename M::key_type& key) {
    std::vector<typename M::mapped_type> values;
    auto range = mmap.equal_range(key);
 
@@ -540,7 +540,7 @@ inline bool contains(const std::map<K, V>& map, const K& v) {
 
 //-------------------------------------------------------------------
 template<typename T, typename... TV>
-std::vector<typename T::value_type> flatten(const T& coll, const TV&... collections) {
+inline std::vector<typename T::value_type> flatten(const T& coll, const TV&... collections) {
    std::vector<typename T::value_type> flattened;
    flatten(flattened, coll, collections...);
    return flattened;
@@ -548,7 +548,7 @@ std::vector<typename T::value_type> flatten(const T& coll, const TV&... collecti
 
 //-------------------------------------------------------------------
 template<typename T, typename... TV>
-void flatten(std::vector<typename T::value_type>& flattened, const T& coll, const TV&... collections) {
+inline void flatten(std::vector<typename T::value_type>& flattened, const T& coll, const TV&... collections) {
    for (auto v : coll) {
       flattened.push_back(v);
    }
@@ -557,11 +557,11 @@ void flatten(std::vector<typename T::value_type>& flattened, const T& coll, cons
 
 //-------------------------------------------------------------------
 template<typename T>
-void flatten(std::vector<T>& flattened) { (void) flattened; }
+inline void flatten(std::vector<T>& flattened) { (void) flattened; }
 
 //-------------------------------------------------------------------
 template<typename T>
-T filter(const T& coll, const std::function<bool(typename T::value_type)>& f) {
+inline T filter(const T& coll, const std::function<bool(typename T::value_type)>& f) {
    T result;
    for (auto v : coll) {
       if (f(v)) {
@@ -573,14 +573,14 @@ T filter(const T& coll, const std::function<bool(typename T::value_type)>& f) {
 
 //-------------------------------------------------------------------
 template<typename T>
-std::shared_ptr<T> filter(const std::shared_ptr<T>& coll,
-                          const std::function<bool(typename T::value_type)>& f) {
+inline std::shared_ptr<T> filter(const std::shared_ptr<T>& coll,
+                                 const std::function<bool(typename T::value_type)>& f) {
    return std::make_shared<T>(filter<typename std::shared_ptr<T>::element_type>(*coll, f));
 }
 
 //-------------------------------------------------------------------
 template<typename C1>
-C1 sorted(const C1& src) {
+inline C1 sorted(const C1& src) {
    C1 result;
    std::copy(src.begin(), src.end(), std::back_inserter(result));
    std::sort(result.begin(), result.end());
@@ -589,8 +589,8 @@ C1 sorted(const C1& src) {
 
 //-------------------------------------------------------------------
 template<typename C1>
-C1 sorted(const C1& src, std::function<bool (const typename C1::value_type& a,
-                                             const typename C1::value_type& b)> comp) {
+inline C1 sorted(const C1& src, std::function<bool (const typename C1::value_type& a,
+                                                    const typename C1::value_type& b)> comp) {
    C1 result;
    std::copy(src.begin(), src.end(), std::back_inserter(result));
    std::sort(result.begin(), result.end(), comp);
@@ -599,7 +599,7 @@ C1 sorted(const C1& src, std::function<bool (const typename C1::value_type& a,
 
 //-------------------------------------------------------------------
 template<typename T, typename C1>
-std::vector<T> map(const C1& src, std::function<T (const typename C1::value_type&)> f) {
+inline std::vector<T> map(const C1& src, std::function<T (const typename C1::value_type&)> f) {
    std::vector<T> result;
    for (auto v : src) {
       result.push_back(f(v));
@@ -609,7 +609,7 @@ std::vector<T> map(const C1& src, std::function<T (const typename C1::value_type
 
 //-------------------------------------------------------------------
 template<typename C>
-std::set<typename C::value_type> set(const C& src) {
+inline std::set<typename C::value_type> set(const C& src) {
    std::set<typename C::value_type> result;
    std::copy(src.begin(), src.end(), std::back_inserter(result));
    return result;
@@ -623,8 +623,8 @@ class FileException : public core::Exception {
 };
 
 //-------------------------------------------------------------------
-std::ifstream open_r(const std::string& filename,
-                     std::ios::openmode mode = std::ios::in) {
+inline std::ifstream open_r(const std::string& filename,
+                            std::ios::openmode mode = std::ios::in) {
    try {
       std::ifstream infile;
       infile.exceptions(std::ios::failbit);
@@ -641,8 +641,8 @@ std::ifstream open_r(const std::string& filename,
 }
 
 //-------------------------------------------------------------------
-std::ofstream open_w(const std::string& filename,
-                     std::ios::openmode = std::ios::out) {
+inline std::ofstream open_w(const std::string& filename,
+                            std::ios::openmode = std::ios::out) {
    try {
       std::ofstream outfile;
       outfile.exceptions(std::ios::failbit);
@@ -659,8 +659,8 @@ std::ofstream open_w(const std::string& filename,
 }
 
 //-------------------------------------------------------------------
-std::fstream open_rw(const std::string& filename,
-                     std::ios::openmode mode = std::ios::in | std::ios::out) {
+inline std::fstream open_rw(const std::string& filename,
+                            std::ios::openmode mode = std::ios::in | std::ios::out) {
    try {
       std::fstream outfile;
       outfile.exceptions(std::ios::failbit);
@@ -677,12 +677,12 @@ std::fstream open_rw(const std::string& filename,
 }
 
 //-------------------------------------------------------------------
-std::string to_string(std::istream& infile) {
+inline std::string to_string(std::istream& infile) {
    return std::string(std::istreambuf_iterator<char>(infile), {});
 }
 
 //-------------------------------------------------------------------
-std::string to_string(const std::string& filename) {
+inline std::string to_string(const std::string& filename) {
    auto infile = open_r(filename);
    return to_string(infile);
 }
