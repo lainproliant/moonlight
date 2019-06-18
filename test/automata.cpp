@@ -163,7 +163,7 @@ int main() {
 
          void run() {
             context.y ++;
-            machine().terminate();
+            machine.terminate();
          }
       };
       

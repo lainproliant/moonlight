@@ -136,51 +136,48 @@ public:
    typedef std::shared_ptr<State<C>> Pointer;
 
    State(StateMachine<State<C>>& machine, C& context)
-   : machine_(machine), context(context) { }
+   : machine(machine), context(context) { }
    virtual ~State() { }
 
    virtual void run() = 0;
    void init() { }
 
    void terminate() {
-      machine().terminate();
+      machine.terminate();
    }
 
 protected:
    C& context;
-
-   StateMachine<State<C>>& machine() {
-      return machine_;
-   }
+   StateMachine<State<C>>& machine;
 
    template<class T, class... TD>
    void push(TD... params) {
       auto state = derive<T>();
-      machine().push(state);
+      machine.push(state);
       state->init(std::forward<TD>(params)...);
    }
 
    template<class T, class... TD>
    void transition(TD... params) {
       auto state = derive<T>();
-      machine().transition(state);
+      machine.transition(state);
       state->init(std::forward<TD>(params)...);
    }
 
    template<class T, class... TD>
    void reset(TD... params) {
       auto state = derive<T>();
-      machine().reset(state);
+      machine.reset(state);
       state->init(std::forward<TD>(params)...);
    }
 
    template<class T, class... TD>
    std::shared_ptr<T> derive(TD... params) {
-      return make<T>(machine_, context, std::forward<TD>(params)...);
+      return make<T>(machine, context, std::forward<TD>(params)...);
    }
 
    void pop() {
-      machine().pop();
+      machine.pop();
    }
 
    bool is_current() {
@@ -188,15 +185,13 @@ protected:
    }
 
    Pointer current() {
-      return machine_.current();
+      return machine.current();
    }
 
    void parent() {
-      return machine_.parent();
+      return machine.parent();
    }
 
-private:
-   StateMachine<State<C>>& machine_;
 };
 
 //-------------------------------------------------------------------
