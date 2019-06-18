@@ -136,7 +136,7 @@ public:
    typedef std::shared_ptr<State<C>> Pointer;
 
    State(StateMachine<State<C>>& machine, C& context)
-   : machine_(machine), context_(context) { }
+   : machine_(machine), context(context) { }
    virtual ~State() { }
 
    virtual void run() = 0;
@@ -147,12 +147,10 @@ public:
    }
 
 protected:
+   C& context;
+
    StateMachine<State<C>>& machine() {
       return machine_;
-   }
-
-   C& context() {
-      return context_;
    }
 
    template<class T, class... TD>
@@ -178,7 +176,7 @@ protected:
 
    template<class T, class... TD>
    std::shared_ptr<T> derive(TD... params) {
-      return make<T>(machine_, context_, std::forward<TD>(params)...);
+      return make<T>(machine_, context, std::forward<TD>(params)...);
    }
 
    void pop() {
@@ -199,7 +197,6 @@ protected:
 
 private:
    StateMachine<State<C>>& machine_;
-   C& context_;
 };
 
 //-------------------------------------------------------------------
@@ -220,9 +217,10 @@ public:
       using StateMachine<State<C>>::push;
       using StateMachine<State<C>>::transition;
       using StateMachine<State<C>>::reset;
+      C context;
 
       Machine(const C& context) :
-      context_(context), StateMachine<State<C>>() { }
+      context(context), StateMachine<State<C>>() { }
 
       template<class T, class... TD>
       void push_state(TD... params) {
@@ -247,7 +245,7 @@ public:
 
       template<class T, class... TD>
       std::shared_ptr<T> derive_state(TD... params) {
-         return make<T>(*this, context(), std::forward<TD>(params)...);
+         return make<T>(*this, context, std::forward<TD>(params)...);
       }
 
       void push(const K& name) {
@@ -271,23 +269,19 @@ public:
          }
       }
 
-      C& context() {
-         return context_;
-      }
-
       Pointer current() {
          return std::static_pointer_cast<Lambda<C, K>>(this->current_state());
       }
 
       Machine& def_state(const K& name,
                          const typename Lambda<C, K>::Impl1& impl) {
-         state_map.insert({name, make<Lambda<C, K>>(*this, context(), name, impl)});
+         state_map.insert({name, make<Lambda<C, K>>(*this, context, name, impl)});
          return *this;
       }
 
       Machine& def_state(const K& name,
                          const typename Lambda<C, K>::Impl2& impl) {
-         state_map.insert({name, make<Lambda<C, K>>(*this, context(), name, impl)});
+         state_map.insert({name, make<Lambda<C, K>>(*this, context, name, impl)});
          return *this;
       }
 
@@ -304,7 +298,6 @@ public:
       }
 
    private:
-      C context_;
       std::map<K, typename Lambda<C, K>::Pointer> state_map;
    };
 
