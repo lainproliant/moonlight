@@ -18,13 +18,14 @@ inline unsigned long get_ticks() {
    return tp.tv_sec + (tp.tv_nsec / 1000000UL);
 }
 
-inline std::shared_ptr<Timer<unsigned long>> create_timer(
-    unsigned long interval, bool accumulate = false) {
+typedef std::shared_ptr<Timer<unsigned long>> TimerPointer;
+typedef std::shared_ptr<FrameCalculator<unsigned long>> FrameCalculatorPointer;
+
+inline TimerPointer create_timer(unsigned long interval, bool accumulate = false) {
    return Timer<unsigned long>::create(get_ticks, interval, accumulate);
 }
 
-inline std::shared_ptr<FrameCalculator<unsigned long>> create_frame_calculator(
-    std::shared_ptr<const Timer<unsigned long>> timer) {
+inline FrameCalculatorPointer create_frame_calculator(TimerPointer timer) {
    return std::make_shared<FrameCalculator<unsigned long>>(create_timer(1000), timer);
 }
 
