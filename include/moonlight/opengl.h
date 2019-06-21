@@ -4,6 +4,7 @@
  * Author: Lain Musgrove (lainproliant)
  * Date:   Friday Jun 21 2019
  */
+#pragma once
 #include "moonlight/core.h"
 #include <GL/glew.h>
 #include <string>
