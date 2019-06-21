@@ -5,7 +5,6 @@
  * Date: Wednesday Jun 19 2019
  */
 #pragma once
-#include <SDL2/SDL.h>
 #include "moonlight/time.h"
 
 namespace moonlight {

@@ -182,5 +182,50 @@ int main() {
       assert_equal(machine.context.x, (int) 1);
       assert_equal(machine.context.y, (int) 1);
    })
+   .test("State init and cleanup functions called appropriately.", []() {
+      struct Context {
+         int init_called = 0;
+         int run_called = 0;
+         int cleanup_called = 0;
+      };
+
+      typedef automata::State<Context> State;
+
+      class SampleState : public State {
+      public:
+         using State::State;
+
+         ~SampleState() {
+            context.cleanup_called ++;
+         }
+
+         void init() {
+            context.init_called ++;
+         }
+
+         void run() override {
+            if (context.run_called == 0) {
+               context.run_called ++;
+               push<SampleState>();
+
+            } else {
+               context.run_called ++;
+               pop();
+            }
+         }
+      };
+      
+      Context context;
+      auto machine = State::Machine::init<SampleState>(context);
+      machine.run_until_complete();
+
+      std::cout << "context.init_called = " << context.init_called << std::endl;
+      std::cout << "context.run_called = " << context.run_called << std::endl;
+      std::cout << "context.cleanup_called = " << context.cleanup_called << std::endl;
+
+      assert_equal(context.init_called, 2);
+      assert_equal(context.run_called, 3);
+      assert_equal(context.cleanup_called, 2);
+   })
    .run();
 }

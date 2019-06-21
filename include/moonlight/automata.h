@@ -45,10 +45,9 @@ public:
       if (! current()) {
          throw Error("StateMachine has no initial state.");
       }
-
-      StatePointer state;
-      while ((state = current())) {
-         state->run();
+      
+      while (current()) {
+         current()->run();
       }
    }
 
@@ -191,7 +190,6 @@ protected:
    void parent() {
       return machine.parent();
    }
-
 };
 
 //-------------------------------------------------------------------
