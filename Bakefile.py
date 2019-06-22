@@ -9,7 +9,7 @@ CXX.CFLAGS = [
     '-DMOONLIGHT_ENABLE_STACKTRACE',
     '-DMOONLIGHT_STACKTRACE_IN_DESCRIPTION'
 ]
-CXX.LDFLAGS = ['-g', '-lpthread']
+CXX.LDFLAGS = ['-rdynamic', '-g', '-lpthread', '-ldl']
 
 @recipe('executable', check='src', temp='executable')
 async def compile_and_link(src, executable):

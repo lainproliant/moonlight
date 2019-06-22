@@ -24,6 +24,8 @@
 
 #ifdef MOONLIGHT_ENABLE_STACKTRACE
 #include <execinfo.h>
+#include <dlfcn.h>
+#include <cxxabi.h>
 #endif
 
 //-------------------------------------------------------------------
@@ -276,16 +278,34 @@ private:
 inline std::vector<std::string> generate_stacktrace(int max_frames = 256) {
    (void) max_frames;
 #ifdef MOONLIGHT_ENABLE_STACKTRACE
-   void* frames[max_frames];
-   char** formatted_frames;
-   size_t num_frames = backtrace(frames, max_frames);
+#define MOONLIGHT_STACKTRACE_LINE_BUFSIZE 1024
    std::vector<std::string> btvec;
-   formatted_frames = backtrace_symbols(frames, num_frames);
-   for (size_t x = 0; x < num_frames; x++) {
-      std::string formatted_frame = std::string(formatted_frames[x]);
-      if (formatted_frame.size() > 0) {
-         btvec.push_back(formatted_frame);
+   char buf[MOONLIGHT_STACKTRACE_LINE_BUFSIZE];
+   void* callstack[max_frames];
+   char** symbols;
+   size_t num_frames = backtrace(callstack, max_frames);
+   symbols = backtrace_symbols(callstack, num_frames);
+   for (int x = 1; x < num_frames; x++) {
+      Dl_info info;
+      if (dladdr(callstack[x], &info) && info.dli_sname) {
+         char* demangled = nullptr;
+         int status = -1;
+         if (info.dli_sname[0] == '_') {
+            demangled = abi::__cxa_demangle(info.dli_sname, nullptr, 0, &status);
+            snprintf(buf, MOONLIGHT_STACKTRACE_LINE_BUFSIZE, "[%3d] %*p %s +%zd",
+                     x, int(2 + sizeof(void*) * 2), callstack[x],
+                     status == 0 ? demangled :
+                     info.dli_sname == 0 ? symbols[x] : info.dli_sname,
+                     (char *)callstack[x] - (char *)info.dli_saddr);
+            free(demangled);
+         }
+      } else {
+         snprintf(buf, MOONLIGHT_STACKTRACE_LINE_BUFSIZE, "[%3d] %*p %s", x,
+                  int(2 + sizeof(void*) * 2), callstack[x],
+                  symbols[x]);
       }
+
+      btvec.push_back(std::string(buf));
    }
 #else
    std::vector<std::string> btvec(0);
