@@ -8,17 +8,17 @@ using namespace moonlight::test;
 
 double run_timer_sim(int fps, const unsigned int frames) {
    auto timer = time::posix::create_timer(1000 / fps);
-   timer->start();
+   timer.start();
 
    double totalErrorTime = 0.0;
    unsigned long terr;
 
-   while (timer->frames() < frames) {
-      if (timer->update(&terr)) {
+   while (timer.frames() < frames) {
+      if (timer.update(&terr)) {
          totalErrorTime += terr;
 
       } else {
-         usleep(timer->wait_time() + 5 + rand() % 5);
+         usleep(timer.wait_time() + 5 + rand() % 5);
       }
    }
 
@@ -40,15 +40,18 @@ int main() {
       }
    })
    .test("Sample physics and graphics timers", []() {
-      const int SECONDS = 15;
+      const int SECONDS = 3;
       const int GRAPHICS_FPS = 30;
       const int PHYSICS_FPS = 100;
 
       auto graphics_timer = time::posix::create_timer(1000 / GRAPHICS_FPS);
       auto physics_timer = time::posix::create_timer(1000 / PHYSICS_FPS, true); // accumulate
 
-      graphics_timer->start();
-      physics_timer->start();
+      graphics_timer.start();
+      physics_timer.start();
+
+      auto graphics_fps = time::posix::create_frame_calculator(graphics_timer);
+      auto physics_fps = time::posix::create_frame_calculator(physics_timer);
 
       auto startTime = time::posix::get_ticks();
       double totalRenderTime = 0.0;
@@ -58,7 +61,10 @@ int main() {
       while (time::posix::get_ticks() - startTime < (1000 * SECONDS)) {
          unsigned long terr;
 
-         if (graphics_timer->update(&terr)) {
+         graphics_fps.update();
+         physics_fps.update();
+
+         if (graphics_timer.update(&terr)) {
             uint32_t renderStart = time::posix::get_ticks();
             usleep(5 + rand() % 5);
             uint32_t renderEnd = time::posix::get_ticks();
@@ -66,26 +72,30 @@ int main() {
             totalRenderErrorTime += terr;
          }
 
-         while (physics_timer->update(&terr)) {
+         while (physics_timer.update(&terr)) {
             totalPhysicsErrorTime += terr;
             usleep(rand() % 5);
          }
 
-         usleep(graphics_timer->wait_time());
+         usleep(graphics_timer.wait_time());
       }
 
-      double avgRenderErrorTime = totalRenderErrorTime / graphics_timer->frames();
-      double avgPhysicsErrorTime = totalPhysicsErrorTime / physics_timer->frames();
-      double avgRenderTime = totalRenderTime / graphics_timer->frames();
+      double avgRenderErrorTime = totalRenderErrorTime / graphics_timer.frames();
+      double avgPhysicsErrorTime = totalPhysicsErrorTime / physics_timer.frames();
+      double avgRenderTime = totalRenderTime / graphics_timer.frames();
       double correctedAvgPhysicsErrorTime = avgPhysicsErrorTime - avgRenderTime;
 
       std::cout << std::endl;
       std::cout << "Total graphics frames: "
-         << graphics_timer->frames() << std::endl
+         << graphics_timer.frames() << std::endl
          << "Total physics frames: "
-         << physics_timer->frames() << std::endl
+         << physics_timer.frames() << std::endl
+         << "Physics FPS: "
+         << physics_fps.get_fps() << std::endl
          << "Avg render time: "
-         << totalRenderTime / graphics_timer->frames() << std::endl
+         << totalRenderTime / graphics_timer.frames() << std::endl
+         << "Render FPS: "
+         << graphics_fps.get_fps() << std::endl
          << "Avg physics error time - avg render time: "
          << correctedAvgPhysicsErrorTime << std::endl
          << "Avg render error time: "

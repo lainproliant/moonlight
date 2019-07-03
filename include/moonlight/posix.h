@@ -14,18 +14,18 @@ namespace posix {
 inline unsigned long get_ticks() {
    struct timespec tp;
    clock_gettime(CLOCK_MONOTONIC, &tp);
-   return tp.tv_sec + (tp.tv_nsec / 1000000UL);
+   return tp.tv_sec * 1000 + (tp.tv_nsec / 1000000UL);
 }
 
-typedef std::shared_ptr<Timer<unsigned long>> TimerPointer;
-typedef std::shared_ptr<FrameCalculator<unsigned long>> FrameCalculatorPointer;
+typedef Timer<unsigned long> Timer;
+typedef FrameCalculator<unsigned long> FrameCalculator;
 
-inline TimerPointer create_timer(unsigned long interval, bool accumulate = false) {
-   return Timer<unsigned long>::create(get_ticks, interval, accumulate);
+inline Timer create_timer(unsigned long interval, bool accumulate = false) {
+   return Timer(get_ticks, interval, accumulate);
 }
 
-inline FrameCalculatorPointer create_frame_calculator(TimerPointer timer) {
-   return std::make_shared<FrameCalculator<unsigned long>>(create_timer(1000), timer);
+inline FrameCalculator create_frame_calculator(Timer& timer) {
+   return FrameCalculator(create_timer(1000), timer);
 }
 
 }

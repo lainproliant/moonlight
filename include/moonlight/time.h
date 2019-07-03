@@ -12,20 +12,25 @@
 
 namespace moonlight {
 namespace time {
-
    using namespace std;
 
    template<class T>
    class RelativeTimer;
 
    template <class T>
-   class Timer : public enable_shared_from_this<Timer<T>> {
+   class Timer {
    public:
       typedef function<T(void)> TimeFunction;
-      static shared_ptr<Timer<T>> create(TimeFunction getTime, T interval,
-            bool accumulate = false) {
-         return shared_ptr<Timer<T>>(new Timer<T>(getTime, interval, accumulate));
+
+      Timer(TimeFunction getTime, T interval, bool accumulate = false) :
+         getTime(getTime), interval(interval), accumulate(accumulate) {
+         t0 = 0;
+         t1 = 0;
+         tacc = 0;
+         frames_ = 0;
+         paused = true;
       }
+
 
       virtual ~Timer() { }
 
@@ -140,33 +145,32 @@ namespace time {
       }
 
    protected:
-      Timer(TimeFunction getTime, T interval, bool accumulate = false) :
-         getTime(getTime), interval(interval), accumulate(accumulate) {
-         t0 = 0;
-         t1 = 0;
-         tacc = 0;
-         frames_ = 0;
-         paused = true;
-      }
+      T interval;
+      bool accumulate;
 
    private:
-      bool paused, accumulate;
-      T t0, t1, t2, tacc, interval, frames_;
+      bool paused;
+      T t0, t1, t2, tacc, frames_;
       TimeFunction getTime;
    };
 
    template<class T>
    class RelativeTimer : public Timer<T> {
    public:
-      RelativeTimer(const shared_ptr<const Timer<T>>& referenceTimer, T interval, bool accumulate = false) :
-         Timer<T>([referenceTimer]() -> T {
-                     return referenceTimer->frames();
-                  }, interval, accumulate) { }
+      RelativeTimer(const Timer<T>& reference, T interval, bool accumulate = false) :
+         Timer<T>([reference]() -> T {
+                     return reference->frames();
+                  }, interval, accumulate),
+      reference(reference) { }
       virtual ~RelativeTimer() { }
 
-      shared_ptr<Timer<T>> copy() const override {
-         return shared_ptr<Timer<T>>(new RelativeTimer(*this));
+      RelativeTimer<T> copy() const override {
+         return RelativeTimer<T>(reference, this->interval,
+                                 this->accumulate);
       }
+
+   private:
+      const Timer<T>& reference;
    };
 
    /**
@@ -185,15 +189,16 @@ namespace time {
    template<class T>
    class FrameCalculator {
    public:
-      FrameCalculator(shared_ptr<Timer<T>> monitor_timer,
-                      shared_ptr<const Timer<T>> monitoring_timer) :
-         monitor_timer(monitor_timer), monitoring_timer(monitoring_timer) {
-         monitor_timer->start();
+      FrameCalculator(const Timer<T>& monitor_timer,
+                      const Timer<T>& monitoring_timer) :
+         monitor_timer(monitor_timer),
+         monitoring_timer(monitoring_timer) {
+         this->monitor_timer.start();
       }
 
       void update() {
-         if (monitor_timer->update()) {
-            T frames = monitoring_timer->frames();
+         if (monitor_timer.update()) {
+            T frames = monitoring_timer.frames();
             fps = frames - prev_frames;
             prev_frames = frames;
          }
@@ -201,16 +206,16 @@ namespace time {
 
       T get_fps() const {
          if (fps == 0) {
-            return monitoring_timer->frames();
+            return monitoring_timer.frames();
 
          } else {
             return fps;
          }
       }
-
+      
    private:
-      shared_ptr<Timer<T>> monitor_timer;
-      shared_ptr<const Timer<T>> monitoring_timer;
+      Timer<T> monitor_timer;
+      const Timer<T>& monitoring_timer;
 
       T fps = 0;
       T prev_frames = 0;

@@ -13,15 +13,15 @@ namespace moonlight {
 namespace time {
 namespace sdl2 {
 
-typedef std::shared_ptr<Timer<uint32_t>> TimerPointer;
-typedef std::shared_ptr<FrameCalculator<uint32_t>> FrameCalculatorPointer;
+typedef Timer<Uint32> Timer;
+typedef FrameCalculator<Uint32> FrameCalculator;
 
-inline TimerPointer create_timer(uint32_t interval, bool accumulate = false) {
-   return Timer<uint32_t>::create(SDL_GetTicks, interval, accumulate);
+inline Timer create_timer(Uint32 interval, bool accumulate = false) {
+   return Timer(SDL_GetTicks, interval, accumulate);
 }
 
-inline FrameCalculatorPointer create_frame_calculator(TimerPointer timer) {
-   return std::make_shared<FrameCalculator<uint32_t>>(create_timer(1000), timer);
+inline FrameCalculator create_frame_calculator(Timer& timer) {
+   return FrameCalculator(create_timer(1000), timer);
 }
 
 }
