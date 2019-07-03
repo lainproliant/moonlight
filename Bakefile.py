@@ -6,6 +6,7 @@ CXX.CFLAGS = [
     '-g',
     '--std=c++17',
     '-I./include',
+    '-DMOONLIGHT_DEBUG',
     '-DMOONLIGHT_ENABLE_STACKTRACE',
     '-DMOONLIGHT_STACKTRACE_IN_DESCRIPTION'
 ]

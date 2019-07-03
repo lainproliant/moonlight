@@ -30,10 +30,9 @@ public:
 
    template<class T, class... TD>
    static StateMachine<S> init(typename S::Context& context, TD... params) {
-      StateMachine<S> machine;
-      auto state = make<T>(machine, context);
+      StateMachine<S> machine(context);
+      auto state = make<T>(std::forward<TD>(params)...);
       machine.push(state);
-      state->init(std::forward<TD>(params)...);
       return machine;
    }
 
@@ -45,7 +44,7 @@ public:
       if (! current()) {
          throw Error("StateMachine has no initial state.");
       }
-      
+
       while (current()) {
          current()->run();
       }
@@ -62,15 +61,18 @@ public:
    }
 
    void push(StatePointer state) {
+      state->inject(this, &context);
       stack.push_back(state);
    }
 
    void transition(StatePointer state) {
+      state->inject(this, &context);
       pop();
       push(state);
    }
 
    void reset(StatePointer state) {
+      state->inject(this, &context);
       terminate();
       push(state);
    }
@@ -106,11 +108,14 @@ public:
    }
 
    std::vector<StatePointer> stack_trace() const {
-      return stack; 
+      return stack;
    }
 
+   typename S::Context& context;
+
 protected:
-   StateMachine() { }
+   StateMachine(typename S::Context& context) :
+   context(context) { }
 
    void _parent_impl() {
       if (snapshot->size() <= 1) {
@@ -120,7 +125,7 @@ protected:
       snapshot->pop_back();
       snapshot->back()->run();
    }
-   
+
 private:
    std::vector<StatePointer> stack;
    std::optional<std::vector<StatePointer>> snapshot = {};
@@ -134,49 +139,42 @@ public:
    typedef StateMachine<State<C>> Machine;
    typedef std::shared_ptr<State<C>> Pointer;
 
-   State(StateMachine<State<C>>& machine, C& context)
-   : machine(machine), context(context) { }
    virtual ~State() { }
 
    virtual void run() = 0;
-   void init() { }
+   void inject(StateMachine<State<C>>* machine, C* context) {
+      this->machine = machine;
+      this->context = context;
+   }
 
    void terminate() {
-      machine.terminate();
+      machine->terminate();
    }
 
 protected:
-   C& context;
-   StateMachine<State<C>>& machine;
+   C* context;
+   StateMachine<State<C>>* machine;
 
    template<class T, class... TD>
    void push(TD... params) {
-      auto state = derive<T>();
-      machine.push(state);
-      state->init(std::forward<TD>(params)...);
+      auto state = make<T>(std::forward<TD>(params)...);
+      machine->push(state);
    }
 
    template<class T, class... TD>
    void transition(TD... params) {
-      auto state = derive<T>();
-      machine.transition(state);
-      state->init(std::forward<TD>(params)...);
+      auto state = make<T>(std::forward<TD>(params)...);
+      machine->transition(state);
    }
 
    template<class T, class... TD>
    void reset(TD... params) {
-      auto state = derive<T>();
-      machine.reset(state);
-      state->init(std::forward<TD>(params)...);
-   }
-
-   template<class T, class... TD>
-   std::shared_ptr<T> derive(TD... params) {
-      return make<T>(machine, context, std::forward<TD>(params)...);
+      auto state = make<T>(std::forward<TD>(params)...);
+      machine->reset(state);
    }
 
    void pop() {
-      machine.pop();
+      machine->pop();
    }
 
    bool is_current() {
@@ -184,11 +182,11 @@ protected:
    }
 
    Pointer current() {
-      return machine.current();
+      return machine->current();
    }
 
    void parent() {
-      return machine.parent();
+      return machine->parent();
    }
 };
 
@@ -210,35 +208,26 @@ public:
       using StateMachine<State<C>>::push;
       using StateMachine<State<C>>::transition;
       using StateMachine<State<C>>::reset;
-      C context;
 
-      Machine(const C& context) :
-      context(context), StateMachine<State<C>>() { }
+      Machine(C& context) :
+      StateMachine<State<C>>(context) { }
 
       template<class T, class... TD>
       void push_state(TD... params) {
-         auto state = derive_state<T>();
+         auto state = make<T>(std::forward<TD>(params)...);
          push(state);
-         state->init(std::forward<TD>(params)...);
       }
 
       template<class T, class... TD>
       void transition_state(TD... params) {
-         auto state = derive_state<T>();
+         auto state = make<T>(std::forward<TD>(params)...);
          transition(state);
-         state->init(std::forward<TD>(params)...);
       }
 
       template<class T, class... TD>
       void reset_state(TD... params) {
-         auto state = derive_state<T>();
+         auto state = make<T>(std::forward<TD>(params)...);
          reset(state);
-         state->init(std::forward<TD>(params)...);
-      }
-
-      template<class T, class... TD>
-      std::shared_ptr<T> derive_state(TD... params) {
-         return make<T>(*this, context, std::forward<TD>(params)...);
       }
 
       void push(const K& name) {
@@ -268,13 +257,15 @@ public:
 
       Machine& def_state(const K& name,
                          const typename Lambda<C, K>::Impl1& impl) {
-         state_map.insert({name, make<Lambda<C, K>>(*this, context, name, impl)});
+         auto state = make<Lambda<C, K>>(name, impl);
+         state_map.insert({name, state});
          return *this;
       }
 
       Machine& def_state(const K& name,
                          const typename Lambda<C, K>::Impl2& impl) {
-         state_map.insert({name, make<Lambda<C, K>>(*this, context, name, impl)});
+         auto state = make<Lambda<C, K>>(name, impl);
+         state_map.insert({name, state});
          return *this;
       }
 
@@ -298,29 +289,23 @@ public:
    public:
       friend class Lambda<C, K>;
 
-      Machine build() {
-         if (! context_) {
-            throw Error("Context must be provided via Builder::context()");
-         }
+      Builder(C& context)
+      : context(context) { }
 
-         Machine machine = Machine(*context_);
+      Machine build() {
+         Machine machine = Machine(context);
          for (auto iter : state_map_1) {
             machine.def_state(iter.first, iter.second);
          }
          for (auto iter : state_map_2) {
             machine.def_state(iter.first, iter.second);
          }
-         
+
          if (init_state_) {
             machine.push(machine.state(*init_state_));
          }
 
          return machine;
-      }
-
-      Builder& context(const C& context) {
-         context_ = context;
-         return *this;
       }
 
       Builder& init(const K& name) {
@@ -341,29 +326,31 @@ public:
       }
 
    private:
-      std::optional<C> context_;
+      C& context;
       std::optional<K> init_state_;
       std::map<K, typename Lambda<C, K>::Impl1> state_map_1;
       std::map<K, typename Lambda<C, K>::Impl2> state_map_2;
    };
 
-   Lambda(Machine& machine, C& context,
-               K name, const Impl1& impl)
-   : State<C>(machine, context), machine_(machine), name_(name), impl1(impl) { }
+   Lambda(K name, const Impl1& impl)
+   : name_(name), impl1(impl) { }
 
-   Lambda(Machine& machine, C& context,
-               K name, const Impl2& impl)
-   : State<C>(machine, context), machine_(machine), name_(name), impl2(impl) { }
+   Lambda(K name, const Impl2& impl)
+   : name_(name), impl2(impl) { }
 
-   static Builder builder() {
-      return Builder();
+   static Builder builder(C& context) {
+      return Builder(context);
    }
 
    void run() override {
+      if (this->machine == nullptr) {
+         throw Error("Machine not injected into LambdaState. "
+                     "This is a bug in the state machine code.");
+      }
       if (impl1) {
-         impl1.value()(machine_);
+         impl1.value()(*static_cast<Machine*>(this->machine));
       } else {
-         impl2.value()(machine_, std::static_pointer_cast<Lambda<C, K>>(
+         impl2.value()(*static_cast<Machine*>(this->machine), std::static_pointer_cast<Lambda<C, K>>(
                  shared_from_this()));
       }
    }
@@ -373,7 +360,6 @@ public:
    }
 
 private:
-   Machine& machine_;
    std::optional<const Impl1> impl1;
    std::optional<const Impl2> impl2;
    K name_;

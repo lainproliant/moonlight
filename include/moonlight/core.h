@@ -34,6 +34,14 @@ typedef std::vector<pointer> list; \
 typedef std::vector<const_pointer> const_list;
 
 //-------------------------------------------------------------------
+#ifdef MOONLIGHT_DEBUG
+#include <csignal>
+#define debugger raise(SIGSEGV)
+#else
+#define debugger (void)0
+#endif
+
+//-------------------------------------------------------------------
 template<typename T, typename... TD>
 std::shared_ptr<T> make(TD&&... params) {
    return std::make_shared<T>(std::forward<TD>(params)...);

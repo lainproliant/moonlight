@@ -13,15 +13,13 @@ int main() {
 
       class CountingState : public State {
       public:
-         using State::State;
-
-         void init(int n, int x = 0) {
+         CountingState(int n, int x = 0) {
             this->n = n;
             this->x = x;
          }
 
          virtual void run() override {
-            context.push_back(x += n);
+            context->push_back(x += n);
             if (x >= 100000000) {
                terminate();
 
@@ -60,9 +58,9 @@ int main() {
          using State::State;
 
          virtual void run() override {
-            context.x ++;
+            context->x ++;
 
-            if (is_current() && context.x >= 10) {
+            if (is_current() && context->x >= 10) {
                push<YState>();
             }
          }
@@ -74,9 +72,9 @@ int main() {
 
          virtual void run() override {
             parent();
-            context.y ++;
+            context->y ++;
 
-            if (context.y >= 10) {
+            if (context->y >= 10) {
                terminate();
             }
          }
@@ -95,12 +93,15 @@ int main() {
          int x = 0; int y = 0;
       };
 
-      auto machine = automata::Lambda<Context>::builder()
+      Context context;
+
+      auto machine = automata::Lambda<Context>::builder(context)
       .init("init")
-      .context(Context())
       .state("init", [&] (auto& m) {
          std::cout << "init state" << std::endl;
          std::cout << "trace: " << str::join(m.stack_trace(), ",") << std::endl;
+         std::cout << "m.context.x: " << m.context.x << std::endl;
+         std::cout << "m.context.y: " << m.context.y << std::endl;
          m.context.x++;
 
          if (m.current()->name() == "init") {
@@ -112,6 +113,8 @@ int main() {
       .state("a", [] (auto& m, auto c) {
          std::cout << "a state" << std::endl;
          std::cout << "trace: " << str::join(m.stack_trace(), ",") << std::endl;
+         std::cout << "m.context.x: " << m.context.x << std::endl;
+         std::cout << "m.context.y: " << m.context.y << std::endl;
          m.parent();
          m.context.y++;
 
@@ -124,6 +127,8 @@ int main() {
       .state("b", [] (auto& m) {
          std::cout << "b state" << std::endl;
          std::cout << "trace: " << str::join(m.stack_trace(), ",") << std::endl;
+         std::cout << "m.context.x: " << m.context.x << std::endl;
+         std::cout << "m.context.y: " << m.context.y << std::endl;
          assert_true(lists_equal(m.stack_trace(), {"b", "init"}));
          m.parent();
          m.context.x++;
@@ -162,20 +167,20 @@ int main() {
          using State::State;
 
          void run() {
-            context.y ++;
-            machine.terminate();
+            context->y ++;
+            machine->terminate();
          }
       };
-      
-      auto machine = automata::Lambda<Context>::builder()
-      .context(Context())
+
+      Context context;
+      auto machine = automata::Lambda<Context>::builder(context)
       .build();
 
       machine.def_state("init", [](auto& m) {
          m.context.x ++;
          m.template push_state<MixedState>();
       });
-      
+
       machine.push("init");
       machine.run_until_complete();
 
@@ -184,7 +189,6 @@ int main() {
    })
    .test("State init and cleanup functions called appropriately.", []() {
       struct Context {
-         int init_called = 0;
          int run_called = 0;
          int cleanup_called = 0;
       };
@@ -195,35 +199,31 @@ int main() {
       public:
          using State::State;
 
-         ~SampleState() {
-            context.cleanup_called ++;
-         }
+         SampleState() {}
 
-         void init() {
-            context.init_called ++;
+         ~SampleState() {
+            context->cleanup_called ++;
          }
 
          void run() override {
-            if (context.run_called == 0) {
-               context.run_called ++;
+            if (context->run_called == 0) {
+               context->run_called ++;
                push<SampleState>();
 
             } else {
-               context.run_called ++;
+               context->run_called ++;
                pop();
             }
          }
       };
-      
+
       Context context;
       auto machine = State::Machine::init<SampleState>(context);
       machine.run_until_complete();
 
-      std::cout << "context.init_called = " << context.init_called << std::endl;
       std::cout << "context.run_called = " << context.run_called << std::endl;
       std::cout << "context.cleanup_called = " << context.cleanup_called << std::endl;
 
-      assert_equal(context.init_called, 2);
       assert_equal(context.run_called, 3);
       assert_equal(context.cleanup_called, 2);
    })
