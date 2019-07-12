@@ -115,6 +115,10 @@ public:
       return context_;
    }
 
+   const typename S::Context& context() const {
+      return context_;
+   }
+
 protected:
    StateMachine(typename S::Context& context) :
    context_(context) { }
