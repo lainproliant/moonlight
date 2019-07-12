@@ -61,18 +61,18 @@ public:
    }
 
    void push(StatePointer state) {
-      state->inject(this, &context);
+      state->inject(this, &context());
       stack.push_back(state);
    }
 
    void transition(StatePointer state) {
-      state->inject(this, &context);
+      state->inject(this, &context());
       pop();
       push(state);
    }
 
    void reset(StatePointer state) {
-      state->inject(this, &context);
+      state->inject(this, &context());
       terminate();
       push(state);
    }
@@ -111,11 +111,13 @@ public:
       return stack;
    }
 
-   typename S::Context& context;
+   typename S::Context& context() {
+      return context_;
+   }
 
 protected:
    StateMachine(typename S::Context& context) :
-   context(context) { }
+   context_(context) { }
 
    void _parent_impl() {
       if (snapshot->size() <= 1) {
@@ -127,6 +129,7 @@ protected:
    }
 
 private:
+   typename S::Context& context_;
    std::vector<StatePointer> stack;
    std::optional<std::vector<StatePointer>> snapshot = {};
 };
@@ -143,38 +146,46 @@ public:
 
    virtual void run() = 0;
    void inject(StateMachine<State<C>>* machine, C* context) {
-      this->machine = machine;
-      this->context = context;
+      this->machine_ = machine;
+      this->context_ = context;
    }
 
    void terminate() {
-      machine->terminate();
+      machine().terminate();
+   }
+
+   C& context() {
+      return *context_;
+   }
+
+   StateMachine<State<C>>& machine() {
+      return *machine_;
    }
 
 protected:
-   C* context;
-   StateMachine<State<C>>* machine;
+   C* context_;
+   StateMachine<State<C>>* machine_;
 
    template<class T, class... TD>
    void push(TD... params) {
       auto state = make<T>(std::forward<TD>(params)...);
-      machine->push(state);
+      machine().push(state);
    }
 
    template<class T, class... TD>
    void transition(TD... params) {
       auto state = make<T>(std::forward<TD>(params)...);
-      machine->transition(state);
+      machine().transition(state);
    }
 
    template<class T, class... TD>
    void reset(TD... params) {
       auto state = make<T>(std::forward<TD>(params)...);
-      machine->reset(state);
+      machine().reset(state);
    }
 
    void pop() {
-      machine->pop();
+      machine().pop();
    }
 
    bool is_current() {
@@ -182,11 +193,11 @@ protected:
    }
 
    Pointer current() {
-      return machine->current();
+      return machine().current();
    }
 
    void parent() {
-      return machine->parent();
+      return machine().parent();
    }
 };
 
@@ -343,15 +354,15 @@ public:
    }
 
    void run() override {
-      if (this->machine == nullptr) {
+      if (this->machine_ == nullptr) {
          throw Error("Machine not injected into LambdaState. "
                      "This is a bug in the state machine code.");
       }
       if (impl1) {
-         impl1.value()(*static_cast<Machine*>(this->machine));
+         impl1.value()(*static_cast<Machine*>(this->machine_));
       } else {
-         impl2.value()(*static_cast<Machine*>(this->machine), std::static_pointer_cast<Lambda<C, K>>(
-                 shared_from_this()));
+         impl2.value()(*static_cast<Machine*>(this->machine_),
+                       std::static_pointer_cast<Lambda<C, K>>(shared_from_this()));
       }
    }
 

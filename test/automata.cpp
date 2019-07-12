@@ -19,7 +19,7 @@ int main() {
          }
 
          virtual void run() override {
-            context->push_back(x += n);
+            context().push_back(x += n);
             if (x >= 100000000) {
                terminate();
 
@@ -58,9 +58,9 @@ int main() {
          using State::State;
 
          virtual void run() override {
-            context->x ++;
+            context().x ++;
 
-            if (is_current() && context->x >= 10) {
+            if (is_current() && context().x >= 10) {
                push<YState>();
             }
          }
@@ -72,9 +72,9 @@ int main() {
 
          virtual void run() override {
             parent();
-            context->y ++;
+            context().y ++;
 
-            if (context->y >= 10) {
+            if (context().y >= 10) {
                terminate();
             }
          }
@@ -100,9 +100,9 @@ int main() {
       .state("init", [&] (auto& m) {
          std::cout << "init state" << std::endl;
          std::cout << "trace: " << str::join(m.stack_trace(), ",") << std::endl;
-         std::cout << "m.context.x: " << m.context.x << std::endl;
-         std::cout << "m.context.y: " << m.context.y << std::endl;
-         m.context.x++;
+         std::cout << "m.context().x: " << m.context().x << std::endl;
+         std::cout << "m.context().y: " << m.context().y << std::endl;
+         m.context().x++;
 
          if (m.current()->name() == "init") {
             assert_true(lists_equal(m.stack_trace(), {"init"}));
@@ -113,10 +113,10 @@ int main() {
       .state("a", [] (auto& m, auto c) {
          std::cout << "a state" << std::endl;
          std::cout << "trace: " << str::join(m.stack_trace(), ",") << std::endl;
-         std::cout << "m.context.x: " << m.context.x << std::endl;
-         std::cout << "m.context.y: " << m.context.y << std::endl;
+         std::cout << "m.context().x: " << m.context().x << std::endl;
+         std::cout << "m.context().y: " << m.context().y << std::endl;
          m.parent();
-         m.context.y++;
+         m.context().y++;
 
          if (m.current() == c) {
             assert_true(lists_equal(m.stack_trace(), {"a", "init"}));
@@ -127,11 +127,11 @@ int main() {
       .state("b", [] (auto& m) {
          std::cout << "b state" << std::endl;
          std::cout << "trace: " << str::join(m.stack_trace(), ",") << std::endl;
-         std::cout << "m.context.x: " << m.context.x << std::endl;
-         std::cout << "m.context.y: " << m.context.y << std::endl;
+         std::cout << "m.context().x: " << m.context().x << std::endl;
+         std::cout << "m.context().y: " << m.context().y << std::endl;
          assert_true(lists_equal(m.stack_trace(), {"b", "init"}));
          m.parent();
-         m.context.x++;
+         m.context().x++;
          m.terminate();
       })
       .build();
@@ -152,10 +152,10 @@ int main() {
          fail();
       }
 
-      std::cout << "machine.context.x = " << machine.context.x << std::endl;
-      std::cout << "machine.context.y = " << machine.context.y << std::endl;
-      assert_equal(machine.context.x, (int) 8);
-      assert_equal(machine.context.y, (int) 2);
+      std::cout << "machine.context().x = " << machine.context().x << std::endl;
+      std::cout << "machine.context().y = " << machine.context().y << std::endl;
+      assert_equal(machine.context().x, (int) 8);
+      assert_equal(machine.context().y, (int) 2);
    })
    .test("mixed lambdas and OOP states", []() {
       struct Context {
@@ -167,8 +167,8 @@ int main() {
          using State::State;
 
          void run() {
-            context->y ++;
-            machine->terminate();
+            context().y ++;
+            machine().terminate();
          }
       };
 
@@ -177,15 +177,15 @@ int main() {
       .build();
 
       machine.def_state("init", [](auto& m) {
-         m.context.x ++;
+         m.context().x ++;
          m.template push_state<MixedState>();
       });
 
       machine.push("init");
       machine.run_until_complete();
 
-      assert_equal(machine.context.x, (int) 1);
-      assert_equal(machine.context.y, (int) 1);
+      assert_equal(machine.context().x, (int) 1);
+      assert_equal(machine.context().y, (int) 1);
    })
    .test("State init and cleanup functions called appropriately.", []() {
       struct Context {
@@ -202,16 +202,16 @@ int main() {
          SampleState() {}
 
          ~SampleState() {
-            context->cleanup_called ++;
+            context().cleanup_called ++;
          }
 
          void run() override {
-            if (context->run_called == 0) {
-               context->run_called ++;
+            if (context().run_called == 0) {
+               context().run_called ++;
                push<SampleState>();
 
             } else {
-               context->run_called ++;
+               context().run_called ++;
                pop();
             }
          }
