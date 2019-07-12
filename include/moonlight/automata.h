@@ -162,7 +162,15 @@ public:
       return *context_;
    }
 
+   const C& context() const {
+      return *context_;
+   }
+
    StateMachine<State<C>>& machine() {
+      return *machine_;
+   }
+
+   const StateMachine<State<C>>& machine() const {
       return *machine_;
    }
 
