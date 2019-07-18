@@ -716,6 +716,18 @@ inline std::string to_string(const std::string& filename) {
 }
 
 //-------------------------------------------------------------------
+// (namely an alias)
+inline std::string slurp(const std::string& filename) {
+   return to_string(filename);
+}
+
+//-------------------------------------------------------------------
+inline void dump(const std::string& filename, const std::string& str) {
+   auto outfile = open_w(filename);
+   outfile << str;
+}
+
+//-------------------------------------------------------------------
 template<class T>
 class Writable {
 public:
