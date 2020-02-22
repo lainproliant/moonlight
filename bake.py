@@ -37,9 +37,15 @@ class MoonlightTests:
     def tests(self, sources):
         return (compile_test(src) for src in sources)
 
-    @default
     def run_tests(self, tests):
         return (sh("{input}",
                    input=test,
                    cwd="test").interactive()
+                for test in tests)
+
+    @default
+    def run_tests_async(self, tests):
+        return (sh("{input}",
+                   input=test,
+                   cwd="test")
                 for test in tests)

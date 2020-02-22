@@ -28,7 +28,7 @@ SOURCE_EXTENSIONS = [".cpp", ".c", ".h"]
 
 
 # --------------------------------------------------------------------
-def FlagsForFile(filename, **kwargs):
+def Settings(filename, **kwargs):
     flags = [*FLAGS]
     for include in INCLUDES:
         flags.append("-I")
