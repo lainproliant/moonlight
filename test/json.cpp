@@ -1,6 +1,8 @@
 #include "moonlight/json.h"
 #include "moonlight/test.h"
 
+#include <cstdio>
+
 using namespace std;
 using namespace moonlight;
 using namespace moonlight::test;
@@ -49,8 +51,9 @@ int main() {
          assert_true(graphics_settings.get<int>("height") == 1080);
 
          settings.set_object("graphics", graphics_settings);
-         settings.save_to_file("temp/json::Wrapper-003.json.output");
-         settings = json::Wrapper::load_from_file("temp/json::Wrapper-003.json.output");
+         settings.save_to_file("json::Wrapper-003.json.output");
+         settings = json::Wrapper::load_from_file("json::Wrapper-003.json.output");
+         remove("json::Wrapper-003.json.output");
 
          graphics_settings = settings.get_object("graphics");
          assert_true(graphics_settings.get<int>("width") == 1920);
@@ -76,8 +79,9 @@ int main() {
 
          vector<int> integers = settings.get_array<int>("numbers", {1, 2, 3, 4, 5});
          assert_true(lists_equal(integers, {1, 2, 3, 4, 5}));
-         settings.save_to_file("temp/json::Wrapper-005.json.output");
-         settings = json::Wrapper::load_from_file("temp/json::Wrapper-005.json.output");
+         settings.save_to_file("json::Wrapper-005.json.output");
+         settings = json::Wrapper::load_from_file("json::Wrapper-005.json.output");
+         remove("json::Wrapper-005.json.output");
          integers = settings.get_array<int>("numbers");
          assert_true(lists_equal(integers, {1, 2, 3, 4, 5}));
 
