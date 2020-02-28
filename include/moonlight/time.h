@@ -212,7 +212,7 @@ namespace time {
             return fps;
          }
       }
-      
+
    private:
       Timer<T> monitor_timer;
       const Timer<T>& monitoring_timer;

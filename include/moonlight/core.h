@@ -7,7 +7,6 @@
 #pragma once
 
 #include <algorithm>
-#include <cassert>
 #include <cerrno>
 #include <cstring>
 #include <exception>
@@ -41,6 +40,16 @@ typedef std::vector<const_pointer> const_list;
 #define debugger raise(SIGSEGV)
 #else
 #define debugger (void)0
+#endif
+
+//-------------------------------------------------------------------
+#ifdef MOONLIGHT_DEBUG
+#define moonlight_assert(x) \
+   if (! (x)) { \
+      throw moonlight::core::AssertionFailure(#x, __FUNCTION__, __FILE__, __LINE__); \
+   }
+#else
+#define moonlight_assert(x) (void)0;
 #endif
 
 //-------------------------------------------------------------------
@@ -374,6 +383,28 @@ class IndexException : public Exception {
 class NotImplementedException : public Exception {
    using Exception::Exception;
 };
+
+//-------------------------------------------------------------------
+class AssertionFailure : public core::Exception {
+public:
+   AssertionFailure(const std::string& expression,
+                    const std::string& function,
+                    const std::string& filename,
+                    int line) : Exception(_construct(expression, function, filename, line)) { }
+
+   static std::string _construct(const std::string& expression,
+                                 const std::string& function,
+                                 const std::string& filename,
+                                 int line) {
+
+      std::stringstream sb;
+      sb << "Assertion failed: "
+         << "\"" << expression
+         << " @ " << function << " (" << filename << ":" << line << ")";
+      return sb.str();
+   }
+};
+
 }
 
 namespace splice {
@@ -740,4 +771,3 @@ public:
 
 }
 }
-
