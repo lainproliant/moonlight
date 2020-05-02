@@ -5,5 +5,5 @@
 	path = include/tinyformat
 	url = https://github.com/c42f/tinyformat
 [submodule "include/date"]
-	path = include/date
+	path = deps/date
 	url = https://github.com/HowardHinnant/date
