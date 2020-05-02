@@ -31,7 +31,10 @@ def compile_test(src):
 # -------------------------------------------------------------------
 @build
 class MoonlightTests:
-    def sources(self):
+    def submodules(self):
+        return sh('git submodule update --init --recursive')
+
+    def sources(self, submodules):
         return Path.cwd().glob("test/*.cpp")
 
     def tests(self, sources):

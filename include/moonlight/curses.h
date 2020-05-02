@@ -99,6 +99,33 @@ inline void make_color_pairs() {
     init_pair(5, COLOR_MAGENTA, COLOR_BLACK);
     init_pair(6, COLOR_CYAN, COLOR_BLACK);
     init_pair(7, COLOR_WHITE, COLOR_BLACK);
+
+    init_pair(10, COLOR_WHITE, COLOR_WHITE);
+    init_pair(11, COLOR_RED, COLOR_WHITE);
+    init_pair(12, COLOR_GREEN, COLOR_WHITE);
+    init_pair(13, COLOR_YELLOW, COLOR_WHITE);
+    init_pair(14, COLOR_BLUE, COLOR_WHITE);
+    init_pair(15, COLOR_MAGENTA, COLOR_WHITE);
+    init_pair(16, COLOR_CYAN, COLOR_WHITE);
+    init_pair(17, COLOR_BLACK, COLOR_WHITE);
+
+    init_pair(20, COLOR_BLACK, COLOR_BLACK);
+    init_pair(21, COLOR_BLACK, COLOR_RED);
+    init_pair(22, COLOR_BLACK, COLOR_GREEN);
+    init_pair(23, COLOR_BLACK, COLOR_YELLOW);
+    init_pair(24, COLOR_BLACK, COLOR_BLUE);
+    init_pair(25, COLOR_BLACK, COLOR_MAGENTA);
+    init_pair(26, COLOR_BLACK, COLOR_CYAN);
+    init_pair(27, COLOR_BLACK, COLOR_WHITE);
+
+    init_pair(30, COLOR_WHITE, COLOR_WHITE);
+    init_pair(31, COLOR_WHITE, COLOR_RED);
+    init_pair(32, COLOR_WHITE, COLOR_GREEN);
+    init_pair(33, COLOR_WHITE, COLOR_YELLOW);
+    init_pair(34, COLOR_WHITE, COLOR_BLUE);
+    init_pair(35, COLOR_WHITE, COLOR_MAGENTA);
+    init_pair(36, COLOR_WHITE, COLOR_CYAN);
+    init_pair(37, COLOR_WHITE, COLOR_BLACK);
 }
 
 //-------------------------------------------------------------------
@@ -123,9 +150,7 @@ inline int get_keycode(const std::string& named_key) {
 inline void dbg_print_all_keycodes() {
     for (int x = 0; x <= MAX_KEYCODE; x++) {
         auto name = keyname(x);
-        if (name != NULL) {
-            tfm::printf("%d\t%s\n", x, name == NULL ? "NULL" : name);
-        }
+        tfm::printf("%d\t%s\n", x, name == NULL ? "NULL" : name);
     }
 }
 
