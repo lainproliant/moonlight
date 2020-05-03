@@ -91,14 +91,14 @@ inline void init_color() {
 
 //-------------------------------------------------------------------
 inline void make_color_pairs() {
-    init_pair(0, COLOR_BLACK, COLOR_BLACK);
-    init_pair(1, COLOR_RED, COLOR_BLACK);
-    init_pair(2, COLOR_GREEN, COLOR_BLACK);
-    init_pair(3, COLOR_YELLOW, COLOR_BLACK);
-    init_pair(4, COLOR_BLUE, COLOR_BLACK);
-    init_pair(5, COLOR_MAGENTA, COLOR_BLACK);
-    init_pair(6, COLOR_CYAN, COLOR_BLACK);
-    init_pair(7, COLOR_WHITE, COLOR_BLACK);
+    init_pair(0, COLOR_BLACK, -1);
+    init_pair(1, COLOR_RED, -1);
+    init_pair(2, COLOR_GREEN, -1);
+    init_pair(3, COLOR_YELLOW, -1);
+    init_pair(4, COLOR_BLUE, -1);
+    init_pair(5, COLOR_MAGENTA, -1);
+    init_pair(6, COLOR_CYAN, -1);
+    init_pair(7, COLOR_WHITE, -1);
 
     init_pair(10, COLOR_WHITE, COLOR_WHITE);
     init_pair(11, COLOR_RED, COLOR_WHITE);
@@ -147,6 +147,12 @@ inline int get_keycode(const std::string& named_key) {
 }
 
 //-------------------------------------------------------------------
+inline std::string get_keycode_name(int keycode) {
+    auto name = keyname(keycode);
+    return name == nullptr ? "NULL" : name;
+}
+
+//-------------------------------------------------------------------
 inline void dbg_print_all_keycodes() {
     for (int x = 0; x <= MAX_KEYCODE; x++) {
         auto name = keyname(x);
@@ -154,6 +160,15 @@ inline void dbg_print_all_keycodes() {
     }
 }
 
+//-------------------------------------------------------------------
+inline void show_cursor() {
+    curs_set(1);
+}
+
+//-------------------------------------------------------------------
+inline void hide_cursor() {
+    curs_set(0);
+}
 
 //-------------------------------------------------------------------
 class Window {
