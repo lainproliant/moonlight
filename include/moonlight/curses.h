@@ -331,6 +331,14 @@ public:
         return _win;
     }
 
+    void to_top() {
+        top_panel(raw_ptr());
+    }
+
+    void to_bottom() {
+        bottom_panel(raw_ptr());
+    }
+
     PANEL* raw_ptr() {
         return _panel;
     }
