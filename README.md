@@ -35,6 +35,12 @@ An elegantly simple UUID v1+v4 generator/parser.
 A type-safe printf replacement for C++.  I use this all of the time, and its
 an excellent option for folks who like working with C-style format strings.
 
+#### [Date](https://github.com/HowardHinnant/date)
+- Author: [Howard Hinnant](https://github.com/HowardHinnant)
+- License: [MIT License](https://github.com/HowardHinnant/date/blob/master/LICENSE.txt)
+
+Date and calendar libraries built atop the relatively new `std::chrono`.
+
 ### Moonlight Header-only Library
 These are the headers I've written with useful templates, macros, and tools.
 
