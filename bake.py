@@ -38,7 +38,7 @@ class MoonlightTests:
         return Path.cwd().glob("test/*.cpp")
 
     def tests(self, sources):
-        return (compile_test(src) for src in sources)
+        return [compile_test(src) for src in sources]
 
     def run_tests(self, tests):
         return (sh("{input}",

@@ -1,5 +1,5 @@
 /*
- * moonlight/time.h: A time and relative time wrappers.
+ * moonlight/time.h: A timer and relative time wrappers.
  *
  * Author: Lain Musgrove (lainproliant)
  * Date: Sunday Jan 25 2014,
