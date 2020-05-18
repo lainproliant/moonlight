@@ -32,7 +32,7 @@ An elegantly simple UUID v1+v4 generator/parser.
 - License: [Boost Software License 1.0](https://www.boost.org/LICENSE_1_0.txt)
     - As specified [here](https://github.com/c42f/tinyformat#license).
 
-A type-safe printf replacement for C++.  I use this all of the time, and its
+A type-safe printf replacement for C++.  I use this all of the time, and it's
 an excellent option for folks who like working with C-style format strings.
 
 #### [Date](https://github.com/HowardHinnant/date)
