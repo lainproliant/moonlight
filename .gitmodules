@@ -7,3 +7,6 @@
 [submodule "include/date"]
 	path = deps/date
 	url = https://github.com/HowardHinnant/date
+[submodule "include/sole"]
+	path = include/sole
+	url = https://github.com/r-lyeh-archived/sole
