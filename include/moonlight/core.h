@@ -769,5 +769,82 @@ public:
    }
 };
 
+// ------------------------------------------------------------------
+class BufferedInput {
+public:
+    BufferedInput(std::istream& input, const std::string& name = "<input>")
+    : _input(input), _name(name) { }
+
+    int getc() {
+        int c;
+
+        if (_buffer.size() > 0) {
+            c = _buffer.back();
+            _buffer.pop_back();
+
+        } else {
+            c = _input.get();
+        }
+
+        if (c == '\n') {
+            _line ++;
+            _col = 1;
+
+        } else if (c == EOF) {
+            _exhausted = true;
+
+        } else {
+            _col ++;
+        }
+
+        return c;
+    }
+
+    bool is_exhausted() const {
+        return _exhausted;
+    }
+
+    int peek(size_t offset = 1) {
+        if (offset == 0) {
+            return EOF;
+        }
+
+        while (_buffer.size() < offset) {
+            int c = _input.get();
+            if (c == EOF) {
+                return EOF;
+            }
+            _buffer.push_back(c);
+        }
+
+        return _buffer[offset-1];
+    }
+
+    void advance(size_t offset = 1) {
+       for (size_t x = 0; x < offset; x++) {
+          getc();
+       }
+    }
+
+    const std::string& name() const {
+        return _name;
+    }
+
+    int line() const {
+        return _line;
+    }
+
+    int col() const {
+        return _col;
+    }
+
+private:
+    std::istream& _input;
+    const std::string _name;
+    int _line = 1, _col = 1;
+    bool _exhausted = false;
+    std::string _buffer;
+};
+
 }
 }
