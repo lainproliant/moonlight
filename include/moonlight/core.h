@@ -779,7 +779,10 @@ public:
         int c;
 
         if (_buffer.size() > 0) {
-            c = _buffer.back();
+            c = _buffer[0];
+            for (size_t x = 1; x < _buffer.size(); x++) {
+               _buffer[x-1] = _buffer[x];
+            }
             _buffer.pop_back();
 
         } else {
@@ -824,6 +827,24 @@ public:
        for (size_t x = 0; x < offset; x++) {
           getc();
        }
+    }
+
+    bool scan_eq(const std::string& target) {
+       for (size_t x = 0; x < target.size(); x++) {
+          if (peek(x+1) != target[x]) {
+             return false;
+          }
+       }
+
+       return true;
+    }
+
+    std::string scan_dump() {
+       std::string dump;
+       for (size_t x = 1; peek(x) != EOF; x++) {
+          dump.push_back(peek(x));
+       }
+       return dump;
     }
 
     const std::string& name() const {

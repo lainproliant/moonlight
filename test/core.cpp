@@ -69,5 +69,24 @@ int main() {
          std::cout << Junk(1) << std::endl;
          assert_equal(std::string("<Junk 1>"), Junk(1).repr());
       })
+      .test("file::BufferedInput test", []() {
+         const std::string input_string = "look it's a bird!";
+         std::istringstream in(input_string);
+         auto reader = file::BufferedInput(in);
+
+         int c = reader.getc();
+         assert_equal(c, (int) 'l', "first character check");
+
+         assert_true(reader.scan_eq("ook it's a bird!"), "first scan check");
+
+         reader.advance(4);
+
+         assert_true(reader.scan_eq("it's"), "second scan check");
+
+         size_t x;
+         for (x = 0; reader.getc() != EOF; x++) { }
+
+         assert_equal(x, 12ul, "EOF check");
+      })
       .run();
 }
