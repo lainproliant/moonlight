@@ -60,35 +60,15 @@ int main() {
         }
 
         assert_true(lists_equal(results, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}));
-
-        // Do it again in case some mutable state causes an issue...
-        results.clear();
-        for (auto iter = gen::begin(range(0, 10));
-             iter != gen::end<int>();
-             iter++) {
-            results.push_back(*iter);
-        }
-
-        assert_true(lists_equal(results, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}));
     })
     .test("confirm async generator works properly", []() {
         auto queue = gen::async(sleepy_range(0, 10));
         std::vector<int> results;
 
-        queue->async_for_each([&](int x) {
+        auto future = queue->async_for_each([&](int x) {
             results.push_back(x);
         });
-
-        assert_true(lists_equal(results, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}));
-
-        // Do it again in case some mutable state causes an issue...
-        queue = gen::async(sleepy_range(0, 10));
-        results.clear();
-
-        queue->async_for_each([&](int x) {
-            results.push_back(x);
-        });
-
+        future.get();
         assert_true(lists_equal(results, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}));
     })
     .run();
