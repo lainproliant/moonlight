@@ -4,7 +4,9 @@
  * Author: Lain Musgrove (lainproliant)
  * Date: Wednesday Jun 19 2019
  */
-#pragma once
+#ifndef __MOONLIGHT_POSIX_H
+#define __MOONLIGHT_POSIX_H
+
 #include "moonlight/time.h"
 
 namespace moonlight {
@@ -31,3 +33,5 @@ inline FrameCalculator create_frame_calculator(Timer& timer) {
 }
 }
 }
+
+#endif /* __MOONLIGHT_POSIX_H */

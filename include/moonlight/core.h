@@ -4,7 +4,8 @@
  * Author: Lain Supe (lainproliant)
  * Date: Thursday, Dec 21 2017
  */
-#pragma once
+#ifndef __MOONLIGHT_CORE_H
+#define __MOONLIGHT_CORE_H
 
 #include <algorithm>
 #include <cerrno>
@@ -290,6 +291,16 @@ public:
 private:
    std::function<void()> closure;
 };
+
+//-------------------------------------------------------------------
+std::optional<std::string> getenv(const std::string& name) {
+   const char* value = std::getenv(name.c_str());
+   if (value != nullptr) {
+      return value;
+   } else {
+      return {};
+   }
+}
 
 //-------------------------------------------------------------------
 inline std::vector<std::string> generate_stacktrace(int max_frames = 256) {
@@ -869,3 +880,5 @@ private:
 
 }
 }
+
+#endif /* __MOONLIGHT_CORE_H */

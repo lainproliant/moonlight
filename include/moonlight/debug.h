@@ -5,6 +5,8 @@
  * Date: Friday, July 12 2019
  */
 #pragma once
+#ifndef __MOONLIGHT_DEBUG_H
+#define __MOONLIGHT_DEBUG_H
 
 #include "moonlight/core.h"
 
@@ -28,3 +30,5 @@ inline void dbgprint(const std::string& fmt, const Args&... args) {
 #define dbgprint(...) (void)0
 
 #endif
+
+#endif /*__MOONLIGHT_DEBUG_H */

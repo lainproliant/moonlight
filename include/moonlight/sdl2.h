@@ -5,7 +5,9 @@
  * Date: Friday Feb 6 2015,
  *       Wednesday Jun 19 2019
  */
-#pragma once
+#ifndef __MOONLIGHT_SDL2_H
+#define __MOONLIGHT_SDL2_H
+
 #include <SDL2/SDL.h>
 #include "moonlight/time.h"
 
@@ -27,3 +29,5 @@ inline FrameCalculator create_frame_calculator(Timer& timer) {
 }
 }
 }
+
+#endif /* __MOONLIGHT_SDL2_H */

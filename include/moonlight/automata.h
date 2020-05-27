@@ -4,7 +4,8 @@
  * Author: Lain Supe (lainproliant)
  * Date: Tuesday, Jun 12 2018
  */
-#pragma once
+#ifndef __MOONLIGHT_AUTOMATA_H
+#define __MOONLIGHT_AUTOMATA_H
 
 #include "moonlight/core.h"
 
@@ -391,3 +392,4 @@ private:
 }
 }
 
+#endif /* !__MOONLIGHT_AUTOMATA_H */

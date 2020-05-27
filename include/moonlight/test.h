@@ -5,7 +5,8 @@
  * Author: Lain Supe (lainproliant)
  * Date: Thu October 9, 2014
  */
-#pragma once
+#ifndef __MOONLIGHT_TEST_H
+#define __MOONLIGHT_TEST_H
 
 #include <csignal>
 #include <cstdlib>
@@ -89,6 +90,9 @@ public:
 #ifdef MOONLIGHT_ENABLE_STACKTRACE
                out << core::format_stacktrace(core::generate_stacktrace()) << std::endl;
 #endif
+               if (core::getenv("MOONLIGHT_TEST_RETHROW")) {
+                  throw e;
+               }
             }
 
             tests_failed ++;
@@ -210,3 +214,4 @@ inline bool lists_equal(const T& listA, const T& listB) {
 }
 }
 
+#endif /* __MOONLIGHT_TEST_H */

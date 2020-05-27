@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __MOONLIGHT_ANSI_H
+#define __MOONLIGHT_ANSI_H
 
 #include <functional>
 #include <memory>
@@ -151,3 +152,5 @@ private:
 
 }
 }
+
+#endif /* __MOONLIGHT_ANSI_H */

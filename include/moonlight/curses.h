@@ -7,8 +7,8 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef __CURSES_H
-#define __CURSES_H
+#ifndef __MOONLIGHT_CURSES_H
+#define __MOONLIGHT_CURSES_H
 
 #include <climits>
 #include <functional>
@@ -355,4 +355,4 @@ private:
 }
 }
 
-#endif /* !__CURSES_H */
+#endif /* !__MOONLIGHT_CURSES_H */

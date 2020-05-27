@@ -5,7 +5,8 @@
  * Date: Wednesday, Jan 14 2015,
  *       Thursday, Dec 21 2017
  */
-#pragma once
+#ifndef __MOONLIGHT_JSON_H
+#define __MOONLIGHT_JSON_H
 
 #include "moonlight/core.h"
 #include "picojson/picojson.h"
@@ -384,3 +385,4 @@ inline std::vector<Wrapper> get_array<Wrapper>(const picojson::value& obj_value,
 }
 }
 
+#endif /*__MOONLIGHT_JSON_H */

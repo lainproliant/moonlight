@@ -9,7 +9,8 @@
  *
  * Distributed under terms of the MIT license.
  */
-#pragma once
+#ifndef __MOONLIGHT_LINKED_MAP_H
+#define __MOONLIGHT_LINKED_MAP_H
 
 #include <map>
 #include <unordered_map>
@@ -238,3 +239,5 @@ namespace moonlight {
    using linked_map = linked_map_impl<K, T,
       map<K, typename list<pair<const K, T>>::iterator, C>>;
 }
+
+#endif /* __MOONLIGHT_LINKED_MAP_H */

@@ -4,7 +4,8 @@
  * Author: Lain Supe (lainproliant)
  * Date: Thursday, Dec 21 2017
  */
-#pragma once
+#ifndef __MOONLIGHT_CLI_H
+#define __MOONLIGHT_CLI_H
 
 #include <set>
 #include "moonlight/core.h"
@@ -233,3 +234,5 @@ CommandLine parse(int argc_in, char** argv_in,
 }
 }
 }
+
+#endif /* __MOONLIGHT_CLI_H */
