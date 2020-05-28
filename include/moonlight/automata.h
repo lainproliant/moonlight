@@ -41,6 +41,15 @@ public:
       return StateMachine<S>();
    }
 
+   bool update() {
+      if (current()) {
+         current()->run();
+         return true;
+      } else {
+         return false;
+      }
+   }
+
    void run_until_complete() {
       if (! current()) {
          throw Error("StateMachine has no initial state.");
