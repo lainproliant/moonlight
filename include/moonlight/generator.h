@@ -35,30 +35,32 @@ public:
    Iterator() : _value({}), _position(-1) { }
    Iterator(const Closure& closure) : _closure(closure), _value(_closure()) { }
 
-   Iterator& operator++() {
+   Iterator<T>& operator++() {
       if (_value.has_value()) {
-         _value = _closure();
-         if (_value.has_value()) {
+         auto new_value = _closure();
+         if (new_value.has_value()) {
+            _value.emplace(new_value.value());
             _position ++;
          } else {
+            _value.reset();
             _position = -1;
          }
       }
       return *this;
    }
 
-   Iterator& operator++(int) {
+   Iterator<T> operator++(int) {
       Iterator iter = *this;
       ++(*this);
       return iter;
    }
 
-   bool operator==(const Iterator& other) {
+   bool operator==(const Iterator<T>& other) {
       return (_position == -1 && other._position == -1) ||
          (&_closure == &other._closure && _position == other._position);
    }
 
-   bool operator!=(const Iterator& other) {
+   bool operator!=(const Iterator<T>& other) {
       return !(*this == other);
    }
 
@@ -121,14 +123,14 @@ public:
       });
    }
 
-   void for_each(Handler handler) {
+   void process(Handler handler) {
       std::optional<T> value;
       while (value = this->next(), value) {
          handler(*value);
       }
    }
 
-   std::future<void> async_for_each(Handler handler) {
+   std::future<void> process_async(Handler handler) {
       return std::async(std::launch::async, [&] {
          std::optional<T> value;
          while (value = this->next(), value) {

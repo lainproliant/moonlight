@@ -65,7 +65,7 @@ int main() {
         auto queue = gen::async(sleepy_range(0, 10));
         std::vector<int> results;
 
-        auto future = queue->async_for_each([&](int x) {
+        auto future = queue->process_async([&](int x) {
             results.push_back(x);
         });
         future.get();
