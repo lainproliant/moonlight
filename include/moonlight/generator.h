@@ -27,6 +27,11 @@ class Error : public core::Exception {
 };
 
 //-------------------------------------------------------------------
+// A template allowing the results of a generator lambda, known
+// below as "Closure", to be wrapped in a standard library compatible
+// iterator type and used with constructs like algorithm templates
+// and the ranged-for loop.
+//
 template<class T>
 class Iterator {
 public:
@@ -60,7 +65,16 @@ public:
          (&_closure == &other._closure && _position == other._position);
    }
 
+   bool operator==(Iterator<T>& other) {
+      return (_position == -1 && other._position == -1) ||
+         (&_closure == &other._closure && _position == other._position);
+   }
+
    bool operator!=(const Iterator<T>& other) {
+      return !(*this == other);
+   }
+
+   bool operator!=(Iterator<T>& other) {
       return !(*this == other);
    }
 
@@ -84,12 +98,17 @@ private:
 };
 
 //-------------------------------------------------------------------
+// A queue template for asynchronously communicating the output
+// of a generator running in another thread with one or more
+// consumer threads.
+//
 template<class T>
 class Queue {
 public:
    typedef std::future<std::optional<T>> Future;
    typedef std::function<void(const T&)> Handler;
 
+   // Indicates that the generator has no more results to provide.
    void complete() {
       std::unique_lock<std::mutex> lock(_mutex);
       _completed = true;
@@ -97,6 +116,7 @@ public:
       _cv.notify_all();
    }
 
+   // Called by the generator to yield a result into the queue.
    void yield(const T& value) {
       std::unique_lock<std::mutex> lock(_mutex);
       _yielded_items.push_back(value);
@@ -104,6 +124,11 @@ public:
       _cv.notify_one();
    }
 
+   // Called by the consumer to get the next result from the queue.
+   // Blocks until a result is provided, and may return an empty
+   // optional if the generator completes after this method is
+   // called on another thread and there are no more results to
+   // consume.
    std::optional<T> next() {
       std::unique_lock<std::mutex> lock(_mutex);
       _cv.wait(lock, [&]{ return _yielded_items.empty() || _completed; });
@@ -117,12 +142,16 @@ public:
       return value;
    }
 
+   // See above, simply wraps the blocking behavior of `next()`
+   // in an async future.
    Future async_next() {
       return std::async(std::launch::async, [&] {
          return this->next();
       });
    }
 
+   // Block until all values from the generator have been consumed
+   // and handled by the given handler callback.
    void process(Handler handler) {
       std::optional<T> value;
       while (value = this->next(), value) {
@@ -130,6 +159,7 @@ public:
       }
    }
 
+   // Wraps the above `process()` behavior in an async future.
    std::future<void> process_async(Handler handler) {
       return std::async(std::launch::async, [&] {
          std::optional<T> value;
@@ -147,18 +177,26 @@ private:
 };
 
 //-------------------------------------------------------------------
-template<class T, class... TD>
+// Return the beginning of a virtual range representing the values
+// yielded by the given generator lambda.
+template<class T>
 Iterator<T> begin(std::function<std::optional<T>()> lambda) {
    return Iterator<T>(lambda);
 }
 
 //-------------------------------------------------------------------
+// Return the end of a virtual range, any virtual range, of a type.
 template<class T>
 Iterator<T> end() {
    return Iterator<T>();
 }
 
 //-------------------------------------------------------------------
+// Returns a queue for processing the results of a generator
+// asynchronously.  The first parameter is a generator factory,
+// any subsequent parameters are forwarded to this factory to produce
+// the generator.
+//
 template<class T, class... TD>
 std::shared_ptr<Queue<T>> async(std::function<std::optional<T>(TD...)> factory, TD... params) {
 
@@ -172,6 +210,32 @@ std::shared_ptr<Queue<T>> async(std::function<std::optional<T>(TD...)> factory, 
       queue->complete();
    });
    return queue;
+}
+
+//-------------------------------------------------------------------
+// Wraps the given set of iterators as a range into a generator.
+//
+template<class I>
+std::function<std::optional<typename I::value_type>()> iterate(I begin, I end) {
+    I current = begin;
+    return [=]() mutable -> std::optional<typename I::value_type> {
+        if (current == end) {
+            return {};
+        } else {
+            return *(current++);
+        }
+    };
+}
+
+//-------------------------------------------------------------------
+// Wraps the given set of iterators as a range into a generator,
+// then returns the beginning of a virtual range wrapping that
+// generator.  Use this to reinterpret iterators of any type
+// into virtual iterators.
+//
+template<class I>
+Iterator<typename I::value_type> wrap(I begin_in, I end_in) {
+    return begin<typename I::value_type>(iterate(begin_in, end_in));
 }
 
 }

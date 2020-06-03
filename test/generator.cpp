@@ -71,5 +71,16 @@ int main() {
         future.get();
         assert_true(lists_equal(results, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}));
     })
+    .test("wrapping other iterator pairs into a generator.", []() {
+        std::vector<int> values = {1, 2, 3, 4};
+        std::vector<int> copy;
+
+        for (auto iter = gen::wrap<std::vector<int>::iterator>(values.begin(), values.end());
+             iter != gen::end<int>();
+             iter++) {
+            copy.push_back(*iter);
+        }
+        assert_true(lists_equal(values, copy));
+    })
     .run();
 }
