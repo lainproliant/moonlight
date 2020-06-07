@@ -29,6 +29,23 @@ class StateMachine {
 public:
    typedef std::shared_ptr<S> StatePointer;
 
+   enum class TraceEvent {
+      PUSH,
+      POP,
+      TRANSITION,
+      RESET,
+      TERMINATE
+   };
+
+   typedef std::function<void(TraceEvent event,
+                              typename S::Context& context,
+                              const std::string& event_name, const std::vector<StatePointer>& stack,
+                              StatePointer prev_state, StatePointer new_state)> Tracer;
+
+   void add_tracer(Tracer tracer) {
+      tracers.push_back(tracer);
+   }
+
    template<class T, class... TD>
    static StateMachine<S> init(typename S::Context& context, TD... params) {
       StateMachine<S> machine(context);
@@ -67,27 +84,42 @@ public:
    }
 
    void terminate() {
+#ifdef MOONLIGHT_AUTOMATA_DEBUG
+      _trace(TraceEvent::TERMINATE);
+#endif
       stack.clear();
    }
 
    void push(StatePointer state) {
+#ifdef MOONLIGHT_AUTOMATA_DEBUG
+      _trace(TraceEvent::PUSH, state);
+#endif
       state->inject(this, &context());
       stack.push_back(state);
    }
 
    void transition(StatePointer state) {
+#ifdef MOONLIGHT_AUTOMATA_DEBUG
+      _trace(TraceEvent::TRANSITION, state);
+#endif
       state->inject(this, &context());
-      pop();
-      push(state);
+      stack.pop_back();
+      stack.push_back(state);
    }
 
    void reset(StatePointer state) {
+#ifdef MOONLIGHT_AUTOMATA_DEBUG
+      _trace(TraceEvent::RESET, state);
+#endif
       state->inject(this, &context());
-      terminate();
-      push(state);
+      stack.clear();
+      stack.push_back(state);
    }
 
    void pop() {
+#ifdef MOONLIGHT_AUTOMATA_DEBUG
+      _trace(TraceEvent::POP, stack.size() >= 2 ? stack[stack.size()-2] : nullptr);
+#endif
       try {
          stack.pop_back();
       } catch (...) {
@@ -97,6 +129,10 @@ public:
 
    StatePointer current() const {
       return current_state();
+   }
+
+   StatePointer previous() const {
+      return stack.size() > 1 ? stack[stack.size()-2] : nullptr;
    }
 
    StatePointer current_state() const {
@@ -133,6 +169,39 @@ protected:
    StateMachine(typename S::Context& context) :
    context_(context) { }
 
+#ifdef MOONLIGHT_AUTOMATA_DEBUG
+   static const std::string& _trace_event_name(TraceEvent event) {
+      static std::map<TraceEvent, std::string> names = {
+         {TraceEvent::PUSH, "PUSH"},
+         {TraceEvent::POP, "POP"},
+         {TraceEvent::TRANSITION, "TRANSITION"},
+         {TraceEvent::RESET, "RESET"},
+         {TraceEvent::TERMINATE, "TERMINATE"}
+      };
+
+      return names[event];
+   }
+
+   void _trace(TraceEvent event, StatePointer new_state = nullptr) {
+      const std::string& event_name = _trace_event_name(event);
+      for (auto tracer : tracers) {
+         switch(event) {
+         case TraceEvent::PUSH:
+         case TraceEvent::TRANSITION:
+         case TraceEvent::RESET:
+            tracer(event, context_, event_name, stack, current(), new_state);
+            break;
+         case TraceEvent::POP:
+            tracer(event, context_, event_name, stack, current(), previous());
+            break;
+         case TraceEvent::TERMINATE:
+            tracer(event, context_, event_name, stack, current(), nullptr);
+            break;
+         }
+      }
+   }
+#endif
+
    void _parent_impl() {
       if (snapshot->size() <= 1) {
          throw Error("There are no more states on the stack.");
@@ -145,6 +214,7 @@ protected:
 private:
    typename S::Context& context_;
    std::vector<StatePointer> stack;
+   std::vector<Tracer> tracers;
    std::optional<std::vector<StatePointer>> snapshot = {};
 };
 
@@ -182,6 +252,10 @@ public:
 
    const StateMachine<State<C>>& machine() const {
       return *machine_;
+   }
+
+   virtual const char* name() const {
+      return "???";
    }
 
 protected:
