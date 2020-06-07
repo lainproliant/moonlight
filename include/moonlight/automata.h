@@ -254,7 +254,7 @@ public:
       return *machine_;
    }
 
-   virtual const char* name() const {
+   virtual const char* tracer_name() const {
       return "???";
    }
 
