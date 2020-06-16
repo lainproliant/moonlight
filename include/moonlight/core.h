@@ -293,7 +293,7 @@ private:
 };
 
 //-------------------------------------------------------------------
-std::optional<std::string> getenv(const std::string& name) {
+inline std::optional<std::string> getenv(const std::string& name) {
    const char* value = std::getenv(name.c_str());
    if (value != nullptr) {
       return value;
