@@ -139,17 +139,27 @@ public:
       return stack.size() > 0 ? stack.back() : nullptr;
    }
 
-   void parent() {
+   StatePointer parent(StatePointer pivot) const {
+      auto iter = stack.rbegin();
+      for (; iter != stack.rend() && *iter != pivot; iter++);
+      if (iter == stack.rend() || std::next(iter) == stack.rend()) {
+         return nullptr;
+      } else {
+         return *std::next(iter);
+      }
+   }
+
+   void call_parent() {
       if (! snapshot) {
          core::Finalizer finally([&]() {
             snapshot = {};
          });
 
          snapshot = stack;
-         _parent_impl();
+         _call_parent_impl();
 
       } else {
-         _parent_impl();
+         _call_parent_impl();
       }
    }
 
@@ -202,7 +212,7 @@ protected:
    }
 #endif
 
-   void _parent_impl() {
+   void _call_parent_impl() {
       if (snapshot->size() <= 1) {
          throw Error("There are no more states on the stack.");
       }
@@ -292,8 +302,12 @@ protected:
       return machine().current();
    }
 
-   void parent() {
-      return machine().parent();
+   Pointer parent() {
+      return machine().parent(this->shared_from_this());
+   }
+
+   void call_parent() {
+      return machine().call_parent();
    }
 };
 

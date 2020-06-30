@@ -18,6 +18,7 @@ int main() {
             this->x = x;
          }
 
+      private:
          virtual void run() override {
             context().push_back(x += n);
             if (x >= 100000000) {
@@ -57,6 +58,7 @@ int main() {
       public:
          using State::State;
 
+      private:
          virtual void run() override {
             context().x ++;
 
@@ -71,7 +73,7 @@ int main() {
          using State::State;
 
          virtual void run() override {
-            parent();
+            call_parent();
             context().y ++;
 
             if (context().y >= 10) {
@@ -115,7 +117,7 @@ int main() {
          std::cout << "trace: " << str::join(m.stack_trace(), ",") << std::endl;
          std::cout << "m.context().x: " << m.context().x << std::endl;
          std::cout << "m.context().y: " << m.context().y << std::endl;
-         m.parent();
+         m.call_parent();
          m.context().y++;
 
          if (m.current() == c) {
@@ -130,7 +132,7 @@ int main() {
          std::cout << "m.context().x: " << m.context().x << std::endl;
          std::cout << "m.context().y: " << m.context().y << std::endl;
          assert_true(lists_equal(m.stack_trace(), {"b", "init"}));
-         m.parent();
+         m.call_parent();
          m.context().x++;
          m.terminate();
       })
@@ -146,7 +148,7 @@ int main() {
 
       } catch (const automata::Error& e) {
          // This is supposed to happen, because "a" tries to call
-         // parent(), but in this case there is no parent to "a".
+         // call_parent(), but in this case there is no parent to "a".
          std::cout << "Caught expected automata::Error." << std::endl;
       } catch (...) {
          fail();
@@ -166,6 +168,7 @@ int main() {
       public:
          using State::State;
 
+      private:
          void run() {
             context().y ++;
             machine().terminate();
@@ -205,6 +208,7 @@ int main() {
             context().cleanup_called ++;
          }
 
+      private:
          void run() override {
             if (context().run_called == 0) {
                context().run_called ++;
@@ -226,6 +230,69 @@ int main() {
 
       assert_equal(context.run_called, 3);
       assert_equal(context.cleanup_called, 2);
+   })
+   .test("Ability to refer to parent states as objects.", []() {
+      struct Context {
+         std::vector<std::string> names;
+      };
+
+      class State : public automata::State<Context> {
+      public:
+         State(const std::string& name) : _name(name) { }
+
+         const std::string& name() const {
+            return _name;
+         }
+
+         virtual void push_name() {
+            context().names.push_back(name());
+         }
+
+         virtual void delegate() { }
+
+      private:
+         std::string _name;
+      };
+
+      class StateB;
+      class StateC;
+      class StateA : public State {
+      public:
+         StateA() : State("A") { }
+         void run() {
+            push<StateB>();
+         }
+         void delegate() {
+            push_name();
+         }
+      };
+      class StateB : public State {
+      public:
+         StateB() : State("B") { }
+         void run() {
+            push<StateC>();
+         }
+         void delegate() {
+            push_name();
+            std::static_pointer_cast<State>(parent())->delegate();
+         }
+      };
+      class StateC : public State {
+      public:
+         StateC() : State("C") { }
+
+         void run() {
+            push_name();
+            std::static_pointer_cast<State>(parent())->delegate();
+            terminate();
+         }
+      };
+
+      Context context;
+      auto machine = State::Machine::init<StateA>(context);
+      machine.run_until_complete();
+
+      assert_true(lists_equal(context.names, {"C", "B", "A"}));
    })
    .run();
 }
