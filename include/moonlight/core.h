@@ -861,6 +861,15 @@ public:
        return true;
     }
 
+    bool scan_eq_advance(const std::string& target) {
+       if (scan_eq(target)) {
+          advance(target.size());
+          return true;
+       } else {
+          return false;
+       }
+    }
+
     std::string scan_dump() {
        std::string dump;
        for (size_t x = 1; peek(x) != EOF; x++) {
