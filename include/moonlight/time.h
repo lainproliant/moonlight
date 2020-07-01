@@ -5,7 +5,9 @@
  * Date: Sunday Jan 25 2014,
  *       Wednesday Jun 19 2019
  */
-#pragma once
+#ifndef __MOONLIGHT_TIME_H
+#define __MOONLIGHT_TIME_H
+
 #include <memory>
 #include <algorithm>
 #include <functional>
@@ -222,3 +224,4 @@ namespace time {
    };
 }
 }
+#endif /* __MOONLIGHT_TIME_H */

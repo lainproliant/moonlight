@@ -22,16 +22,16 @@ int main() {
             collect::sorted(maps::values(M)),
             {1, 2, 3}));
       })
-      .test("mmaps::build static initialization", []() {
-         auto mmap = mmaps::build<string, string>({
+      .test("mmap::build static initialization", []() {
+         auto mmap = mmap::build<string, string>({
             {"fruit", {"apple", "orange", "banana", "pear"}},
             {"meat", {"beef", "chicken", "pork", "fish", "lamb"}},
             {"drink", {"coffee", "tea", "ice water"}}});
 
-         assert_true(! lists_equal(mmaps::collect(mmap, "fruit"),
+         assert_true(! lists_equal(mmap::collect(mmap, "fruit"),
                   {"apple", "banana", "pear"}));
 
-         assert_true(lists_equal(mmaps::collect(mmap, "fruit"),
+         assert_true(lists_equal(mmap::collect(mmap, "fruit"),
                   {"apple", "orange", "banana", "pear"}));
       })
       .test("Finalizer tests", []() {
@@ -51,23 +51,6 @@ int main() {
          }
 
          assert_equal(x, (int) 1);
-      })
-      .test("file::Writable test", []() {
-         class Junk : public file::Writable<Junk> {
-         public:
-            Junk(int x)
-            : x(x) { }
-
-            std::string repr() const {
-               return str::cat("<Junk ", x, ">");
-            }
-
-         private:
-            int x;
-         };
-
-         std::cout << Junk(1) << std::endl;
-         assert_equal(std::string("<Junk 1>"), Junk(1).repr());
       })
       .test("file::BufferedInput test", []() {
          const std::string input_string = "look it's a bird!";

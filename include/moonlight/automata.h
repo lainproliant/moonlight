@@ -7,11 +7,11 @@
 #ifndef __MOONLIGHT_AUTOMATA_H
 #define __MOONLIGHT_AUTOMATA_H
 
-#include "moonlight/core.h"
+#include "moonlight/exceptions.h"
 
-#include <vector>
-#include <optional>
+#include <thread>
 #include <future>
+#include <map>
 
 namespace moonlight {
 namespace automata {
@@ -49,7 +49,7 @@ public:
    template<class T, class... TD>
    static StateMachine<S> init(typename S::Context& context, TD... params) {
       StateMachine<S> machine(context);
-      auto state = make<T>(std::forward<TD>(params)...);
+      auto state = std::make_shared<T>(std::forward<TD>(params)...);
       machine.push(state);
       return machine;
    }
@@ -274,19 +274,19 @@ protected:
 
    template<class T, class... TD>
    void push(TD... params) {
-      auto state = make<T>(std::forward<TD>(params)...);
+      auto state = std::make_shared<T>(std::forward<TD>(params)...);
       machine().push(state);
    }
 
    template<class T, class... TD>
    void transition(TD... params) {
-      auto state = make<T>(std::forward<TD>(params)...);
+      auto state = std::make_shared<T>(std::forward<TD>(params)...);
       machine().transition(state);
    }
 
    template<class T, class... TD>
    void reset(TD... params) {
-      auto state = make<T>(std::forward<TD>(params)...);
+      auto state = std::make_shared<T>(std::forward<TD>(params)...);
       machine().reset(state);
    }
 
@@ -335,19 +335,19 @@ public:
 
       template<class T, class... TD>
       void push_state(TD... params) {
-         auto state = make<T>(std::forward<TD>(params)...);
+         auto state = std::make_shared<T>(std::forward<TD>(params)...);
          push(state);
       }
 
       template<class T, class... TD>
       void transition_state(TD... params) {
-         auto state = make<T>(std::forward<TD>(params)...);
+         auto state = std::make_shared<T>(std::forward<TD>(params)...);
          transition(state);
       }
 
       template<class T, class... TD>
       void reset_state(TD... params) {
-         auto state = make<T>(std::forward<TD>(params)...);
+         auto state = std::make_shared<T>(std::forward<TD>(params)...);
          reset(state);
       }
 
@@ -378,14 +378,14 @@ public:
 
       Machine& def_state(const K& name,
                          const typename Lambda<C, K>::Impl1& impl) {
-         auto state = make<Lambda<C, K>>(name, impl);
+         auto state = std::make_shared<Lambda<C, K>>(name, impl);
          state_map.insert({name, state});
          return *this;
       }
 
       Machine& def_state(const K& name,
                          const typename Lambda<C, K>::Impl2& impl) {
-         auto state = make<Lambda<C, K>>(name, impl);
+         auto state = std::make_shared<Lambda<C, K>>(name, impl);
          state_map.insert({name, state});
          return *this;
       }

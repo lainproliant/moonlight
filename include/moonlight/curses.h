@@ -10,13 +10,13 @@
 #ifndef __MOONLIGHT_CURSES_H
 #define __MOONLIGHT_CURSES_H
 
+#include "moonlight/exceptions.h"
+#include "moonlight/posix.h"
+#include "tinyformat/tinyformat.h"
+
 #include <climits>
 #include <functional>
 #include <optional>
-
-#include "moonlight/core.h"
-#include "moonlight/posix.h"
-#include "tinyformat/tinyformat.h"
 
 #include <curses.h>
 #include <panel.h>

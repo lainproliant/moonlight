@@ -8,8 +8,8 @@
 #ifndef __MOONLIGHT_SDL2_H
 #define __MOONLIGHT_SDL2_H
 
-#include <SDL2/SDL.h>
 #include "moonlight/time.h"
+#include <SDL2/SDL.h>
 
 namespace moonlight {
 namespace time {

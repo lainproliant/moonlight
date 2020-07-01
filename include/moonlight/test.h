@@ -8,12 +8,15 @@
 #ifndef __MOONLIGHT_TEST_H
 #define __MOONLIGHT_TEST_H
 
+#include "moonlight/exceptions.h"
+#include "moonlight/system.h"
+
 #include <csignal>
 #include <cstdlib>
+#include <cstring>
 #include <cmath>
 #include <cfloat>
 #include <iostream>
-#include "moonlight/core.h"
 
 namespace moonlight {
 namespace test {
@@ -90,7 +93,7 @@ public:
 #ifdef MOONLIGHT_ENABLE_STACKTRACE
                out << core::format_stacktrace(core::generate_stacktrace()) << std::endl;
 #endif
-               if (core::getenv("MOONLIGHT_TEST_RETHROW")) {
+               if (sys::getenv("MOONLIGHT_TEST_RETHROW")) {
                   throw e;
                }
             }

@@ -1,13 +1,9 @@
 #ifndef __MOONLIGHT_ANSI_H
 #define __MOONLIGHT_ANSI_H
 
-#include <functional>
-#include <memory>
-#include <sstream>
-#include <string>
+#include "moonlight/string.h"
+#include "moonlight/exceptions.h"
 #include <unordered_map>
-#include <vector>
-#include "moonlight/core.h"
 
 namespace moonlight {
 namespace ansi {

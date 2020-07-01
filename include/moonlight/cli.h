@@ -7,8 +7,11 @@
 #ifndef __MOONLIGHT_CLI_H
 #define __MOONLIGHT_CLI_H
 
-#include <set>
-#include "moonlight/core.h"
+#include "moonlight/exceptions.h"
+#include "moonlight/collect.h"
+#include "moonlight/variadic.h"
+#include "moonlight/maps.h"
+#include "moonlight/slice.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -129,13 +132,13 @@ public:
 
          } else if (str::startswith(arg, "--")) {
             // This is a longopt.
-            auto longopt = splice::begin(arg, 2);
+            auto longopt = slice(arg, 2, {});
 
             if (collect::contains(longopt, '=')) {
                // This is a longopt option with a value in the same arg.
                auto parts = str::split(longopt, "=");
                auto opt = parts[0];
-               auto value = str::join(splice::begin(parts, 1), "=");
+               auto value = str::join(slice(parts, 1, {}), "=");
 
                if (collect::contains(opt_names, opt)) {
                   results.opts[opt] = value;
@@ -172,7 +175,7 @@ public:
 
          } else if (str::startswith(arg, "-") && arg.size() > 1) {
             // This is one or more shortopts.
-            auto shortopts = splice::begin(arg, 1);
+            auto shortopts = slice(arg, 1, {});
             for (unsigned int y = 0; y < shortopts.size(); y++) {
                auto shortopt = str::chr(shortopts[y]);
                if (collect::contains(flag_names, shortopt)) {
@@ -182,7 +185,7 @@ public:
                   if (y + 1 < shortopts.size()) {
                      // The rest of shortopts is the opt value.
                      results.opts.insert(
-                         {shortopt, splice::begin(shortopts, y + 1)});
+                         {shortopt, slice(shortopts, y + 1, {})});
                      y = shortopts.size();
 
                   } else if (x + 1 < argv.size()) {

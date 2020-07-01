@@ -8,8 +8,12 @@
 #ifndef __MOONLIGHT_JSON_H
 #define __MOONLIGHT_JSON_H
 
-#include "moonlight/core.h"
+#include "moonlight/exceptions.h"
+#include "moonlight/file.h"
+#include "moonlight/maps.h"
 #include "picojson/picojson.h"
+
+#include <memory>
 
 namespace moonlight {
 namespace json {

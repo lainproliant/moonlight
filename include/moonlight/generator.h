@@ -200,7 +200,7 @@ Iterator<T> end() {
 template<class T, class... TD>
 std::shared_ptr<Queue<T>> async(std::function<std::optional<T>(TD...)> factory, TD... params) {
 
-   std::shared_ptr<Queue<T>> queue = make<Queue<T>>();
+   std::shared_ptr<Queue<T>> queue = std::make_shared<Queue<T>>();
    std::async(std::launch::async, [&] {
       for (auto iter = begin(factory, std::forward(params)...);
            iter != end<T>();

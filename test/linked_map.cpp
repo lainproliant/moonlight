@@ -8,8 +8,8 @@
  */
 
 #include "moonlight/linked_map.h"
+#include "moonlight/maps.h"
 #include "moonlight/test.h"
-
 
 using namespace moonlight;
 using namespace moonlight::test;
