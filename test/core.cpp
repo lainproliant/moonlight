@@ -52,6 +52,37 @@ int main() {
 
          assert_equal(x, (int) 1);
       })
+      .test("str::split test", []() {
+         const std::string strA = "a:b";
+         const std::string strB = ":b";
+         const std::string strC = "a:";
+         const std::string strD = "a";
+
+         const std::string strE = "a//b//c";
+         const std::string strF = "//b//c";
+         const std::string strG = "a////c";
+         const std::string strH = "a//b//";
+         const std::string strI = "//b//";
+
+         std::cout << strA << " >> " << str::join(str::split(strA, ":"), ",") << std::endl;
+         assert_true(lists_equal(str::split(strA, ":"), {"a", "b"}), strA);
+         std::cout << strB << " >> " << str::join(str::split(strB, ":"), ",") << std::endl;
+         assert_true(lists_equal(str::split(strB, ":"), {"", "b"}), strB);
+         std::cout << strC << " >> " << str::join(str::split(strC, ":"), ",") << std::endl;
+         assert_true(lists_equal(str::split(strC, ":"), {"a", ""}), strC);
+         std::cout << strD << " >> " << str::join(str::split(strD, ":"), ",") << std::endl;
+         assert_true(lists_equal(str::split(strD, ":"), {"a"}), strD);
+         std::cout << strE << " >> " << str::join(str::split(strE, "//"), ",") << std::endl;
+         assert_true(lists_equal(str::split(strE, "//"), {"a", "b", "c"}), strE);
+         std::cout << strF << " >> " << str::join(str::split(strF, "//"), ",") << std::endl;
+         assert_true(lists_equal(str::split(strF, "//"), {"", "b", "c"}), strF);
+         std::cout << strG << " >> " << str::join(str::split(strG, "//"), ",") << std::endl;
+         assert_true(lists_equal(str::split(strG, "//"), {"a", "", "c"}), strG);
+         std::cout << strH << " >> " << str::join(str::split(strH, "//"), ",") << std::endl;
+         assert_true(lists_equal(str::split(strH, "//"), {"a", "b", ""}), strH);
+         std::cout << strI << " >> " << str::join(str::split(strI, "//"), ",") << std::endl;
+         assert_true(lists_equal(str::split(strI, "//"), {"", "b", ""}), strI);
+      })
       .test("file::BufferedInput test", []() {
          const std::string input_string = "look it's a bird!";
          std::istringstream in(input_string);

@@ -82,8 +82,11 @@ inline void split(T& tokens, const std::string& s, const std::string& delimiter)
 
    while (to != std::string::npos) {
       to = s.find(delimiter, from);
-      if (from < s.size() && from != to) {
+
+      if (from != to) {
          tokens.push_back(s.substr(from, to - from));
+      } else if (from == to) {
+         tokens.push_back("");
       }
 
       from = to + delimiter.size();
