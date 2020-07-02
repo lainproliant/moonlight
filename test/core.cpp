@@ -64,6 +64,9 @@ int main() {
          const std::string strH = "a//b//";
          const std::string strI = "//b//";
 
+         const std::string strJ = "a::b::";
+         const std::string strK = ":";
+
          std::cout << strA << " >> " << str::join(str::split(strA, ":"), ",") << std::endl;
          assert_true(lists_equal(str::split(strA, ":"), {"a", "b"}), strA);
          std::cout << strB << " >> " << str::join(str::split(strB, ":"), ",") << std::endl;
@@ -82,6 +85,10 @@ int main() {
          assert_true(lists_equal(str::split(strH, "//"), {"a", "b", ""}), strH);
          std::cout << strI << " >> " << str::join(str::split(strI, "//"), ",") << std::endl;
          assert_true(lists_equal(str::split(strI, "//"), {"", "b", ""}), strI);
+         std::cout << strJ << " >> " << str::join(str::split(strJ, ":"), ",") << std::endl;
+         assert_true(lists_equal(str::split(strJ, ":"), {"a", "", "b", "", ""}), strJ);
+         std::cout << strK << " >> " << str::join(str::split(strK, ":"), ",") << std::endl;
+         assert_true(lists_equal(str::split(strK, ":"), {"", ""}), strK);
       })
       .test("file::BufferedInput test", []() {
          const std::string input_string = "look it's a bird!";
