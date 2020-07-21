@@ -10,8 +10,10 @@
 #ifndef __MOONLIGHT_STRING_H
 #define __MOONLIGHT_STRING_H
 
-#include <string>
+#include <algorithm>
+#include <functional>
 #include <sstream>
+#include <string>
 #include <vector>
 
 namespace moonlight {
@@ -148,6 +150,29 @@ inline std::string trim_right(const std::string& s) {
  */
 inline std::string trim(const std::string& s) {
    return trim_left(trim_right(s));
+}
+
+/**------------------------------------------------------------------
+ * Apply a function to each character in the string.
+ */
+inline std::string map(const std::string& s, std::function<char(char)> transformer) {
+   std::string result;
+   std::transform(s.begin(), s.end(), std::back_inserter(result), transformer);
+   return result;
+}
+
+/**------------------------------------------------------------------
+ * Apply `toupper` to each character in the string.
+ */
+inline std::string to_upper(const std::string& s) {
+   return map(s, [](char c) { return toupper(c); });
+}
+
+/**------------------------------------------------------------------
+ * Apply `tolower` to each character in the string.
+ */
+inline std::string to_lower(const std::string& s) {
+   return map(s, [](char c) { return tolower(c); });
 }
 
 }
