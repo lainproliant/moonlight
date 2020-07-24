@@ -14,6 +14,7 @@
 #include "picojson/picojson.h"
 
 #include <memory>
+#include <sstream>
 
 namespace moonlight {
 namespace json {
@@ -220,16 +221,32 @@ public:
    virtual ~Wrapper() { }
 
    static Wrapper load_from_file(const std::string& filename) {
-      std::shared_ptr<picojson::value> obj_value = std::make_shared<picojson::value>();
-      std::ifstream infile = file::open_r(filename);
-      infile >> (*obj_value);
-
-      if (! obj_value->is<picojson::object>()) {
+      try {
+         std::ifstream infile = file::open_r(filename);
+         return load_from_stream(infile);
+      } catch (const WrapperException& e) {
          throw WrapperException(str::cat(
-            "JSON file does not contain an object: '", filename, "'."
+            "File does not contain a JSON object: '", filename, "'."
          ));
       }
+   }
 
+   static Wrapper load_from_string(const std::string& json_string) {
+      std::istringstream sb(json_string);
+
+      try {
+         return load_from_stream(sb);
+      } catch (const WrapperException& e) {
+         throw WrapperException("JSON string does not contain an object.");
+      }
+   }
+
+   static Wrapper load_from_stream(std::istream& infile) {
+      std::shared_ptr<picojson::value> obj_value = std::make_shared<picojson::value>();
+      infile >> (*obj_value);
+      if (! obj_value->is<picojson::object>()) {
+         throw WrapperException("Stream did not contain a JSON object.");
+      }
       return Wrapper(obj_value);
    }
 
@@ -386,6 +403,22 @@ inline std::vector<Wrapper> get_array<Wrapper>(const picojson::value& obj_value,
    return json_vec;
 }
 }
+
+//-------------------------------------------------------------------
+inline Wrapper load_from_file(const std::string& filename) {
+   return Wrapper::load_from_file(filename);
+}
+
+//-------------------------------------------------------------------
+inline Wrapper load_from_string(const std::string& json_string) {
+   return Wrapper::load_from_string(json_string);
+}
+
+//-------------------------------------------------------------------
+inline Wrapper load_from_stream(std::istream& infile) {
+   return Wrapper::load_from_stream(infile);
+}
+
 }
 }
 
