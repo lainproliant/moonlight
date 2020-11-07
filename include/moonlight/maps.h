@@ -10,6 +10,7 @@
 #ifndef __MOONLIGHT_MAPS_H
 #define __MOONLIGHT_MAPS_H
 
+#include <map>
 #include "moonlight/exceptions.h"
 
 namespace moonlight {
@@ -51,6 +52,15 @@ inline const typename T::mapped_type& const_value(const T& map, const typename T
    } else {
       throw core::IndexException("Key does not exist in map.");
    }
+}
+
+template<typename T>
+inline std::map<typename T::mapped_type, typename T::key_type> invert(const T& map) {
+    std::map<typename T::mapped_type, typename T::key_type> inverse;
+    for (auto iter = map.cbegin(); iter != map.cend(); iter++) {
+        map.insert({iter->second, iter->first});
+    }
+    return inverse;
 }
 
 }
