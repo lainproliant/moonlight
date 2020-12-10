@@ -55,6 +55,16 @@ inline const typename T::mapped_type& const_value(const T& map, const typename T
 }
 
 template<typename T>
+inline const typename T::mapped_type& get(const T& map, const typename T::key_type& key, const typename T::mapped_type& default_value) {
+    auto iter = map.find(key);
+    if (iter == map.end()) {
+        return default_value;
+    } else {
+        return iter->second;
+    }
+}
+
+template<typename T>
 inline std::map<typename T::mapped_type, typename T::key_type> invert(const T& map) {
     std::map<typename T::mapped_type, typename T::key_type> inverse;
     for (auto iter = map.cbegin(); iter != map.cend(); iter++) {
