@@ -10,7 +10,7 @@
 
 from pathlib import Path
 
-from xeno.build import build, default, provide, sh, target
+from xeno.build import build, default, provide, recipe, sh, target
 
 INCLUDES = [
     "-I./include"
@@ -35,6 +35,7 @@ def submodules():
     return sh("git submodule update --init --recursive")
 
 # -------------------------------------------------------------------
+@recipe
 def compile_test(src, headers):
     return sh(
         "{CC} {CFLAGS} {src} {LDFLAGS} -o {output}",
