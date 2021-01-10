@@ -235,6 +235,9 @@ std::function<std::optional<typename I::value_type>()> iterate(I begin, I end) {
 //
 template<class I>
 Iterator<typename I::value_type> wrap(I begin_in, I end_in) {
+    if (begin_in == end_in) {
+        return Iterator<typename I::value_type>();
+    }
     return begin<typename I::value_type>(iterate(begin_in, end_in));
 }
 
