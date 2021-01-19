@@ -10,3 +10,6 @@
 [submodule "include/sole"]
 	path = include/sole
 	url = https://github.com/r-lyeh-archived/sole
+[submodule "inifile-cpp"]
+	path = inifile-cpp
+	url = https://github.com/Rookfighter/inifile-cpp
