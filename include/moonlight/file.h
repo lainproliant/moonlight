@@ -133,6 +133,18 @@ public:
         return c;
     }
 
+    std::string getline() {
+        std::string line;
+        for (int x = 1; peek(x) != '\n' && peek(x) != EOF; x++) {
+            line.push_back(peek(x));
+        }
+        advance(line.size());
+        if (peek() == '\n') {
+            line.push_back(getc());
+        }
+        return line;
+    }
+
     bool is_exhausted() const {
         return _exhausted;
     }
@@ -159,14 +171,24 @@ public:
        }
     }
 
-    bool scan_eq(const std::string& target) {
+    bool scan_eq(const std::string& target, size_t start_at = 0) {
        for (size_t x = 0; x < target.size(); x++) {
-          if (peek(x+1) != target[x]) {
+          if (peek(start_at + x + 1) != target[x]) {
              return false;
           }
        }
 
        return true;
+    }
+
+    bool scan_line_eq(const std::string& target, size_t start_at = 0) {
+        for (size_t x = start_at; peek(x) != '\n' && peek(x) != EOF; x++) {
+            if (scan_eq(target, x)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     bool scan_eq_advance(const std::string& target) {
