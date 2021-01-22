@@ -181,9 +181,11 @@ public:
        return true;
     }
 
-    bool scan_line_eq(const std::string& target, size_t start_at = 0) {
+    bool scan_line_eq(const std::string& target, size_t start_at = 0, const std::string& escapes = "") {
         for (size_t x = start_at; peek(x) != '\n' && peek(x) != EOF; x++) {
-            if (scan_eq(target, x)) {
+            if (escapes.find(peek(x)) != std::string::npos) {
+                x++;
+            } else if (scan_eq(target, x)) {
                 return true;
             }
         }
