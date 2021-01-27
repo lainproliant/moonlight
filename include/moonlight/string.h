@@ -13,8 +13,10 @@
 #include <algorithm>
 #include <functional>
 #include <sstream>
+#include <iomanip>
 #include <string>
 #include <vector>
+#include <map>
 
 namespace moonlight {
 namespace str {
@@ -173,6 +175,49 @@ inline std::string to_upper(const std::string& s) {
  */
 inline std::string to_lower(const std::string& s) {
    return map(s, [](char c) { return tolower(c); });
+}
+
+// ------------------------------------------------------------------
+inline std::string literal(const std::string& str) {
+    static const std::map<char, std::string> ESCAPE_SEQUENCES = {
+        {'\a', "\\a"},
+        {'\b', "\\b"},
+        {'\e', "\\e"},
+        {'\f', "\\f"},
+        {'\n', "\\n"},
+        {'\r', "\\r"},
+        {'\t', "\\t"},
+        {'\v', "\\v"},
+        {'\\', "\\\\"},
+        {'"', "\\\""}
+    };
+
+    std::stringstream sb;
+
+    for (size_t x = 0; str[x] != '\0'; x++) {
+        char c = str[x];
+        std::string repr = "";
+
+        auto iter = ESCAPE_SEQUENCES.find(c);
+        if (iter != ESCAPE_SEQUENCES.end()) {
+            repr = iter->second;
+        }
+
+        if (repr == "" && !isprint(c)) {
+            std::ios sb_state(nullptr);
+            sb_state.copyfmt(sb);
+            sb << std::hex << std::setfill('0') << std::setw(2);
+            sb << "\\x" << (0xFF & c);
+            sb.copyfmt(sb_state);
+
+        } else if (repr != "") {
+            sb << repr;
+        } else {
+            sb << c;
+        }
+    }
+
+    return sb.str();
 }
 
 }
