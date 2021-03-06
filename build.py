@@ -13,7 +13,8 @@ from pathlib import Path
 from xeno.build import build, default, provide, recipe, sh, target
 
 INCLUDES = [
-    "-I./include"
+    "-I./include",
+    "-I./deps/date/include"
 ]
 
 ENV = dict(
