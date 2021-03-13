@@ -3,150 +3,240 @@
 
 #include "moonlight/string.h"
 #include "moonlight/exceptions.h"
+#include "moonlight/tty.h"
+#include "moonlight/cli.h"
+#include "moonlight/variadic.h"
 #include <unordered_map>
 
 namespace moonlight {
+
 namespace ansi {
-/**------------------------------------------------------------------
- * Join the given iterable collection into a token delimited string.
- */
-template<typename T>
-std::string join(const T& coll, const std::string& token = "") {
-   std::ostringstream sb;
 
-   for (typename T::const_iterator i = coll.begin(); i != coll.end();
-        i++) {
-      if (i != coll.begin()) sb << std::string(token);
-      sb << *i;
-   }
-
-   return sb.str();
+//-------------------------------------------------------------------
+inline bool enabled() {
+    static const bool no_color = cli::getenv("NO_COLOR").has_value();
+    static const bool force_color = cli::getenv("FORCE_COLOR").has_value();
+    return !no_color || force_color;
 }
 
 //-------------------------------------------------------------------
-std::string seq(const std::string& s) {
-   return "\033[" + s;
+class Sequence {
+public:
+    Sequence(const std::string& s, bool control = false)
+    : _s(s), _control(control) { }
+
+    Sequence control() const {
+        return Sequence(_s, true);
+    }
+
+    Sequence operator+(const Sequence& rhs) const {
+        return Sequence(_s + rhs._s, _control);
+    }
+
+    bool operator==(const Sequence& rhs) const {
+        return _s == rhs._s;
+    }
+
+    friend std::ostream& operator<<(std::ostream& out, const Sequence& seq) {
+        if ((enabled() || seq._control) && is_tty(out)) {
+            out << seq._s;
+        }
+        return out;
+    }
+
+private:
+    const std::string _s;
+    const bool _control;
+};
+
+//-------------------------------------------------------------------
+template<class T>
+std::string as_str(const T& val) {
+    std::ostringstream sb;
+    sb << val;
+    return sb.str();
+}
+
+inline Sequence seq() {
+    return Sequence("");
+}
+
+template<class T>
+Sequence seq(const T& val) {
+    return Sequence("\033" + as_str(val));
+}
+
+template<class T, class... TD>
+Sequence seq(const T& val, TD... vals) {
+    return seq(val) + seq(vals...);
 }
 
 //-------------------------------------------------------------------
-void _attr(std::vector<std::string>& vec) { (void) vec; }
-
-//-------------------------------------------------------------------
-template<class T, class... Elements>
-void _attr(std::vector<std::string>& vec, const T& element,
-           Elements... elements) {
-   vec.push_back(std::to_string(element));
-   _attr(vec, elements...);
+template<class T, class... TD>
+Sequence attr(const T& val, TD... vals) {
+    std::vector<std::string> vec;
+    vec.push_back(as_str(val));
+    variadic::pass{vec.push_back(as_str(vals))...};
+    return seq(str::join(vec, ";") + "m");
 }
 
 //-------------------------------------------------------------------
-template<class T, class... Elements>
-std::string attr(const T& element, Elements... elements) {
-   std::vector<std::string> vec;
-   _attr(vec, element, elements...);
-   return seq(join(vec, ";") + "m");
+const auto clrscr = seq("2J");
+const auto clreol = seq("K");
+const auto reset = attr(0);
+const auto bright = attr(1);
+const auto dim = attr(2);
+const auto underscore = attr(4);
+const auto blink = attr(5);
+const auto reverse = attr(7);
+const auto hidden = attr(8);
+
+//-------------------------------------------------------------------
+inline Sequence rgb(int code, int r, int g, int b) {
+    return seq(code, 2, r, g, b);
 }
 
 //-------------------------------------------------------------------
-const std::string empty = "";
-const std::string clrscr = seq("2J") + seq("0;0H");
-const std::string clreol = seq("K");
-const std::string reset = attr(0);
-const std::string bright = attr(1);
-const std::string dim = attr(2);
-const std::string underscore = attr(4);
-const std::string blink = attr(5);
-const std::string reverse = attr(7);
-const std::string hidden = attr(8);
-const std::string fraktur = attr(20);
+inline Sequence rgb(int code, int color) {
+    return rgb(code, (color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF);
+}
+
+//-------------------------------------------------------------------
+class WrappedText {
+public:
+    WrappedText(const Sequence& start, const std::string& text,
+                const Sequence& end)
+    : _start(start), _text(text), _end(end) { }
+
+    friend std::ostream& operator<<(std::ostream& out, const WrappedText& wt) {
+        out << wt._start << wt._text << wt._end;
+        return out;
+    }
+
+private:
+    const Sequence _start;
+    const std::string _text;
+    const Sequence _end;
+};
 
 //-------------------------------------------------------------------
 class Decorator {
 public:
-   Decorator(const std::string& before = empty, const std::string& after = empty)
-   : before(before), after(after) { }
-   virtual ~Decorator() { }
+    Decorator(const Sequence& start, const Sequence& end = reset)
+    : _start(start), _end(end) { }
 
-   Decorator compose(const Decorator& other) {
-      Decorator new_decorator(before, after);
-      if (other.before != before) new_decorator.before = before + other.before;
-      if (other.after != after) new_decorator.after = other.after + after;
-      return new_decorator;
-   }
+    Decorator operator+(const Decorator& rhs) const {
+        Sequence start = _start + rhs._start;
+        Sequence end = _end == rhs._end ? _end : rhs._end + _end;
+        return Decorator(start, end);
+    }
 
-   std::string operator()(const std::string& str = empty) {
-      return before + str + after;
-   }
+    Decorator operator+(const Sequence& seq) const {
+        return Decorator(_start + seq, _end);
+    }
 
-private:
-   std::string before;
-   std::string after;
-};
-
-//-------------------------------------------------------------------
-const auto none = Decorator();
-
-//-------------------------------------------------------------------
-typedef std::unordered_map<std::string, Decorator> DecoratorMap;
-
-//-------------------------------------------------------------------
-const std::vector<std::string> COLORS = {
-   "black", "red", "green", "yellow", "blue", "magenta", "cyan", "white" };
-
-//-------------------------------------------------------------------
-class Library {
-public:
-   static Library create() {
-      Library library;
-
-      for (size_t x = 0; x < COLORS.size(); x++) {
-         library
-         .add(COLORS[x], Decorator(attr(30 + x), reset))
-         .add("bg-" + COLORS[x], Decorator(attr(40 + x), reset));
-      }
-
-      library
-      .add("bright", Decorator(bright, reset))
-      .add("dim", Decorator(dim, reset))
-      .add("underscore", Decorator(underscore, reset))
-      .add("blink", Decorator(blink, reset))
-      .add("reverse", Decorator(reverse, reset))
-      .add("hidden", Decorator(hidden, reset))
-      .add("fraktur", Decorator(fraktur, reset));
-
-      return library;
-   }
-
-   Library& add(const std::string& name, const Decorator& decorator) {
-      decorator_map.insert({name, decorator});
-      return *this;
-   }
-
-   bool has(const std::string& name) {
-      return decorator_map.find(name) != decorator_map.end();
-   }
-
-   const Decorator operator[](const std::string& name) const {
-      auto components = str::split(name, " ");
-      auto decorator = none;
-
-      for (auto component : components) {
-         auto iter = decorator_map.find(component);
-         if (iter == decorator_map.end()) {
-            throw core::IndexException("Unknown decorator: \"" + component + "\"");
-         } else {
-            decorator = decorator.compose(iter->second);
-         }
-      }
-
-      return decorator;
-   }
+    WrappedText operator()(const std::string& text) const {
+        return WrappedText(_start, text, _end);
+    }
 
 private:
-   DecoratorMap decorator_map;
+    const Sequence _start;
+    const Sequence _end;
 };
 
 }
+
+namespace fg {
+inline ansi::Decorator color(int n) {
+    return ansi::seq(30 + n);
+}
+
+inline ansi::Decorator rgb(int r, int g, int b) {
+    return ansi::rgb(38, r, g, b);
+}
+
+inline ansi::Decorator rgb(int color) {
+    return ansi::rgb(38, color);
+}
+
+const auto black = color(0);
+const auto red = color(1);
+const auto green = color(2);
+const auto yellow = color(3);
+const auto blue = color(4);
+const auto magenta = color(5);
+const auto cyan = color(6);
+const auto white = color(7);
+
+namespace bright {
+inline ansi::Decorator color(int n) {
+    return ansi::seq(30 + n) + ansi::bright;
+}
+
+const auto black = color(0);
+const auto red = color(1);
+const auto green = color(2);
+const auto yellow = color(3);
+const auto blue = color(4);
+const auto magenta = color(5);
+const auto cyan = color(6);
+const auto white = color(7);
+
+}
+}
+
+namespace bg {
+inline ansi::Decorator color(int n) {
+    return ansi::seq(40 + n);
+}
+
+inline ansi::Decorator rgb(int r, int g, int b) {
+    return ansi::rgb(48, r, g, b);
+}
+
+inline ansi::Decorator rgb(int color) {
+    return ansi::rgb(48, color);
+}
+
+const auto black = color(0);
+const auto red = color(1);
+const auto green = color(2);
+const auto yellow = color(3);
+const auto blue = color(4);
+const auto magenta = color(5);
+const auto cyan = color(6);
+const auto white = color(7);
+
+}
+
+namespace scr {
+const auto hide_cursor = ansi::seq("?25l").control();
+const auto show_cursor = ansi::seq("?25h").control();
+const auto save_cursor = ansi::seq("s");
+const auto restore_cursor = ansi::seq("u");
+
+inline ansi::Sequence move_cursor(int x, int y) {
+    return ansi::seq(y, ";", x, "H");
+}
+
+inline ansi::Sequence move_cursor_up(int n) {
+    return ansi::seq(n, "A");
+}
+
+inline ansi::Sequence move_cursor_down(int n) {
+    return ansi::seq(n, "B");
+}
+
+inline ansi::Sequence move_cursor_right(int n) {
+    return ansi::seq(n, "C");
+}
+
+inline ansi::Sequence move_cursor_left(int n) {
+    return ansi::seq(n, "D");
+}
+
+}
+
 }
 
 #endif /* __MOONLIGHT_ANSI_H */
