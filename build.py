@@ -51,7 +51,11 @@ def compile_test(src, headers):
 @factory
 def run_test(test):
     return sh(
-        "{test}", cwd="test", env=ENV, test=test, interactive=test.output.name in INTERACTIVE_TESTS
+        "{test}",
+        cwd="test",
+        env=ENV,
+        test=test,
+        interactive=test.output.name in INTERACTIVE_TESTS,
     )
 
 
@@ -63,8 +67,20 @@ def test_sources():
 
 # -------------------------------------------------------------------
 @provide
+def lab_sources():
+    return Path.cwd().glob("lab/*.cpp")
+
+# -------------------------------------------------------------------
+@provide
 def headers():
     return Path.cwd().glob("include/moonlight/*.h")
+
+
+# -------------------------------------------------------------------
+@target
+async def labs(lab_sources, headers, submodules):
+    await submodules.resolve()
+    return [compile_test(src, headers) for src in lab_sources]
 
 
 # -------------------------------------------------------------------

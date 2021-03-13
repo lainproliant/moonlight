@@ -155,6 +155,11 @@ private:
 };
 
 //-------------------------------------------------------------------
+class ValueException : public Exception {
+   using Exception::Exception;
+};
+
+//-------------------------------------------------------------------
 class IndexException : public Exception {
    using Exception::Exception;
 };

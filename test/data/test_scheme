@@ -1,0 +1,10 @@
+(define generate-vector
+  (lambda (size proc)
+    (let ((ans (make-vector size)))
+      (letrec ((loop
+                (lambda (i)
+                  (cond ((= i size) ans)
+                        (else
+                         (vector-set! ans i (proc i))
+                         (loop (+ i 1)))))))
+        (loop 0)))))
