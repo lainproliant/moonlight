@@ -63,7 +63,7 @@ inline Sequence seq() {
 
 template<class T>
 Sequence seq(const T& val) {
-    return Sequence("\033" + as_str(val));
+    return Sequence("\033[" + as_str(val));
 }
 
 template<class T, class... TD>
@@ -148,7 +148,7 @@ private:
 
 namespace fg {
 inline ansi::Decorator color(int n) {
-    return ansi::seq(30 + n);
+    return ansi::attr(30 + n);
 }
 
 inline ansi::Decorator rgb(int r, int g, int b) {
@@ -170,7 +170,7 @@ const auto white = color(7);
 
 namespace bright {
 inline ansi::Decorator color(int n) {
-    return ansi::seq(30 + n) + ansi::bright;
+    return ansi::attr(30 + n) + ansi::bright;
 }
 
 const auto black = color(0);
@@ -187,7 +187,7 @@ const auto white = color(7);
 
 namespace bg {
 inline ansi::Decorator color(int n) {
-    return ansi::seq(40 + n);
+    return ansi::attr(40 + n);
 }
 
 inline ansi::Decorator rgb(int r, int g, int b) {
