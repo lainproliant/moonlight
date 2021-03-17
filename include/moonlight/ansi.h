@@ -9,7 +9,6 @@
 #include <unordered_map>
 
 namespace moonlight {
-
 namespace ansi {
 
 //-------------------------------------------------------------------
@@ -113,6 +112,18 @@ public:
         return out;
     }
 
+    const Sequence& start() const {
+        return _start;
+    }
+
+    const std::string& text() const {
+        return _text;
+    }
+
+    const Sequence& end() const {
+        return _end;
+    }
+
 private:
     const Sequence _start;
     const std::string _text;
@@ -126,9 +137,10 @@ public:
     : _start(start), _end(end) { }
 
     Decorator operator+(const Decorator& rhs) const {
-        Sequence start = _start + rhs._start;
-        Sequence end = _end == rhs._end ? _end : rhs._end + _end;
-        return Decorator(start, end);
+        return Decorator(
+            _start == rhs._start ? _start : _start + rhs._start,
+            _end == rhs._end ? _end : rhs._end + _end
+        );
     }
 
     Decorator operator+(const Sequence& seq) const {
@@ -137,6 +149,17 @@ public:
 
     WrappedText operator()(const std::string& text) const {
         return WrappedText(_start, text, _end);
+    }
+
+    WrappedText operator()(const WrappedText& text) const {
+        return WrappedText(
+            _start == text.start() ? _start : _start + text.start(),
+            text.text(),
+            _end == text.end() ? _end : text.end() + _end);
+    }
+
+    Decorator operator()(const Decorator& other) const {
+        return *this + other;
     }
 
 private:
@@ -159,19 +182,12 @@ inline ansi::Decorator rgb(int color) {
     return ansi::rgb(38, color);
 }
 
-const auto black = color(0);
-const auto red = color(1);
-const auto green = color(2);
-const auto yellow = color(3);
-const auto blue = color(4);
-const auto magenta = color(5);
-const auto cyan = color(6);
-const auto white = color(7);
-
-namespace bright {
-inline ansi::Decorator color(int n) {
-    return ansi::attr(30 + n) + ansi::bright;
-}
+const ansi::Decorator bright = ansi::bright;
+const ansi::Decorator dim = ansi::dim;
+const ansi::Decorator underscore = ansi::underscore;
+const ansi::Decorator blink = ansi::blink;
+const ansi::Decorator reverse = ansi::reverse;
+const ansi::Decorator hidden = ansi::hidden;
 
 const auto black = color(0);
 const auto red = color(1);
@@ -182,7 +198,6 @@ const auto magenta = color(5);
 const auto cyan = color(6);
 const auto white = color(7);
 
-}
 }
 
 namespace bg {
