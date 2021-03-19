@@ -13,6 +13,8 @@
 #define __MOONLIGHT_COLOR_H
 
 #include <cmath>
+#include <ostream>
+#include "tinyformat/tinyformat.h"
 
 namespace moonlight {
 namespace color {
@@ -32,14 +34,13 @@ struct fHSV {
     float s;
     float v;
 
-    bool valid() const {
-        return (in_range(.0f, (float)M_2_PI, h),
-                in_range(.0f, 1.0f, s),
-                in_range(.0f, 1.0f, v));
-    }
-
     explicit operator fRGB() const;
     explicit operator uRGB() const;
+
+    friend std::ostream& operator<<(std::ostream& out, const fHSV& hsv) {
+        tfm::format(out, "fHSV<%0.2f°, %0.2f, %0.2f>", hsv.h, hsv.s, hsv.v);
+        return out;
+    }
 };
 
 //-------------------------------------------------------------------
@@ -48,15 +49,29 @@ struct uRGB {
     unsigned int g;
     unsigned int b;
 
-    bool valid() const {
-        return (in_range(0u, 255u, r) &&
-                in_range(0u, 255u, g) &&
-                in_range(0u, 255u, b));
-
+    static uRGB of(unsigned int c) {
+        return {
+            (c >> 16) & 0xFF,
+            (c >> 8) & 0xFF,
+            c & 0xFF
+        };
     }
 
     explicit operator fRGB() const;
     explicit operator fHSV() const;
+
+    explicit operator unsigned int() const {
+        return (r << 16) | (g << 8) | b;
+    }
+
+    bool operator==(const uRGB& rhs) const {
+        return r == rhs.r && g == rhs.g && b == rhs.b;
+    }
+
+    friend std::ostream& operator<<(std::ostream& out, const uRGB& rgb) {
+        tfm::format(out, "uRGB<%06X>", static_cast<unsigned int>(rgb));
+        return out;
+    }
 };
 
 //-------------------------------------------------------------------
@@ -65,36 +80,52 @@ struct fRGB {
     float g;
     float b;
 
-    bool valid() const {
-        return (in_range(0.0f, 1.0f, r) &&
-                in_range(0.0f, 1.0f, g) &&
-                in_range(0.0f, 1.0f, b));
-    }
-
     explicit operator uRGB() const;
     explicit operator fHSV() const;
+
+    friend std::ostream& operator<<(std::ostream& out, const fRGB& rgb) {
+        tfm::format(out, "fRGB<%0.2f, %0.2f, %0.2f>", rgb.r, rgb.g, rgb.b);
+        return out;
+    }
 };
 
 //-------------------------------------------------------------------
 inline fHSV::operator uRGB() const {
-    uRGB rgb;
-    // TODO
-    return rgb;
+    return static_cast<uRGB>(static_cast<fRGB>(*this));
 }
 
 //-------------------------------------------------------------------
 inline fHSV::operator fRGB() const {
-    fRGB rgb;
-    // TODO
+    fRGB rgb = { 0.0f, 0.0f, 0.0f };
+    float c = 0.0f, m = 0.0f, x = 0.0f;
+    c = v * s;
+    x = c * (1.0f - fabsf(fmodf(h / 60.0f, 2) - 1.0f));
+    m = v - c;
+    if (h >= 0.0 && h < 60.0) {
+        rgb = { c + m, x + m, m };
+    } else if (h >= 60.0f && h < 120.0f) {
+        rgb = { x + m, c + m, m };
+    } else if (h >= 120.0f && h < 180.0f) {
+        rgb = { m, c + m, x + m };
+    } else if (h >= 180.f && h < 240.0f) {
+        rgb = { m, x + m, c + m };
+    } else if (h >= 240.0f && h < 300.0f) {
+        rgb = { x + m, m, c + m };
+    } else if (h >= 300.0 && h < 360.0) {
+        rgb = { c + m, m, x + m };
+    } else {
+        rgb = { m, m, m };
+    }
+
     return rgb;
 }
 
 //-------------------------------------------------------------------
 inline uRGB::operator fRGB() const {
     return {
-        .r = r / 256.0f,
-        .g = g / 256.0f,
-        .b = b / 256.0f
+        .r = r / 255.0f,
+        .g = g / 255.0f,
+        .b = b / 255.0f
     };
 }
 
@@ -106,18 +137,19 @@ inline uRGB::operator fHSV() const {
 //-------------------------------------------------------------------
 inline fRGB::operator uRGB() const {
     return {
-        .r = static_cast<unsigned int>(::floor(r * 256.0f)),
-        .g = static_cast<unsigned int>(::floor(g * 256.0f)),
-        .b = static_cast<unsigned int>(::floor(b * 256.0f))
+        .r = static_cast<unsigned int>(::floor(r * 255.0f)),
+        .g = static_cast<unsigned int>(::floor(g * 255.0f)),
+        .b = static_cast<unsigned int>(::floor(b * 255.0f))
     };
 }
 
 //-------------------------------------------------------------------
 inline fRGB::operator fHSV() const {
-    fHSV hsv = { .h = 0.0f, .s = 0.0f, .v = 0.0f };
+    fHSV hsv = { 0.0f, 0.0f, 0.0f };
     float M = ::fmaxf(r, ::fmaxf(g, b));
     float m = ::fminf(r, ::fminf(g, b));
     float c = M - m;
+    hsv.v = M;
 
     if (c != 0.0f) {
         if (M == r) {
@@ -127,7 +159,10 @@ inline fRGB::operator fHSV() const {
         } else /* if M == b */ {
             hsv.h = (r - g) / c + 4.0f;
         }
-        hsv.h *= 60;
+        hsv.h *= 60.0f;
+        if (hsv.h < 0.0) {
+            hsv.h += 360.0f;
+        }
         hsv.s = c / hsv.v;
     }
 

@@ -161,7 +161,7 @@ inline void epsilon_assert(double a, double b,
 inline void epsilon_assert(float a, float b,
                            float epsilon = FLT_EPSILON,
                            const std::string& message = "Value equivalence assertion failed. (float epsilon)") {
-   if (fabs(a - b) > epsilon) {
+   if (fabsf(a - b) > epsilon) {
       throw AssertionFailed(message);
    }
 }

@@ -6,6 +6,7 @@
 #include "moonlight/tty.h"
 #include "moonlight/cli.h"
 #include "moonlight/variadic.h"
+#include "moonlight/color.h"
 #include <unordered_map>
 
 namespace moonlight {
@@ -62,7 +63,7 @@ inline Sequence seq() {
 
 template<class T>
 Sequence seq(const T& val) {
-    return Sequence("\033[" + as_str(val));
+    return Sequence("\x1b[" + as_str(val));
 }
 
 template<class T, class... TD>
@@ -75,7 +76,7 @@ template<class T, class... TD>
 Sequence attr(const T& val, TD... vals) {
     std::vector<std::string> vec;
     vec.push_back(as_str(val));
-    variadic::pass{vec.push_back(as_str(vals))...};
+    variadic::pass{(vec.push_back(as_str(vals)), 0)...};
     return seq(str::join(vec, ";") + "m");
 }
 
@@ -92,12 +93,17 @@ const auto hidden = attr(8);
 
 //-------------------------------------------------------------------
 inline Sequence rgb(int code, int r, int g, int b) {
-    return seq(code, 2, r, g, b);
+    return attr(code, 2, r, g, b);
 }
 
 //-------------------------------------------------------------------
 inline Sequence rgb(int code, int color) {
     return rgb(code, (color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF);
+}
+
+//-------------------------------------------------------------------
+inline Sequence rgb(int code, const color::uRGB& color) {
+    return rgb(code, color.r, color.g, color.b);
 }
 
 //-------------------------------------------------------------------
@@ -174,12 +180,9 @@ inline ansi::Decorator color(int n) {
     return ansi::attr(30 + n);
 }
 
-inline ansi::Decorator rgb(int r, int g, int b) {
-    return ansi::rgb(38, r, g, b);
-}
-
-inline ansi::Decorator rgb(int color) {
-    return ansi::rgb(38, color);
+template<class... TD>
+ansi::Decorator rgb(TD... params) {
+    return ansi::rgb(38, params...);
 }
 
 const ansi::Decorator bright = ansi::bright;
@@ -205,12 +208,9 @@ inline ansi::Decorator color(int n) {
     return ansi::attr(40 + n);
 }
 
-inline ansi::Decorator rgb(int r, int g, int b) {
-    return ansi::rgb(48, r, g, b);
-}
-
-inline ansi::Decorator rgb(int color) {
-    return ansi::rgb(48, color);
+template<class... TD>
+ansi::Decorator rgb(TD... params) {
+    return ansi::rgb(48, params...);
 }
 
 const auto black = color(0);
