@@ -12,10 +12,9 @@ from pathlib import Path
 
 from xeno.build import build, default, provide, factory, sh, target
 
-INCLUDES = [
-    "-I./include",
-    "-I./deps/date/include"
-]
+INTERACTIVE_TESTS = {"ansi"}
+
+INCLUDES = ["-I./include", "-I./deps/date/include"]
 
 ENV = dict(
     CC="clang++",
@@ -35,6 +34,7 @@ ENV = dict(
 def submodules():
     return sh("git submodule update --init --recursive")
 
+
 # -------------------------------------------------------------------
 @factory
 def compile_test(src, headers):
@@ -46,15 +46,26 @@ def compile_test(src, headers):
         requires=headers,
     )
 
+
+# -------------------------------------------------------------------
+@factory
+def run_test(test):
+    return sh(
+        "{test}", cwd="test", env=ENV, test=test, interactive=test.output.name in INTERACTIVE_TESTS
+    )
+
+
 # -------------------------------------------------------------------
 @provide
 def test_sources():
     return Path.cwd().glob("test/*.cpp")
 
+
 # -------------------------------------------------------------------
 @provide
 def headers():
     return Path.cwd().glob("include/moonlight/*.h")
+
 
 # -------------------------------------------------------------------
 @target
@@ -62,10 +73,12 @@ async def tests(test_sources, headers, submodules):
     await submodules.resolve()
     return [compile_test(src, headers) for src in test_sources]
 
+
 # -------------------------------------------------------------------
 @default
 def run_tests(tests):
-    return tuple(sh("{input}", input=test, cwd="test") for test in tests)
+    return tuple(run_test(test) for test in tests)
+
 
 # -------------------------------------------------------------------
 if __name__ == "__main__":
