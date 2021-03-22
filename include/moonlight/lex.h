@@ -47,9 +47,11 @@ enum class Action {
 template<class G>
 class Rule {
 public:
+    typedef std::shared_ptr<Rule<G>> Pointer;
+
     Rule(Action action, const std::string& rx,
-         const std::string& type = "", const G* target = nullptr) :
-    _action(action), _rx(rx), _type(type), _target(target) {
+         const std::string& type = "", typename G::Pointer target = nullptr) :
+    _action(action), _rx("^" + rx), _type(type), _target(target) {
         if (target != nullptr && ! target->isSubGrammar()) {
             throw LexError("Push target must be a subgrammar of another grammar.");
         }
@@ -69,7 +71,7 @@ public:
         return _type;
     }
 
-    const G* target() const {
+    const typename G::Pointer target() const {
         if (_target == nullptr) {
             throw LexError(tfm::format("Rule type %s has no subgrammar target.",
                                        type()));
@@ -81,7 +83,7 @@ private:
     const Action _action;
     const std::regex _rx;
     const std::string _type;
-    const G* _target = nullptr;
+    const typename G::Pointer _target = nullptr;
 };
 
 // ------------------------------------------------------------------
@@ -108,7 +110,7 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& out, const Token& tk) {
-        tfm::format("<%s@%s (%s)>", tk.type(), tk.location(), str::join(tk._smatch, ","));
+        tfm::format(out, "<%s @ %s (%s)>", tk.type(), tk.location(), str::join(tk._smatch, ","));
         return out;
     }
 
@@ -119,16 +121,10 @@ private:
 };
 
 // ------------------------------------------------------------------
-class Grammar {
+class Grammar : public std::enable_shared_from_this<Grammar> {
 public:
     typedef Rule<Grammar> GrammarRule;
-
-    Grammar() : _subGrammar(false) { }
-    ~Grammar() {
-        for (auto g : _subGrammars) {
-            delete g;
-        }
-    }
+    typedef std::shared_ptr<Grammar> Pointer;
 
     struct ScanResult {
         const GrammarRule& rule;
@@ -136,47 +132,51 @@ public:
         const Location loc;
     };
 
+    static Pointer create() {
+        return Pointer(new Grammar());
+    }
+
     bool isSubGrammar() const {
         return _subGrammar;
     }
 
-    Grammar& def(Action action, const std::string& rx,
+    Pointer def(Action action, const std::string& rx,
                  const std::string& type = "",
-                 std::optional<const Grammar> target = {}) {
+                 std::optional<Pointer> target = {}) {
         if (target.has_value()) {
-            _rules.push_back(std::make_shared<GrammarRule>(action, rx, type, &target.value()));
+            _rules.push_back(std::make_shared<GrammarRule>(action, rx, type, target.value()));
         } else {
             _rules.push_back(std::make_shared<GrammarRule>(action, rx, type));
         }
-        return *this;
+        return shared_from_this();
     }
 
-    Grammar& ignore(const std::string& rx) {
+    Pointer ignore(const std::string& rx) {
         return def(Action::IGNORE, rx);
     }
 
-    Grammar& match(const std::string& rx, const std::string& type = "") {
+    Pointer match(const std::string& rx, const std::string& type = "") {
         return def(Action::MATCH, rx, type);
     }
 
-    Grammar& pop(const std::string& rx, const std::string& type = "") {
+    Pointer pop(const std::string& rx, const std::string& type = "") {
         return def(Action::POP, rx, type);
     }
 
-    Grammar& push(const std::string& rx, const Grammar& grammar,
-                  const std::string& type = "") {
+    Pointer push(const std::string& rx, Pointer grammar,
+                 const std::string& type = "") {
         return def(Action::PUSH, rx, type, grammar);
     }
 
-    Grammar& sub() {
-        _subGrammars.emplace_back(new Grammar(true));
-        return *_subGrammars.back();
+    Pointer sub() {
+        _subGrammars.emplace_back(create_sub());
+        return _subGrammars.back();
     }
 
     ScanResult scan(Location loc, const std::string& content) const {
         for (auto& rule : _rules) {
             std::smatch smatch = {};
-            if (std::regex_match(content.begin() + loc.offset, content.end(), smatch, rule->rx())) {
+            if (std::regex_search(content.begin() + loc.offset, content.end(), smatch, rule->rx())) {
                 for (unsigned int x = 0; x < smatch.size(); x++) {
                     loc.offset++;
                     if (*(content.begin() + loc.offset) == '\n') {
@@ -200,25 +200,30 @@ public:
 
 private:
     Grammar(bool subGrammar) : _subGrammar(subGrammar) { }
+    Grammar() : _subGrammar(false) { }
 
-    std::vector<std::shared_ptr<const GrammarRule>> _rules;
-    std::vector<Grammar*> _subGrammars;
+    static Pointer create_sub() {
+        return Pointer(new Grammar(true));
+    }
+
+    std::vector<GrammarRule::Pointer> _rules;
+    std::vector<Pointer> _subGrammars;
     const bool _subGrammar;
 };
 
 // ------------------------------------------------------------------
 class Lexer {
 public:
-    std::vector<Token> lex(const Grammar& grammar,
+    std::vector<Token> lex(Grammar::Pointer grammar,
                            const std::string& content) const {
         std::vector<Token> tokens;
-        std::stack<const Grammar*> gstack;
-        gstack.push(&grammar);
+        std::stack<Grammar::Pointer> gstack;
+        gstack.push(grammar);
         Location loc;
 
         while (loc.offset < content.size()) {
-            const Grammar& g = *gstack.top();
-            auto result = g.scan(loc, content);
+            const Grammar::Pointer g = gstack.top();
+            auto result = g->scan(loc, content);
 
             switch(result.rule.action()) {
             case Action::IGNORE:
