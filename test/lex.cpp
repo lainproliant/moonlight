@@ -23,7 +23,8 @@ lex::Grammar::Pointer make_scheme_grammar() {
         ->ignore("\\s+")
         ->match("`", "quote")
         ->match("[0-9]*.?[0-9]+", "number")
-        ->match("[-!?+*/A-Za-z_][-!?+*/A-za-z_0-9]*", "word")
+        ->match("[-!?+*/A-Za-z_!][-!?+*/A-za-z_0-9!]*", "word")
+        ->match("[\\+-/=]", "operator")
         ->push("\\(", sexpr, "open-paren")
         ->pop("\\)", "close-paren");
 

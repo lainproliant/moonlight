@@ -13,6 +13,7 @@
 #include <regex>
 #include "tinyformat/tinyformat.h"
 #include "moonlight/core.h"
+#include "moonlight/collect.h"
 
 namespace moonlight {
 namespace lex {
@@ -87,37 +88,64 @@ private:
 };
 
 // ------------------------------------------------------------------
-class Token {
+class Match {
 public:
-    Token(const std::string& type, const std::smatch& smatch,
-          const Location& location) :
-    _type(type), _smatch(smatch), _location(location) { }
-
-    const std::string& type() const {
-        return _type;
-    }
+    Match(const Location& location, const std::smatch& smatch)
+    : _location(location), _length(smatch.length()), _groups(smatch.begin(), smatch.end()) { }
 
     const Location& location() const {
         return _location;
     }
 
-    std::string match(unsigned int group = 0) const {
-        if (_smatch.size() <= group) {
-            throw LexError(tfm::format("Token type '%d' has no group at offset %d.",
-                                       type(), group));
-        }
-        return _smatch[group];
+    unsigned int length() const {
+        return _length;
+    }
+
+    const std::vector<std::string>& groups() const {
+        return _groups;
+    }
+
+    friend std::ostream& operator<<(std::ostream& out, const Match& match) {
+        auto literal_matches = collect::map<std::string>(match.groups(), _literalize);
+        tfm::format(out, "Match<%s, %dc @ %s>",
+                    str::join(literal_matches, ","),
+                    match.length(),
+                    match.location());
+        return out;
+    }
+
+private:
+    static std::string _literalize(const std::string& s) {
+        return tfm::format("\"%s\"", str::literal(s));
+    }
+
+    const Location _location;
+    unsigned int _length;
+    const std::vector<std::string> _groups;
+};
+
+// ------------------------------------------------------------------
+class Token {
+public:
+    Token(const std::string& type, const Match& smatch)
+    : _type(type), _match(smatch) { }
+
+    const std::string& type() const {
+        return _type;
+    }
+
+    const Match& match() const {
+        return _match;
     }
 
     friend std::ostream& operator<<(std::ostream& out, const Token& tk) {
-        tfm::format(out, "<%s @ %s (%s)>", tk.type(), tk.location(), str::join(tk._smatch, ","));
+        tfm::format(out, "<%s %s>", tk.type(), tk.match());
         return out;
     }
 
 private:
     const std::string _type;
-    const std::smatch _smatch;
-    const Location _location;
+    const Match _match;
 };
 
 // ------------------------------------------------------------------
@@ -177,7 +205,9 @@ public:
         for (auto& rule : _rules) {
             std::smatch smatch = {};
             if (std::regex_search(content.begin() + loc.offset, content.end(), smatch, rule->rx())) {
-                for (unsigned int x = 0; x < smatch.size(); x++) {
+                Match match(loc, smatch);
+
+                for (unsigned int x = 0; x < smatch.length(); x++) {
                     loc.offset++;
                     if (*(content.begin() + loc.offset) == '\n') {
                         loc.line++;
@@ -188,7 +218,7 @@ public:
                 }
 
                 if (! rule->type().empty()) {
-                    return {*rule, Token(rule->type(), smatch, loc), loc};
+                    return {*rule, Token(rule->type(), match), loc};
                 } else {
                     return {*rule, {}, loc};
                 }

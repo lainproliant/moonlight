@@ -14,7 +14,11 @@
 
 #include <cmath>
 #include <ostream>
+#include <regex>
+#include <inttypes.h>
+#include "moonlight/exceptions.h"
 #include "tinyformat/tinyformat.h"
+#include "moonlight/core.h"
 
 namespace moonlight {
 namespace color {
@@ -41,20 +45,56 @@ struct fHSV {
         tfm::format(out, "fHSV<%0.2f°, %0.2f, %0.2f>", hsv.h, hsv.s, hsv.v);
         return out;
     }
+
+    fHSV normalize() const {
+        float hx = fmodf(h, 360.0);
+        if (hx < 0.0) {
+            hx += 360.0;
+        }
+
+        return {
+            hx,
+            fmaxf(fminf(1.0, s), 0.0),
+            fmaxf(fminf(1.0, v), 0.0),
+        };
+    }
 };
 
 //-------------------------------------------------------------------
 struct uRGB {
-    unsigned int r;
-    unsigned int g;
-    unsigned int b;
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
 
     static uRGB of(unsigned int c) {
         return {
-            (c >> 16) & 0xFF,
-            (c >> 8) & 0xFF,
-            c & 0xFF
+            (unsigned char)((c >> 16) & 0xFF),
+            (unsigned char)((c >> 8) & 0xFF),
+            (unsigned char)(c & 0xFF)
         };
+    }
+
+    static uRGB of(const std::string& s) {
+        std::string sx;
+        if (s.starts_with("#")) {
+            sx = s.substr(1);
+        } else {
+            sx = s;
+        }
+
+        return of(std::stoul(sx, nullptr, 16));
+    }
+
+    static bool is_valid(const std::string& s) {
+        static const std::regex rx("#?[0-9a-fA-F]{6}");
+        return std::regex_match(s, rx);
+    }
+
+    static uRGB validate(const std::string& s) {
+        if (! is_valid(s)) {
+            throw core::ValueException("RGB color string is not valid: " + s);
+        }
+        return of(s);
     }
 
     explicit operator fRGB() const;
@@ -68,8 +108,14 @@ struct uRGB {
         return r == rhs.r && g == rhs.g && b == rhs.b;
     }
 
+    std::string str() const {
+        char buf[16];
+        snprintf(buf, 16u, "#%06" PRIX8, static_cast<unsigned int>(*this));
+        return std::string(buf);
+    }
+
     friend std::ostream& operator<<(std::ostream& out, const uRGB& rgb) {
-        tfm::format(out, "uRGB<%06X>", static_cast<unsigned int>(rgb));
+        tfm::format(out, "uRGB<%s>", rgb.str());
         return out;
     }
 };
@@ -87,6 +133,14 @@ struct fRGB {
         tfm::format(out, "fRGB<%0.2f, %0.2f, %0.2f>", rgb.r, rgb.g, rgb.b);
         return out;
     }
+
+    fRGB normalize() const {
+        return {
+            fmaxf(fminf(1.0, r), 0.0),
+            fmaxf(fminf(1.0, g), 0.0),
+            fmaxf(fminf(1.0, b), 0.0)
+        };
+    }
 };
 
 //-------------------------------------------------------------------
@@ -98,20 +152,21 @@ inline fHSV::operator uRGB() const {
 inline fHSV::operator fRGB() const {
     fRGB rgb = { 0.0f, 0.0f, 0.0f };
     float c = 0.0f, m = 0.0f, x = 0.0f;
+    float hx = fmodf(h, 360.0f);
     c = v * s;
-    x = c * (1.0f - fabsf(fmodf(h / 60.0f, 2) - 1.0f));
+    x = c * (1.0f - fabsf(fmodf(hx / 60.0f, 2) - 1.0f));
     m = v - c;
-    if (h >= 0.0 && h < 60.0) {
+    if (hx >= 0.0 && hx < 60.0) {
         rgb = { c + m, x + m, m };
-    } else if (h >= 60.0f && h < 120.0f) {
+    } else if (hx >= 60.0f && hx < 120.0f) {
         rgb = { x + m, c + m, m };
-    } else if (h >= 120.0f && h < 180.0f) {
+    } else if (hx >= 120.0f && hx < 180.0f) {
         rgb = { m, c + m, x + m };
-    } else if (h >= 180.f && h < 240.0f) {
+    } else if (hx >= 180.f && hx < 240.0f) {
         rgb = { m, x + m, c + m };
-    } else if (h >= 240.0f && h < 300.0f) {
+    } else if (hx >= 240.0f && hx < 300.0f) {
         rgb = { x + m, m, c + m };
-    } else if (h >= 300.0 && h < 360.0) {
+    } else if (hx >= 300.0 && hx < 360.0) {
         rgb = { c + m, m, x + m };
     } else {
         rgb = { m, m, m };
@@ -137,9 +192,9 @@ inline uRGB::operator fHSV() const {
 //-------------------------------------------------------------------
 inline fRGB::operator uRGB() const {
     return {
-        .r = static_cast<unsigned int>(::floor(r * 255.0f)),
-        .g = static_cast<unsigned int>(::floor(g * 255.0f)),
-        .b = static_cast<unsigned int>(::floor(b * 255.0f))
+        .r = static_cast<unsigned char>(::floor(r * 255.0f)),
+        .g = static_cast<unsigned char>(::floor(g * 255.0f)),
+        .b = static_cast<unsigned char>(::floor(b * 255.0f))
     };
 }
 
