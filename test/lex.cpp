@@ -18,19 +18,20 @@ using namespace moonlight::test;
 lex::Grammar::Pointer make_scheme_grammar() {
     auto root = lex::Grammar::create();
     auto sexpr = root->sub();
+    auto ignore_whitespace = lex::ignore("\\s");
 
     sexpr
-        ->ignore("\\s+")
-        ->match("`", "quote")
-        ->match("[0-9]*.?[0-9]+", "number")
-        ->match("[-!?+*/A-Za-z_!][-!?+*/A-za-z_0-9!]*", "word")
-        ->match("[\\+-/=]", "operator")
-        ->push("\\(", sexpr, "open-paren")
-        ->pop("\\)", "close-paren");
+        ->def(ignore_whitespace)
+        ->def(lex::match("`"), "quote")
+        ->def(lex::match("[0-9]*.?[0-9]+"), "number")
+        ->def(lex::match("[-!?+*/A-Za-z_!][-!?+*/A-za-z_0-9!]*"), "word")
+        ->def(lex::match("[\\+-/=]"), "operator")
+        ->def(lex::push("\\(", sexpr), "open-paren")
+        ->def(lex::pop("\\)"), "close-paren");
 
     root
-        ->ignore("\\s+")
-        ->push("\\(", sexpr, "open-paren");
+        ->def(ignore_whitespace)
+        ->def(lex::push("\\(", sexpr), "open-paren");
 
     return root;
 }

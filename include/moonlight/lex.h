@@ -45,49 +45,6 @@ enum class Action {
 };
 
 // ------------------------------------------------------------------
-template<class G>
-class Rule {
-public:
-    typedef std::shared_ptr<Rule<G>> Pointer;
-
-    Rule(Action action, const std::string& rx,
-         const std::string& type = "", typename G::Pointer target = nullptr) :
-    _action(action), _rx("^" + rx), _type(type), _target(target) {
-        if (target != nullptr && ! target->isSubGrammar()) {
-            throw LexError("Push target must be a subgrammar of another grammar.");
-        }
-    }
-
-    Rule(Rule&&) = default;
-
-    Action action() const {
-        return _action;
-    }
-
-    const std::regex& rx() const {
-        return _rx;
-    }
-
-    const std::string& type() const {
-        return _type;
-    }
-
-    const typename G::Pointer target() const {
-        if (_target == nullptr) {
-            throw LexError(tfm::format("Rule type %s has no subgrammar target.",
-                                       type()));
-        }
-        return _target;
-    }
-
-private:
-    const Action _action;
-    const std::regex _rx;
-    const std::string _type;
-    const typename G::Pointer _target = nullptr;
-};
-
-// ------------------------------------------------------------------
 class Match {
 public:
     Match(const Location& location, const std::smatch& smatch)
@@ -149,13 +106,13 @@ private:
 };
 
 // ------------------------------------------------------------------
+class Rule;
 class Grammar : public std::enable_shared_from_this<Grammar> {
 public:
-    typedef Rule<Grammar> GrammarRule;
     typedef std::shared_ptr<Grammar> Pointer;
 
     struct ScanResult {
-        const GrammarRule& rule;
+        const Rule& rule;
         std::optional<Token> token;
         const Location loc;
     };
@@ -164,69 +121,15 @@ public:
         return Pointer(new Grammar());
     }
 
-    bool isSubGrammar() const {
-        return _subGrammar;
-    }
-
-    Pointer def(Action action, const std::string& rx,
-                 const std::string& type = "",
-                 std::optional<Pointer> target = {}) {
-        if (target.has_value()) {
-            _rules.push_back(std::make_shared<GrammarRule>(action, rx, type, target.value()));
-        } else {
-            _rules.push_back(std::make_shared<GrammarRule>(action, rx, type));
-        }
-        return shared_from_this();
-    }
-
-    Pointer ignore(const std::string& rx) {
-        return def(Action::IGNORE, rx);
-    }
-
-    Pointer match(const std::string& rx, const std::string& type = "") {
-        return def(Action::MATCH, rx, type);
-    }
-
-    Pointer pop(const std::string& rx, const std::string& type = "") {
-        return def(Action::POP, rx, type);
-    }
-
-    Pointer push(const std::string& rx, Pointer grammar,
-                 const std::string& type = "") {
-        return def(Action::PUSH, rx, type, grammar);
-    }
-
     Pointer sub() {
         _subGrammars.emplace_back(create_sub());
         return _subGrammars.back();
     }
 
-    ScanResult scan(Location loc, const std::string& content) const {
-        for (auto& rule : _rules) {
-            std::smatch smatch = {};
-            if (std::regex_search(content.begin() + loc.offset, content.end(), smatch, rule->rx())) {
-                Match match(loc, smatch);
+    Pointer def(const Rule& rule);
+    Pointer def(const Rule& rule, const std::string& type);
 
-                for (unsigned int x = 0; x < smatch.length(); x++) {
-                    loc.offset++;
-                    if (*(content.begin() + loc.offset) == '\n') {
-                        loc.line++;
-                        loc.col = 1;
-                    } else {
-                        loc.col++;
-                    }
-                }
-
-                if (! rule->type().empty()) {
-                    return {*rule, Token(rule->type(), match), loc};
-                } else {
-                    return {*rule, {}, loc};
-                }
-            }
-        }
-
-        throw LexError(tfm::format("No lexical rules matched content starting at %s.", loc));
-    }
+    std::optional<ScanResult> scan(Location loc, const std::string& content) const;
 
 private:
     Grammar(bool subGrammar) : _subGrammar(subGrammar) { }
@@ -236,10 +139,125 @@ private:
         return Pointer(new Grammar(true));
     }
 
-    std::vector<GrammarRule::Pointer> _rules;
+    bool isSubGrammar() const {
+        return _subGrammar;
+    }
+
+    std::vector<Rule> _rules;
     std::vector<Pointer> _subGrammars;
     const bool _subGrammar;
 };
+
+// ------------------------------------------------------------------
+class Rule {
+public:
+    typedef std::shared_ptr<Rule> Pointer;
+
+    Rule(Action action) : _action(action) { }
+
+    Action action() const {
+        return _action;
+    }
+
+    const std::regex& rx() const {
+        return _rx;
+    }
+
+    Rule& rx(const std::string& rx, bool icase = false) {
+        if (icase) {
+            _rx = std::regex(rx, std::regex_constants::ECMAScript | std::regex_constants::icase);
+        } else {
+            _rx = std::regex(rx, std::regex_constants::ECMAScript);
+        }
+        return *this;
+    }
+
+    const std::string& type() const {
+        return _type;
+    }
+
+    Rule& type(const std::string& type) {
+        _type = type;
+        return *this;
+    }
+
+    Grammar::Pointer target() const {
+        if (_target == nullptr) {
+            throw LexError(tfm::format("Rule type %s has no subgrammar target.",
+                                       type()));
+        }
+        return _target;
+    }
+
+    Rule& target(Grammar::Pointer target) {
+        _target = target;
+        return *this;
+    }
+
+private:
+    const Action _action;
+    std::regex _rx;
+    std::string _type;
+    Grammar::Pointer _target = nullptr;
+};
+
+// ------------------------------------------------------------------
+inline Rule ignore(const std::string& rx, bool icase = false) {
+    return Rule(Action::IGNORE).rx(rx, icase);
+}
+
+inline Rule match(const std::string& rx, bool icase = false) {
+    return Rule(Action::MATCH).rx(rx, icase);
+}
+
+inline Rule push(const std::string& rx, Grammar::Pointer target, bool icase = false) {
+    return Rule(Action::PUSH).rx(rx, icase).target(target);
+}
+
+inline Rule pop(const std::string& rx, bool icase = false) {
+    return Rule(Action::POP).rx(rx, icase);
+}
+
+// ------------------------------------------------------------------
+inline Grammar::Pointer Grammar::def(const Rule& rule) {
+    _rules.push_back(rule);
+    return shared_from_this();
+}
+
+// ------------------------------------------------------------------
+inline Grammar::Pointer Grammar::def(const Rule& rule, const std::string& type) {
+    Rule rule_copy = rule;
+    rule_copy.type(type);
+    return def(rule_copy);
+}
+
+// ------------------------------------------------------------------
+inline std::optional<Grammar::ScanResult> Grammar::scan(Location loc, const std::string& content) const {
+    for (const auto& rule : _rules) {
+        std::smatch smatch = {};
+        if (std::regex_search(content.begin() + loc.offset, content.end(), smatch, rule.rx())) {
+            Match match(loc, smatch);
+
+            for (unsigned int x = 0; x < smatch.length(); x++) {
+                loc.offset++;
+                if (*(content.begin() + loc.offset) == '\n') {
+                    loc.line++;
+                    loc.col = 1;
+                } else {
+                    loc.col++;
+                }
+            }
+
+            if (! rule.type().empty()) {
+                return ScanResult{rule, Token(rule.type(), match), loc};
+            } else {
+                return ScanResult{rule, {}, loc};
+            }
+        }
+    }
+
+    return {};
+}
 
 // ------------------------------------------------------------------
 class Lexer {
@@ -253,7 +271,17 @@ public:
 
         while (loc.offset < content.size()) {
             const Grammar::Pointer g = gstack.top();
-            auto result = g->scan(loc, content);
+            auto result_opt = g->scan(loc, content);
+
+            if (! result_opt.has_value()) {
+                if (_throw_on_scan_failure) {
+                    throw LexError(tfm::format("No lexical rules matched content starting at %s.", loc));
+                } else {
+                    break;
+                }
+            }
+
+            auto result = result_opt.value();
 
             switch(result.rule.action()) {
             case Action::IGNORE:
@@ -287,6 +315,14 @@ public:
 
         return tokens;
     }
+
+    Lexer& throw_on_scan_failure(bool value) {
+        _throw_on_scan_failure = value;
+        return *this;
+    }
+
+private:
+    bool _throw_on_scan_failure = true;
 };
 
 }
