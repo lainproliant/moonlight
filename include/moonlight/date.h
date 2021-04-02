@@ -360,7 +360,7 @@ public:
     }
 
     Date(int year, int month, int day)
-    : Date(year, static_cast<Month>(month), day) { }
+    : Date(year, static_cast<Month>(month - 1), day) { }
 
     Date(const struct tm& tm_dt)
     : Date(tm_dt.tm_year + 1900, tm_dt.tm_mon, tm_dt.tm_mday) { }

@@ -24,6 +24,12 @@ struct Location {
     unsigned int col = 1;
     unsigned int offset = 0;
 
+    static Location nowhere() {
+        return {
+            0, 0, 0
+        };
+    }
+
     friend std::ostream& operator<<(std::ostream& out, const Location& loc) {
         tfm::format(out, "<line %d, col %d, offset %d>", loc.line, loc.col, loc.offset);
         return out;
@@ -45,10 +51,24 @@ enum class Action {
 };
 
 // ------------------------------------------------------------------
+inline const std::string& _action_name(Action action) {
+    static const std::map<Action, std::string> action_names = {
+        {Action::IGNORE, "IGNORE"},
+        {Action::MATCH, "MATCH"},
+        {Action::PUSH, "PUSH"},
+        {Action::POP, "POP"}
+    };
+    return action_names.at(action);
+}
+
+// ------------------------------------------------------------------
 class Match {
 public:
     Match(const Location& location, const std::smatch& smatch)
     : _location(location), _length(smatch.length()), _groups(smatch.begin(), smatch.end()) { }
+
+    Match(const Location& location)
+    : _location(location), _length(0) { }
 
     const Location& location() const {
         return _location;
@@ -87,6 +107,10 @@ public:
     Token(const std::string& type, const Match& smatch)
     : _type(type), _match(smatch) { }
 
+    static Token nothing() {
+        return Token("NOTHING", Match(Location::nowhere()));
+    }
+
     const std::string& type() const {
         return _type;
     }
@@ -115,6 +139,12 @@ public:
         const Rule& rule;
         std::optional<Token> token;
         const Location loc;
+
+        friend std::ostream& operator<<(std::ostream& out, const ScanResult& s) {
+            tfm::format(out, "ScanResult<%s, %s, %s>",
+                        s.rule, s.token.value_or(Token::nothing()), s.loc);
+            return out;
+        }
     };
 
     static Pointer create() {
@@ -159,6 +189,10 @@ public:
         return _action;
     }
 
+    const std::string& action_name() const {
+        return _action_name(action());
+    }
+
     const std::regex& rx() const {
         return _rx;
     }
@@ -201,13 +235,25 @@ public:
         return *this;
     }
 
+    friend std::ostream& operator<<(std::ostream& out, const Rule& r) {
+        out << "Rule<";
+        out << (r.type() == "" ? "(no name)" : r.type()) << " ";
+        out << r.action_name() << " ";
+        out << str::literal(r.rx_str());
+        if (r._icase) {
+            out << "i";
+        }
+        out << ">";
+        return out;
+    }
+
 private:
 
     void compile_regex() {
         if (_icase) {
-            _rx = std::regex(_rx_str, std::regex_constants::ECMAScript | std::regex_constants::icase);
+            _rx = std::regex("^" + _rx_str, std::regex_constants::ECMAScript | std::regex_constants::icase);
         } else {
-            _rx = std::regex(_rx_str, std::regex_constants::ECMAScript);
+            _rx = std::regex("^" + _rx_str, std::regex_constants::ECMAScript);
         }
     }
 
@@ -300,6 +346,8 @@ public:
             }
 
             auto result = result_opt.value();
+
+            std::cerr << result << std::endl;
 
             switch(result.rule.action()) {
             case Action::IGNORE:
