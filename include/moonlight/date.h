@@ -363,7 +363,7 @@ public:
     : Date(year, static_cast<Month>(month - 1), day) { }
 
     Date(const struct tm& tm_dt)
-    : Date(tm_dt.tm_year + 1900, tm_dt.tm_mon, tm_dt.tm_mday) { }
+    : Date(tm_dt.tm_year + 1900, tm_dt.tm_mon + 1, tm_dt.tm_mday) { }
 
     /**
      * Advance forward the given number of calendar days.
