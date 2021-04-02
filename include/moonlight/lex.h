@@ -347,8 +347,6 @@ public:
 
             auto result = result_opt.value();
 
-            std::cerr << result << std::endl;
-
             switch(result.rule.action()) {
             case Action::IGNORE:
                 break;
