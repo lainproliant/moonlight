@@ -64,7 +64,7 @@ public:
 
     friend std::ostream& operator<<(std::ostream& out, const Match& match) {
         auto literal_matches = collect::map<std::string>(match.groups(), _literalize);
-        tfm::format(out, "Match<%s, %dc @ %s>",
+        tfm::format(out, "Match<[%s], %dc @ %s>",
                     str::join(literal_matches, ","),
                     match.length(),
                     match.location());
@@ -163,12 +163,19 @@ public:
         return _rx;
     }
 
-    Rule& rx(const std::string& rx, bool icase = false) {
-        if (icase) {
-            _rx = std::regex(rx, std::regex_constants::ECMAScript | std::regex_constants::icase);
-        } else {
-            _rx = std::regex(rx, std::regex_constants::ECMAScript);
-        }
+    const std::string& rx_str() const {
+        return _rx_str;
+    }
+
+    Rule& rx(const std::string& rx) {
+        _rx_str = rx;
+        compile_regex();
+        return *this;
+    }
+
+    Rule& icase(bool icase = true) {
+        _icase = icase;
+        compile_regex();
         return *this;
     }
 
@@ -195,27 +202,38 @@ public:
     }
 
 private:
+
+    void compile_regex() {
+        if (_icase) {
+            _rx = std::regex(_rx_str, std::regex_constants::ECMAScript | std::regex_constants::icase);
+        } else {
+            _rx = std::regex(_rx_str, std::regex_constants::ECMAScript);
+        }
+    }
+
     const Action _action;
+    bool _icase;
     std::regex _rx;
+    std::string _rx_str;
     std::string _type;
     Grammar::Pointer _target = nullptr;
 };
 
 // ------------------------------------------------------------------
-inline Rule ignore(const std::string& rx, bool icase = false) {
-    return Rule(Action::IGNORE).rx(rx, icase);
+inline Rule ignore(const std::string& rx) {
+    return Rule(Action::IGNORE).rx(rx);
 }
 
-inline Rule match(const std::string& rx, bool icase = false) {
-    return Rule(Action::MATCH).rx(rx, icase);
+inline Rule match(const std::string& rx) {
+    return Rule(Action::MATCH).rx(rx);
 }
 
-inline Rule push(const std::string& rx, Grammar::Pointer target, bool icase = false) {
-    return Rule(Action::PUSH).rx(rx, icase).target(target);
+inline Rule push(const std::string& rx, Grammar::Pointer target) {
+    return Rule(Action::PUSH).rx(rx).target(target);
 }
 
-inline Rule pop(const std::string& rx, bool icase = false) {
-    return Rule(Action::POP).rx(rx, icase);
+inline Rule pop(const std::string& rx) {
+    return Rule(Action::POP).rx(rx);
 }
 
 // ------------------------------------------------------------------

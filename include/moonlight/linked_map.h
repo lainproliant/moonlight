@@ -228,7 +228,7 @@ namespace moonlight {
       list_type value_list;
    };
 
-   template <class K, class T, class C = equal_to<K>, class H = hash<K>,
+   template <class K, class T, class C = equal_to<K>, class H = std::hash<K>,
              class A = allocator<pair<K, typename list<pair<const K, T>>::iterator>>>
    using linked_hash = linked_map_impl<K, T,
       unordered_map<K, typename list<pair<const K, T>>::iterator,
