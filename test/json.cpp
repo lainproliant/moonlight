@@ -12,7 +12,7 @@ int main() {
       .die_on_signal(SIGSEGV)
       .test("json::Wrapper-001: Loading settings from a file", [&]()->bool {
          json::Wrapper settings = json::Wrapper::load_from_file("data/test001.json");
-         json::Wrapper graphics_settings = settings.get_object("graphics", true);
+         json::Wrapper graphics_settings = settings.get_object("graphics");
          assert_true(graphics_settings.get<int>("width") == 1920);
          assert_true(graphics_settings.get<int>("height") == 1080);
          return true;
