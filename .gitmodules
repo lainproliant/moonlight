@@ -1,6 +1,3 @@
-[submodule "include/picojson"]
-	path = include/picojson
-	url = https://github.com/kazuho/picojson
 [submodule "include/tinyformat"]
 	path = include/tinyformat
 	url = https://github.com/c42f/tinyformat
@@ -10,6 +7,3 @@
 [submodule "include/sole"]
 	path = include/sole
 	url = https://github.com/r-lyeh-archived/sole
-[submodule "inifile-cpp"]
-	path = deps/inifile-cpp
-	url = https://github.com/Rookfighter/inifile-cpp
