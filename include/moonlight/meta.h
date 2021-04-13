@@ -17,8 +17,7 @@ namespace moonlight {
  * expansions to a list of possibilities.
  *
  * This is used to provide a "default invalid" implementation of a
- * templatized function inside a class definition, and then specify
- *
+ * templatized function inside a class definition.
  */
 template< typename T >
 struct always_false {

@@ -4,7 +4,10 @@
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Thursday March 11, 2021
  *
- * Distributed under terms of the MIT license.
+ * All credit for fileno(3) related code goes to Richard B. Kreckel.
+ * This code is in the public domain and was sourced from https://www.ginac.de/~kreckel/fileno/.
+ *
+ * Other code distributed under terms of the MIT license.
  */
 
 #ifndef __MOONLIGHT_TTY_H
