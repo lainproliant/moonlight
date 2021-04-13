@@ -45,6 +45,21 @@ public:
         return std::make_shared<Object>(*this);
     }
 
+    Object& clear() {
+        _ns.clear();
+        return *this;
+    }
+
+    template<class T>
+    std::unordered_map<std::string, T> extract() const {
+        std::unordered_map<std::string, T> map;
+        std::transform(_ns.begin(), _ns.end(), std::inserter(map, map.end()),
+                       [](const auto& pair) -> std::pair<std::string, T> {
+                           return { pair.first, pair.second->template get<T>() };
+                       });
+        return map;
+    }
+
     template<class T>
     T get(const std::string& name) const {
         auto value = _get_value(name);

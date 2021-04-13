@@ -93,7 +93,7 @@ int main() {
             vector<int> integers = settings.get<json::Array>("numbers").extract<int>();
 
         } catch (const json::Error& e) {
-            cerr << "Received expected json::Error: "
+            cout << "Received expected json::Error: "
             << e.get_message()
             << endl;
             return true;
@@ -106,6 +106,32 @@ int main() {
         settings.set<float>("pi", 3.14159);
         cout << json::to_string(settings) << endl;
         return true;
+    })
+    .test("json::Object-008: Extract a map from an object.", [&]()->bool {
+        json::Object settings;
+        settings.set<int>("a", 1);
+        settings.set<int>("b", 2);
+        settings.set<int>("c", 3);
+
+        auto map = settings.extract<int>();
+
+        assert_equal(map["a"], 1);
+        assert_equal(map["b"], 2);
+        assert_equal(map["c"], 3);
+
+        settings.set<std::string>("s", "meow");
+
+        try {
+            map = settings.extract<int>();
+
+        } catch (const json::Error& e) {
+            cout << "Received expected json::Error: "
+            << e.get_message()
+            << endl;
+            return true;
+        }
+
+        return false;
     })
     .run();
 }
