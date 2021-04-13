@@ -27,7 +27,7 @@ public:
     }
 
     template<class T>
-    Array(const std::vector<T>& vec) {
+    Array(const std::vector<T>& vec) : Array() {
         std::transform(
             vec.begin(),
             vec.end(),
