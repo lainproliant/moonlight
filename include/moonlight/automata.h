@@ -72,8 +72,16 @@ public:
          throw Error("StateMachine has no initial state.");
       }
 
-      while (current()) {
-         current()->run();
+      try {
+          while (current()) {
+             current()->run();
+          }
+
+      } catch (...) {
+#ifdef MOONLIGHT_AUTOMATA_DEBUG
+          _trace(TraceEvent::TERMINATE);
+#endif
+          throw;
       }
    }
 
