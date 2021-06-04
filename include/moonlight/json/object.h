@@ -116,7 +116,6 @@ public:
             value = _get_value(name);
         }
         if (! value->is<T>()) {
-            std::cout << "LRS-DEBUG: T = " << std::string(typeid(T).name()) << ", type name = " << value->type_name() << std::endl;
             throw TypeError(name);
         }
         return value->get<T>();
