@@ -404,10 +404,15 @@ public:
      */
     Weekday weekday() const {
         int adjustment, mm, yy;
+        int y = year();
+
+        if (y < 0) {
+            y = 400 - (abs(y) % 400);
+        }
 
         adjustment = (14 - nmonth()) / 12;
         mm = nmonth() + 12 * adjustment - 2;
-        yy = year() - adjustment;
+        yy = y - adjustment;
         return static_cast<Weekday>(
             ((day() + (13 * mm - 1) / 5 +
               yy + yy / 4 - yy / 100 + yy / 400) % 7));
@@ -708,6 +713,14 @@ public:
 
     Datetime(int year, Month month, int day = 1, int hour = 0, int minute = 0)
     : Datetime(Zone::utc(), year, month, day, hour, minute) { }
+
+    static Datetime min() {
+        return Datetime(Millis::min());
+    }
+
+    static Datetime max() {
+        return Datetime(Millis::max());
+    }
 
     static Datetime now(const Zone& tz = Zone::utc()) {
         return Datetime(tz, ::date::floor<Millis>(

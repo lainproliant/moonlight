@@ -78,6 +78,10 @@ public:
         return _length;
     }
 
+    const std::string& group(size_t offset = 0) const {
+        return _groups[offset];
+    }
+
     const std::vector<std::string>& groups() const {
         return _groups;
     }
