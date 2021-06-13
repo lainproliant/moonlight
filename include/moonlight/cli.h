@@ -23,10 +23,10 @@
 namespace moonlight {
 namespace cli {
 
-/**
+/**------------------------------------------------------------------
  * Convert argc and argv from main() into a vector of strings.
  */
-std::vector<std::string> argv_to_vector(int argc, char** argv) {
+inline std::vector<std::string> argv_to_vector(int argc, char** argv) {
    std::vector<std::string> vec;
 
    for (int x = 0; x < argc; x++) {
@@ -37,13 +37,21 @@ std::vector<std::string> argv_to_vector(int argc, char** argv) {
 }
 
 //-------------------------------------------------------------------
-std::optional<std::string> getenv(const std::string& name) {
+inline std::optional<std::string> getenv(const std::string& name) {
    const char* value = std::getenv(name.c_str());
    if (value != nullptr) {
       return value;
    } else {
       return {};
    }
+}
+
+//-------------------------------------------------------------------
+inline std::string getcwd() {
+    char* buf = ::getcwd(nullptr, 0);
+    std::string cwd = buf;
+    ::free(buf);
+    return cwd;
 }
 
 //-------------------------------------------------------------------
@@ -223,18 +231,58 @@ private:
 };
 
 //-------------------------------------------------------------------
-CommandLine parse(const std::vector<std::string>& argv,
+inline CommandLine parse(const std::vector<std::string>& argv,
                   const std::set<std::string>& flag_names = {},
                   const std::set<std::string>& opt_names = {}) {
    return CommandLine::parse(argv, flag_names, opt_names);
 }
 
 //-------------------------------------------------------------------
-CommandLine parse(int argc_in, char** argv_in,
+inline CommandLine parse(int argc_in, char** argv_in,
                   const std::set<std::string>& flag_names = {},
                   const std::set<std::string>& opt_names = {}) {
    return parse(argv_to_vector(argc_in, argv_in), flag_names, opt_names);
 }
+
+//-------------------------------------------------------------------
+class Shell {
+public:
+    Shell& cwd(const std::string& cwd) {
+        _cwd = cwd;
+        return *this;
+    }
+
+    const std::string& cwd() const {
+        return _cwd;
+    }
+
+    Shell& env(const std::string& key, const std::string& value) {
+        _env.insert({key, value});
+        return *this;
+    }
+
+    Shell& env(const std::map<std::string, std::string>& env) {
+        _env.insert(env.begin(), env.end());
+        return *this;
+    }
+
+    std::optional<std::string> env(const std::string& key) const {
+        auto iter = _env.find(key);
+        if (iter == _env.end()) {
+            return {};
+        }
+        return iter->second;
+    }
+
+    const std::map<std::string, std::string>& env() const {
+        return _env;
+    }
+
+private:
+    std::string _cwd = getcwd();
+    std::map<std::string, std::string> _env;
+};
+
 }
 }
 
