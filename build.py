@@ -8,9 +8,10 @@
 # Distributed under terms of the MIT license.
 # -------------------------------------------------------------------
 
+import random
 from pathlib import Path
 
-from xeno.build import build, default, provide, factory, sh, target
+from xeno.build import build, default, factory, provide, sh, target
 
 INTERACTIVE_TESTS = {"ansi"}
 
@@ -87,7 +88,8 @@ async def labs(lab_sources, headers, submodules):
 @target
 async def tests(test_sources, headers, submodules):
     await submodules.resolve()
-    return [compile_test(src, headers) for src in test_sources]
+    tests = [compile_test(src, headers) for src in test_sources]
+    return random.sample(tests, len(tests))
 
 
 # -------------------------------------------------------------------
