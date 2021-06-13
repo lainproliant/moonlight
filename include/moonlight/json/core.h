@@ -12,6 +12,7 @@
 
 #include "moonlight/exceptions.h"
 #include <memory>
+#include <optional>
 
 namespace moonlight {
 namespace json {

@@ -11,6 +11,7 @@
 
 #include <thread>
 #include <future>
+#include <optional>
 #include <map>
 
 namespace moonlight {

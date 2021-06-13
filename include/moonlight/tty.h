@@ -17,6 +17,7 @@
 #include <cstdio>  // declaration of ::fileno
 #include <fstream>  // for basic_filebuf template
 #include <cerrno>
+#include <unistd.h>
 
 #if defined(__GLIBCXX__) || (defined(__GLIBCPP__) && __GLIBCPP__>=20020514)  // GCC >= 3.1.0
 # include <ext/stdio_filebuf.h>
