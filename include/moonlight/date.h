@@ -192,6 +192,11 @@ public:
     Duration(const Millis& ms) : _ms(ms), _bk(breakdown()) { }
     Duration(const Duration& d) : _ms(d._ms), _bk(breakdown()) { }
 
+    Duration& operator=(const Duration& other) {
+        _ms = other._ms;
+        return *this;
+    }
+
     struct Breakdown {
         int days;
         int hours;
