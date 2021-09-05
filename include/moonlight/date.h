@@ -14,6 +14,7 @@
 #include "moonlight/generator.h"
 #include "moonlight/exceptions.h"
 #include "moonlight/maps.h"
+#include "moonlight/slice.h"
 #include "date/date.h"
 #include <map>
 #include <ctime>
@@ -21,6 +22,7 @@
 #include <cstring>
 #include <memory>
 #include <chrono>
+#include <regex>
 
 #ifndef MOONLIGHT_TZ_UNSAFE
 #include <thread>
@@ -30,7 +32,24 @@ namespace moonlight {
 namespace date {
 
 const std::string DEFAULT_FORMAT = "%Y-%m-%d %H:%M:%S %Z";
+const std::string ISO_8601_UTC_FORMAT = "%FT%TZ";
 typedef std::chrono::duration<long long, std::milli> Millis;
+
+inline std::ostream& operator<<(std::ostream& out, const struct tm tm_dt) {
+    tfm::format(out, "(struct tm)<sec=%d, min=%d, hour=%d, mday=%d, mon=%d, year=%d, wday=%d, yday=%d, isdst=%d, gmtoff=%d, zone=%s>",
+                tm_dt.tm_sec,
+                tm_dt.tm_min,
+                tm_dt.tm_hour,
+                tm_dt.tm_mday,
+                tm_dt.tm_mon,
+                tm_dt.tm_year,
+                tm_dt.tm_wday,
+                tm_dt.tm_yday,
+                tm_dt.tm_isdst,
+                tm_dt.tm_gmtoff,
+                tm_dt.tm_zone);
+    return out;
+}
 
 // --------------------------------------------------------
 class ValueError : public moonlight::core::Exception {
@@ -159,6 +178,20 @@ public:
         std::string result(buffer);
         set_env_tz(env_tz);
         return result;
+    }
+
+    struct tm strptime(const std::string& format, const std::string& dt_str) const {
+#ifndef MOONLIGHT_TZ_UNSAFE
+        std::lock_guard<std::mutex> lock(mutex());
+#endif
+        auto env_tz = get_env_tz();
+        set_env_tz(_tz_name);
+        struct tm tm_dt;
+        ::memset(&tm_dt, 0, sizeof(tm_dt));
+        tm_dt.tm_isdst = -1;  // Determine if daylight savings should apply.
+        ::strptime(dt_str.c_str(), format.c_str(), &tm_dt);
+        set_env_tz(env_tz);
+        return tm_dt;
     }
 
 private:
@@ -698,9 +731,11 @@ private:
 class Datetime {
 public:
     Datetime() : _ms(0) { }
+    Datetime(const Datetime& dt) : _ms(dt._ms) { }
     Datetime(const Duration& d) : _ms(d.to_chrono_duration()) { }
     Datetime(const Millis& ms) : _ms(ms) { }
     Datetime(const Zone& tz, const Millis& ms) : _ms(ms), _tz(tz) { }
+    Datetime(const std::string& tz_name, const Millis& ms) : Datetime(Zone(tz_name), ms) { }
 
     Datetime(const Date& date, const Time& time = Time::start_of_day())
     : Datetime(Zone::utc(), date, time) { }
@@ -713,8 +748,14 @@ public:
         _ms = ::date::floor<Millis>(std::chrono::seconds{tz.mk_timestamp(tm_localtime)});
     }
 
+    Datetime(const std::string& tz_name, const Date& date, const Time& time = Time::start_of_day())
+    : Datetime(Zone(tz_name), date, time) { }
+
     Datetime(const Zone& tz, int year, Month month, int day = 1, int hour = 0, int minute = 0)
     : Datetime(tz, Date(year, month, day), Time(hour, minute)) { }
+
+    Datetime(const std::string& tz_name, int year, Month month, int day = 1, int hour = 0, int minute = 0)
+    : Datetime(Zone(tz_name), year, month, day, hour, minute) { }
 
     Datetime(int year, Month month, int day = 1, int hour = 0, int minute = 0)
     : Datetime(Zone::utc(), year, month, day, hour, minute) { }
@@ -732,16 +773,40 @@ public:
                 std::chrono::system_clock::now().time_since_epoch()));
     }
 
+    static Datetime strptime(const std::string& dt_str,
+                             const std::string& format = DEFAULT_FORMAT,
+                             const Zone& tz = Zone::utc()) {
+        auto tm_dt = tz.strptime(format, dt_str);
+        return Datetime(tz, ::date::floor<Millis>(std::chrono::seconds{tz.mk_timestamp(tm_dt)}));
+    }
+
+    static Datetime from_isoformat(const std::string& iso_dt_str) {
+        return strptime(iso_dt_str, ISO_8601_UTC_FORMAT, Zone::utc());
+    }
+
+    std::string strftime(const std::string& format) const {
+        auto tm_dt = zone().mk_struct_tm(_ms);
+        return zone().strftime(format, tm_dt);
+    }
+
+    std::string isoformat() const {
+        return zone(Zone::utc()).strftime(ISO_8601_UTC_FORMAT);
+    }
+
     Date date() const {
-        return Date(_tz.mk_struct_tm(_ms));
+        return Date(zone().mk_struct_tm(_ms));
     }
 
     Time time() const {
-        return Time(_tz.mk_struct_tm(_ms));
+        return Time(zone().mk_struct_tm(_ms));
     }
 
     Datetime zone(const Zone& tz) const {
         return Datetime(tz, _ms);
+    }
+
+    Datetime zone(const std::string& tz_name) const {
+        return zone(Zone(tz_name));
     }
 
     const Zone& zone() const {
@@ -772,6 +837,10 @@ public:
         return _tz.mk_struct_tm(_ms).tm_isdst;
     }
 
+    struct tm mk_struct_tm() const {
+        return zone().mk_struct_tm(_ms);
+    }
+
     bool operator==(const Datetime& rhs) const {
         return _ms == rhs._ms;
     }
@@ -796,13 +865,13 @@ public:
         return (*this == rhs) || (*this > rhs);
     }
 
-    std::string format(const std::string& fmt = DEFAULT_FORMAT) const {
-        return _tz.strftime(fmt, _tz.mk_struct_tm(_ms));
+    friend std::ostream& operator<<(std::ostream& out, const Datetime& dt) {
+        out << dt.strftime(DEFAULT_FORMAT);
+        return out;
     }
 
-    friend std::ostream& operator<<(std::ostream& out, const Datetime& dt) {
-        out << dt.format();
-        return out;
+    Millis to_chrono_duration() const {
+        return _ms;
     }
 
 private:
@@ -864,6 +933,10 @@ public:
             end().zone(zone));
     }
 
+    Range zone(const std::string& tz_name) const {
+        return zone(Zone(tz_name));
+    }
+
     bool operator==(const Range& rhs) const {
         return start() == rhs.start() && end() == rhs.end();
     }
@@ -873,7 +946,7 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& out, const Range& range) {
-        tfm::format(out, "Range<%s - %s>", range.start().format(), range.end().format());
+        tfm::format(out, "Range<%s - %s>", range.start(), range.end());
         return out;
     }
 

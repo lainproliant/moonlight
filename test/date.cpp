@@ -162,6 +162,34 @@ int main() {
         std::cout << "futureLocal = " << futureLocal << std::endl;
         std::cout << "futureLocal.is_dst() = " << futureLocal.is_dst() << std::endl;
     })
+    .test("strftime/strptime", []() {
+        const std::string format = "%a %b %e %H:%M:%S %Y";
+        Datetime dtA = Datetime("America/Los_Angeles", 2021, Month::September, 4, 12, 25);
+        std::string dt_strA = dtA.strftime(format);
+        assert_equal(dt_strA, std::string("Sat Sep  4 12:25:00 2021"));
+
+        Datetime dtB = Datetime::strptime(dt_strA, format, dtA.zone());
+        std::cout << "dtA = " << dtA << std::endl;
+        std::cout << "dtB = " << dtB << std::endl;
+        std::cout << "dt_strA = " << dt_strA << std::endl;
+        std::cout << "dtA.is_dst() = " << dtA.is_dst() << std::endl;
+        std::cout << "dtB.is_dst() = " << dtB.is_dst() << std::endl;
+        std::cout << "dtA.mk_struct_tm() = " << dtA.mk_struct_tm() << std::endl;
+        std::cout << "dtB.mk_struct_tm() = " << dtB.mk_struct_tm() << std::endl;
+        std::cout << "dtA.utc() = " << dtA.utc() << std::endl;
+        std::cout << "dtB.utc() = " << dtB.utc() << std::endl;
+        assert_equal(dtA, dtB);
+    })
+    .test("isoformat/from_isoformat", []() {
+        Datetime dtA = Datetime("America/New_York", 2021, Month::September, 4, 12, 25);
+        std::string dt_strA = dtA.isoformat();
+        assert_equal(dt_strA, std::string("2021-09-04T16:25:00Z"));
+
+        Datetime dtB = Datetime::from_isoformat(dt_strA);
+        std::cout << dtA << std::endl;
+        std::cout << dtB << std::endl;
+        assert_equal(dtA, dtB);
+    })
     .die_on_signal(SIGSEGV)
     .run();
 }
