@@ -238,6 +238,10 @@ public:
         int millis;
     };
 
+    static Duration zero() {
+        return Duration::of_seconds(0);
+    }
+
     static Duration of_days(int days) {
         return Duration(::date::floor<Millis>(::date::days{days}));
     }
@@ -886,7 +890,15 @@ public:
         validate();
     }
 
-    Range(const Datetime& start, const Duration& duration) : Range(start, start + duration) { }
+    Range(const Datetime& start, const Duration& duration) {
+        if (duration > Duration::zero()) {
+            _start = start;
+            _end = start + duration;
+        } else {
+            _start = start + duration;
+            _end = start;
+        }
+    }
 
     static Range for_days(const Date& date, int days) {
         return Range(Datetime(date), Datetime(date.advance_days(days)));
