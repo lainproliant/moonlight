@@ -735,7 +735,6 @@ private:
 class Datetime {
 public:
     Datetime() : _ms(0) { }
-    Datetime(const Datetime& dt) : _ms(dt._ms) { }
     Datetime(const Duration& d) : _ms(d.to_chrono_duration()) { }
     Datetime(const Millis& ms) : _ms(ms) { }
     Datetime(const Zone& tz, const Millis& ms) : _ms(ms), _tz(tz) { }
@@ -786,6 +785,10 @@ public:
 
     static Datetime from_isoformat(const std::string& iso_dt_str) {
         return strptime(iso_dt_str, ISO_8601_UTC_FORMAT, Zone::utc());
+    }
+
+    std::string format(const std::string& fmt) const {
+        return strftime(fmt);
     }
 
     std::string strftime(const std::string& format) const {
