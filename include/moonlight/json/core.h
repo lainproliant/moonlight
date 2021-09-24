@@ -279,6 +279,7 @@ private:
 
 VALUE_IS(String, Type::STRING);
 VALUE_IS(std::string, Type::STRING);
+VALUE_IS(const std::string, Type::STRING);
 VALUE_OF(std::string, String(value));
 VALUE_GET(std::string, String);
 VALUE_REF(String);

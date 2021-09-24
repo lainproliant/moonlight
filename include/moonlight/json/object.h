@@ -108,6 +108,12 @@ public:
         return *this;
     }
 
+    template<>
+    Object& set(const std::string& name, const Value::Pointer& value) {
+        _ns.insert({name, value});
+        return *this;
+    }
+
     template<class T>
     T get_or_set(const std::string& name, const T& default_value) {
         auto value = _get_value(name);

@@ -12,6 +12,7 @@
 
 #include "moonlight/json/parser.h"
 #include "moonlight/json/serializer.h"
+#include "moonlight/json/mapping.h"
 
 namespace moonlight {
 namespace json {
@@ -71,6 +72,17 @@ inline std::string to_string(const Value& value) {
 inline std::string to_string(Value::Pointer value) {
     return to_string(value->ref<Value>());
 }
+
+template<class T>
+json::Object map(const T& obj) {
+    return const_cast<T&>(obj).__json__().map_to_json();
+}
+
+template<class T>
+T map(const Object& json_obj) {
+    return T().__json__().map_from_json(json_obj);
+}
+
 
 }
 }
