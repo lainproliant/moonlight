@@ -10,14 +10,14 @@ using namespace moonlight::test;
 int main() {
     return TestSuite("moonlight json tests")
     .die_on_signal(SIGSEGV)
-    .test("json::Object-001: Loading settings from a file", [&]()->bool {
+    .test("Loading settings from a file", []() {
         json::Object settings = json::read_file<json::Object>("data/test001.json");
         json::Object graphics_settings = settings.get<json::Object>("graphics");
         assert_true(graphics_settings.get<int>("width") == 1920);
         assert_true(graphics_settings.get<int>("height") == 1080);
         return true;
     })
-    .test("json::Object-002: Using default values for settings", [&]()->bool {
+    .test("Using default values for settings", []() {
         json::Object settings;
         json::Object graphics_settings = settings.get_or_set<json::Object>("graphics", json::Object());
         int width = graphics_settings.get_or_set<int>("width", 1920);
@@ -38,7 +38,7 @@ int main() {
 
         return true;
     })
-    .test("json::Object-003: Write a new settings value based on defaults", [&]()->bool {
+    .test("Write a new settings value based on defaults", []() {
         json::Object settings;
         json::Object graphics_settings = settings.get<json::Object>("graphics", json::Object());
 
@@ -61,7 +61,7 @@ int main() {
 
         return true;
     })
-    .test("json::Object-004: Load arrays from settings keys", [&]()->bool {
+    .test("Load arrays from settings keys", []() {
         json::Object settings = json::read_file<json::Object>("data/test004.json");
 
         vector<int> integers = settings.get<json::Array>("numbers").extract<int>();
@@ -74,7 +74,7 @@ int main() {
 
         return true;
     })
-    .test("json::Object-005: Load and save arrays with defaults", [&]()->bool {
+    .test("Load and save arrays with defaults", []() {
         json::Object settings;
 
         vector<int> integers = settings.get_or_set<json::Array>("numbers", {1, 2, 3, 4, 5}).extract<int>();
@@ -87,7 +87,7 @@ int main() {
 
         return true;
     })
-    .test("json::Object-006: Heterogenous lists throw json::Error", [&]()->bool {
+    .test("Heterogenous lists throw json::Error", []() {
         json::Object settings = json::read_file<json::Object>("data/test006.json");
         try {
             vector<int> integers = settings.get<json::Array>("numbers").extract<int>();
@@ -101,13 +101,13 @@ int main() {
 
         return false;
     })
-    .test("json::Object-007: Creation of settings objects with float values", [&]()->bool {
+    .test("Creation of settings objects with float values", []() {
         json::Object settings;
         settings.set<float>("pi", 3.14159);
         cout << json::to_string(settings) << endl;
         return true;
     })
-    .test("json::Object-008: Extract a map from an object.", [&]()->bool {
+    .test("Extract a map from an object.", []() {
         json::Object settings;
         settings.set<int>("a", 1);
         settings.set<int>("b", 2);
@@ -133,5 +133,38 @@ int main() {
 
         return false;
     })
+    .test("Iterate directly over the contents of a heterogenous array.", []() {
+        auto array = json::read<json::Array>("[1,2,3,4,5,6,7]");
+        auto vector = array.extract<int>();
+        std::vector<int> vec_copy;
+
+        for (auto val : array.iterate<int>()) {
+            vec_copy.push_back(val);
+        }
+
+        assert_true(lists_equal(vector, vec_copy));
+    })
+/*    .test("Iterate directly over the contents of a heterogenous object (map).", []() {*/
+/*        auto obj = json::read<json::Object>("{\"a\": 1, \"b\": 2, \"c\": 3}");*/
+/*        std::vector<std::string> keys;*/
+/*        std::vector<int> values;*/
+/**/
+/*        for (auto val : obj.iterate_values<int>()) {*/
+/*            values.push_back(val);*/
+/*        }*/
+/**/
+/*        for (auto key : obj.iterate_keys()) {*/
+/*            keys.push_back(key);*/
+/*        }*/
+/**/
+/*        assert_true(lists_equal(values, {1, 2, 3}));*/
+/*        assert_true(lists_equal(keys, {"a", "b", "c"}));*/
+/*    })*/
+    .test("Automatically map a C++ object to and from JSON.", []() {
+        class Person {
+            // TODO
+        };
+    })
+
     .run();
 }

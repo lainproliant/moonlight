@@ -16,10 +16,10 @@ int main() {
             {"orange", 3}};
 
          assert_true(lists_equal(
-            collect::sorted(maps::keys(M)),
+            maps::keys(M).sorted().collect(),
             {"apple", "banana", "orange"}));
          assert_true(lists_equal(
-            collect::sorted(maps::values(M)),
+            maps::values(M).sorted().collect(),
             {1, 2, 3}));
       })
       .test("mmap::build static initialization", []() {

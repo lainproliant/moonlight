@@ -17,6 +17,7 @@
 #include <condition_variable>
 #include <future>
 #include <optional>
+#include <iterator>
 
 namespace moonlight {
 namespace gen {
@@ -33,7 +34,7 @@ class Error : public core::Exception {
 // and the ranged-for loop.
 //
 template<class T>
-class Iterator {
+class Iterator : public std::iterator<std::input_iterator_tag, T> {
 public:
    typedef std::function<std::optional<T>()> Closure;
 
@@ -240,6 +241,68 @@ Iterator<typename I::value_type> wrap(I begin_in, I end_in) {
     }
     return begin<typename I::value_type>(iterate(begin_in, end_in));
 }
+
+
+//-------------------------------------------------------------------
+// An object specializing for-each iteration over a type.
+// Useful when begin() and end() functions of an object are templates.
+//
+// Example Usage:
+//
+// // in api code
+// template<class T>
+// gen::Iterable<T> iterate() const {
+//     return gen::Iterable<T>(gen::begin<T>(...));
+// }
+//
+// // in client code
+// for (auto value : variant_vec.iterate<int>()) {
+//     ...
+// }
+//
+template<class T>
+class Iterable {
+public:
+    Iterable(const gen::Iterator<T> begin) : _begin(begin) { }
+    Iterable(const typename Iterator<T>::Closure& closure) : _begin(closure) { }
+
+    gen::Iterator<T> begin() const {
+        return _begin;
+    }
+
+    gen::Iterator<T> end() const {
+        return gen::end<T>();
+    }
+
+    gen::Iterable<T> sorted() const {
+        std::optional<std::deque<T>> lazy_sorted = {};
+
+        return gen::Iterable<T>(gen::begin<T>([lazy_sorted, this]() mutable -> std::optional<T> {
+            if (! lazy_sorted.has_value()) {
+                lazy_sorted = std::deque<T>();
+                std::copy(this->begin(), this->end(), std::back_inserter(*lazy_sorted));
+            }
+
+            if (! lazy_sorted->empty()) {
+                auto value = lazy_sorted->front();
+                lazy_sorted->pop_front();
+                return value;
+            } else {
+                return {};
+            }
+        }));
+    }
+
+    std::vector<T> collect() const {
+        std::vector<T> result;
+        result.insert(result.begin(), begin(), end());
+        return result;
+    }
+
+private:
+    gen::Iterator<T> _begin;
+};
+
 
 }
 }

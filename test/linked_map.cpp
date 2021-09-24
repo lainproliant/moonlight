@@ -24,8 +24,8 @@ int main() {
         map.insert({"grapes", 3});
         map.insert({"bananas", 2});
 
-        for (auto key : moonlight::maps::keys(map)) {
-            std::cout << "Key: " << key << std::endl;
+        for (auto key : maps::keys(map)) {
+            std::cout << key << ": " << map[key] << std::endl;
         }
 
         assert_equal(map["oranges"], 1);
@@ -34,7 +34,7 @@ int main() {
 
         assert_true(
             lists_equal(
-                moonlight::maps::keys(map),
+                moonlight::maps::keys(map).collect(),
                 {"oranges", "grapes", "bananas"}));
         return true;
     })
@@ -51,7 +51,7 @@ int main() {
 
         assert_true(
             lists_equal(
-                moonlight::maps::keys(map),
+                moonlight::maps::keys(map).collect(),
                 {"oranges", "grapes", "pears", "apricots"}));
 
         return true;

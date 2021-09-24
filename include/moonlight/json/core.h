@@ -11,11 +11,33 @@
 #define __MOONLIGHT_JSON_CORE_H
 
 #include "moonlight/exceptions.h"
+#include "moonlight/traits.h"
 #include <memory>
 #include <optional>
 
 namespace moonlight {
 namespace json {
+
+//-------------------------------------------------------------------
+// Template pre-declarations.
+//
+class Value;
+
+template<class T>
+T _adt_from_json(const Value& value);
+
+template<class T>
+std::shared_ptr<Value> _adt_to_json(const T& obj);
+
+//-------------------------------------------------------------------
+// SFINAE test to determine if type has `__json__` member.
+//
+template<class T, class = void>
+struct has_dunder_json : public std::false_type { };
+
+template<class T>
+struct has_dunder_json<T, std::void_t<
+decltype(&T::__json__)>> : public std::true_type { };
 
 //-------------------------------------------------------------------
 class Error : public moonlight::core::Exception {
@@ -79,6 +101,11 @@ public:
 
     template<class T>
     bool is() const {
+        if (has_dunder_json<T>() || is_map_type<T>()) {
+            return type() == Type::OBJECT;
+        } else if (is_iterable_type<T>()) {
+            return type() == Type::ARRAY;
+        }
         return false;
     }
 
@@ -89,8 +116,7 @@ public:
 
     template<class T>
     static Value::Pointer of(const T& value) {
-        (void) value;
-        static_assert(always_false<T>(), "Value of the given type can't be interred.");
+        return _adt_to_json(value);
     }
 
     template<>
@@ -102,7 +128,7 @@ public:
 
     template<class T>
     T get() const {
-        static_assert(always_false<T>(), "Value can't be extracted to the given type.");
+        return _adt_from_json<T>(*this);
     }
 
     template<class T>
@@ -279,6 +305,7 @@ private:
 
 VALUE_IS(String, Type::STRING);
 VALUE_IS(std::string, Type::STRING);
+VALUE_IS(const std::string, Type::STRING);
 VALUE_OF(std::string, String(value));
 VALUE_GET(std::string, String);
 VALUE_REF(String);

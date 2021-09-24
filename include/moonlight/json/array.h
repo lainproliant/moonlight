@@ -11,6 +11,7 @@
 #define __MOONLIGHT_JSON_ARRAY_H
 
 #include "moonlight/json/core.h"
+#include "moonlight/generator.h"
 
 namespace moonlight {
 namespace json {
@@ -102,6 +103,33 @@ public:
     template<class T>
     Array& set(unsigned int offset, const T& value) {
         _get(offset) = Value::of(value);
+    }
+
+    template<class T>
+    gen::Iterator<T> begin() const {
+        auto iter = _vec.begin();
+
+        return gen::begin<T>([iter, this]() mutable -> std::optional<T> {
+            if (iter == this->_vec.end()) {
+                return {};
+
+            } else if constexpr (is_raw_pointer<T>()) {
+                return &(*(iter++))->ref<T>();
+
+            } else {
+                return (*(iter++))->get<T>();
+            }
+        });
+    }
+
+    template<class T>
+    gen::Iterator<T> end() const {
+        return gen::end<T>();
+    }
+
+    template<class T>
+    gen::Iterable<T> iterate() const {
+        return gen::Iterable<T>(begin<T>());
     }
 
     template<class T>
