@@ -18,6 +18,16 @@ namespace moonlight {
 namespace json {
 
 //-------------------------------------------------------------------
+// SFINAE test to determine if type has `__json__` member.
+//
+template<class T, class = void>
+struct has_dunder_json : public std::false_type { };
+
+template<class T>
+struct has_dunder_json<T, std::void_t<
+decltype(&T::__json__)>> : public std::true_type { };
+
+//-------------------------------------------------------------------
 class Error : public moonlight::core::Exception {
     using Exception::Exception;
 };
@@ -102,7 +112,8 @@ public:
 
     template<class T>
     T get() const {
-        static_assert(always_false<T>(), "Value can't be extracted to the given type.");
+        static_assert(has_dunder_json<T>(), "Value can't be extracted to the given type.");
+        return T().__json__().map_from_json(*this);
     }
 
     template<class T>

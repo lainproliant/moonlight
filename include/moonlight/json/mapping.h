@@ -12,11 +12,50 @@
 
 #include <functional>
 #include <type_traits>
+#include "moonlight/traits.h"
 #include "moonlight/json/array.h"
 #include "moonlight/json/object.h"
 
 namespace moonlight {
 namespace json {
+
+//-------------------------------------------------------------------
+template<class T>
+Value::Pointer to_json(const T& value) {
+    if constexpr (has_dunder_json<T>()) {
+        return Value::of(value);  // already taken care of in here.
+
+    } else if constexpr (is_map_type<T>()) {
+        static_assert(std::is_same<std::string, std::remove_const<typename T::key_type>>(), "Map must have string keys to be converted to json.");
+
+        auto obj = std::make_shared<Object>();
+
+        for (auto iter = value.begin(); iter != value.end(); iter++) {
+            obj->set<typename T::mapped_type>(iter->first, iter->second);
+        }
+
+        return obj;
+
+    } else if constexpr (is_iterable_type<T>()) {
+        auto array = std::make_shared<Array>();
+
+        for (auto item : value) {
+            array->append<typename T::value_type>(item);
+        }
+
+        return array;
+
+    } else {
+        return Value::of(value);
+    }
+}
+
+//-------------------------------------------------------------------
+template<class T>
+T from_json(Value::Pointer json) {
+    if constexpr(has_dunder_json())
+
+}
 
 //-------------------------------------------------------------------
 class Mapping {

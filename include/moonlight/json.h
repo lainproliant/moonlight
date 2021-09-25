@@ -17,6 +17,11 @@
 namespace moonlight {
 namespace json {
 
+struct Indent {
+    bool pretty = true;
+    int indent = 4;
+};
+
 inline Value::Pointer _parse(std::istream& input, const std::string& filename = "<input>") {
     parser::Parser parser(input, filename);
     return parser.parse();
@@ -45,32 +50,44 @@ T read_file(const std::string& filename) {
     return read<T>(infile, filename);
 }
 
-inline void write(std::ostream& out, const Value& value) {
+inline void write(std::ostream& out, const Value& value, Indent idt = Indent()) {
     serializer::Serializer s(out);
+    s.pretty(idt.pretty);
+    s.indent_width(idt.indent);
     s.serialize(value);
 }
 
-inline void write(std::ostream& out, Value::Pointer value) {
-    write(out, value->ref<Value>());
+inline void write(std::ostream& out, Value::Pointer value, Indent idt = Indent()) {
+    write(out, value->ref<Value>(), idt);
 }
 
-inline void write_file(const std::string& filename, const Value& value) {
+inline void write_file(const std::string& filename, const Value& value, Indent idt = Indent()) {
     auto outfile = file::open_w(filename);
-    write(outfile, value);
+    write(outfile, value, idt);
 }
 
-inline void write_file(const std::string& filename, Value::Pointer value) {
-    write_file(filename, value->ref<Value>());
+inline void write_file(const std::string& filename, Value::Pointer value, Indent idt = Indent()) {
+    write_file(filename, value->ref<Value>(), idt);
 }
 
-inline std::string to_string(const Value& value) {
+inline std::string to_string(const Value& value, Indent idt = Indent()) {
     std::ostringstream sb;
-    write(sb, value);
+    write(sb, value, idt);
     return sb.str();
 }
 
-inline std::string to_string(Value::Pointer value) {
-    return to_string(value->ref<Value>());
+inline std::string to_string(Value::Pointer value, Indent idt = Indent()) {
+    return to_string(value->ref<Value>(), idt);
+}
+
+inline std::ostream& operator<<(std::ostream& out, const Value& value) {
+    write(out, value, {.pretty=false});
+    return out;
+}
+
+inline std::ostream& operator<<(std::ostream& out, Value::Pointer value) {
+    write(out, *value, {.pretty=false});
+    return out;
 }
 
 template<class T>
