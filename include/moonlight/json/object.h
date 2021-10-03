@@ -50,9 +50,9 @@ public:
         return *this;
     }
 
-    template<class T>
-    std::unordered_map<std::string, T> extract() const {
-        std::unordered_map<std::string, T> map;
+    template<class T, template<class, class> class M = std::unordered_map>
+    M<std::string, T> extract() const {
+        M<std::string, T> map;
         std::transform(_ns.begin(), _ns.end(), std::inserter(map, map.end()),
                        [](const auto& pair) -> std::pair<std::string, T> {
                            return { pair.first, pair.second->template get<T>() };

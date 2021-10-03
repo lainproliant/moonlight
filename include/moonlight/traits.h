@@ -12,6 +12,7 @@
 
 #include <type_traits>
 #include <iterator>
+#include <memory>
 
 namespace moonlight {
 
@@ -38,10 +39,30 @@ struct is_map_type<T, std::void_t<
     typename T::key_type,
     typename T::mapped_type,
     decltype(std::declval<T&>()[std::declval<const typename T::key_type&>()])>> : public std::true_type {
-
     typedef T type;
 };
 
+template<class T>
+struct is_shared_ptr : public std::false_type {
+    typedef std::void_t<> type;
+};
+
+template<class T>
+struct is_shared_ptr<std::shared_ptr<T>> : public std::true_type {
+    typedef std::shared_ptr<T> type;
+};
+
+template<class T>
+struct is_raw_pointer : public std::false_type {
+    typedef std::void_t<> type;
+};
+
+template<class T>
+struct is_raw_pointer<T*> : public std::true_type {
+    typedef T* type;
+};
+
 }
+
 
 #endif /* !__MOONLIGHT_TRAITS_H */

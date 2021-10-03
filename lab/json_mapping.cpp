@@ -14,16 +14,42 @@
 namespace json = moonlight::json;
 
 //-------------------------------------------------------------------
+struct Address {
+    int number;
+    std::string street;
+    std::string city;
+    std::string state;
+    int zip;
+
+    json::Mapper<Address> __json__() {
+        return json::Mapper(this)
+            .field("number", number)
+            .field("street", street)
+            .field("city", city)
+            .field("state", state)
+            .field("zip", zip);
+    }
+
+    friend std::ostream& operator<<(std::ostream& out, const Address& addr) {
+        return out << addr.number << " "
+                   << addr.street << ", "
+                   << addr.city << " "
+                   << addr.state << " "
+                   << addr.zip;
+    }
+};
+
+//-------------------------------------------------------------------
 struct Person {
     std::string name = "";
-    std::string address = "";
+    Address address;
 
-    Person& set_address(const std::string& addr) {
+    Person& set_address(const Address& addr) {
         address = addr;
         return *this;
     }
 
-    const std::string& get_address() const {
+    const Address& get_address() const {
         return address;
     }
 
@@ -36,7 +62,7 @@ struct Person {
 
 //-------------------------------------------------------------------
 int main() {
-    std::string json = "{\"name\":\"lain\", \"address\":\"localhost\"}";
+    std::string json = "{\"name\":\"lain\", \"address\":{\"number\":2235, \"street\":\"Schley Blvd\", \"city\":\"Bremerton\", \"state\":\"WA\", \"zip\":98310}}";
     auto json_obj = json::read<json::Object>(json);
     auto obj = json::map<Person>(json_obj);
     std::cout << obj.name << std::endl;
