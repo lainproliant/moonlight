@@ -26,8 +26,8 @@ namespace cli {
 /**
  * Convert argc and argv from main() into a vector of strings.
  */
-std::vector<std::string> argv_to_vector(int argc, char** argv) {
-    std::vector<std::string> vec;
+inline std::vector<std::string> argv_to_vector(int argc, char** argv) {
+   std::vector<std::string> vec;
 
     for (int x = 0; x < argc; x++) {
         vec.push_back(std::string(argv[x]));
@@ -37,7 +37,7 @@ std::vector<std::string> argv_to_vector(int argc, char** argv) {
 }
 
 //-------------------------------------------------------------------
-std::optional<std::string> getenv(const std::string& name) {
+inline std::optional<std::string> getenv(const std::string& name) {
     const char* value = std::getenv(name.c_str());
     if (value != nullptr) {
         return value;
