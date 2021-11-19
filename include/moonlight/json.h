@@ -31,7 +31,7 @@ inline Value::Pointer _parse(std::istream& input, const std::string& filename = 
 
 //-------------------------------------------------------------------
 template<class T>
-T _adt_from_json(const Value& json) {
+void _adt_from_json_impl(T& adt, const Value& json) {
     static_assert(has_dunder_json<T>() ||
                   is_map_type<T>() ||
                   is_iterable_type<T>(),
@@ -43,7 +43,7 @@ T _adt_from_json(const Value& json) {
             throw TypeError("Can't map non-object value into class object.");
         }
 
-        return T().__json__().map_from_json(static_cast<const Object&>(json));
+        adt = adt.__json__().map_from_json(static_cast<const Object&>(json));
 
     } else if constexpr (is_map_type<T>()) {
         // json must be an object.
@@ -52,46 +52,64 @@ T _adt_from_json(const Value& json) {
         }
 
         const Object& obj = static_cast<const Object&>(json);
-        return obj.extract<T::mapped_type>();
+        adt = obj.extract<T::mapped_type>();
 
     } else /* if is_iterable_type<T>() */ {
         // json must be an array.
         if (json.type() != Value::Type::ARRAY) {
             throw TypeError("Can't map non-array value into iterable sequence.");
         }
-        T iterable;
         const Array& array = static_cast<const Array&>(json);
-        return array.extract<T::value_type>();
+        adt = array.extract<T::value_type>();
     }
 }
 
 //-------------------------------------------------------------------
 template<class T>
-Value::Pointer _adt_to_json(const T& obj) {
+T _adt_from_json(const Value& json) {
+    static_assert(has_dunder_json<T>() ||
+                  is_map_type<T>() ||
+                  is_iterable_type<T>(),
+                  "Value can't be extracted to the given type.");
+
+    T adt;
+    _adt_from_json_impl(adt, json);
+    return adt;
+}
+
+//-------------------------------------------------------------------
+template<class T>
+Value::Pointer _adt_to_json_impl(const T& adt) {
     static_assert(has_dunder_json<T>() ||
                   is_map_type<T>() ||
                   is_iterable_type<T>(),
                   "Value can't be converted to json.");
 
     if constexpr (has_dunder_json<T>()) {
-        return const_cast<T&>(obj).__json__().map_to_json().clone();
+        return const_cast<T&>(adt).__json__().map_to_json().clone();
 
     } else if constexpr (is_map_type<T>()) {
-        std::shared_ptr<Object> json_obj = std::make_shared<Object>();
-        for (auto iter = obj.begin(); iter != obj.end(); iter++) {
-            json_obj->set(iter->first, iter->second);
+        std::shared_ptr<Object> json_adt = std::make_shared<Object>();
+        for (auto iter = adt.begin(); iter != adt.end(); iter++) {
+            json_adt->set(iter->first, iter->second);
         }
-        return json_obj;
+        return json_adt;
 
     } else /* if (is_iterable_type<T>() */ {
         std::shared_ptr<Array> array = std::make_shared<Array>();
 
-        for (auto item : obj) {
+        for (auto item : adt) {
             array->append(item);
         }
 
         return array;
     }
+}
+
+//-------------------------------------------------------------------
+template<class T>
+Value::Pointer _adt_to_json(const T& adt) {
+    return _adt_to_json_impl(adt);
 }
 
 //-------------------------------------------------------------------

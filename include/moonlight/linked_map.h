@@ -5,7 +5,7 @@
  * order of associated key/value pairs.
  *
  * Author: Lain Musgrove (lainproliant)
- * Orginal Date: June 4th, 2013
+ * Date: June 4th, 2013, October 3rd, 2021
  *
  * Distributed under terms of the MIT license.
  */
@@ -19,225 +19,296 @@
 #include <list>
 
 namespace moonlight {
-   using namespace std;
 
-   template <class K, class T, class M>
-   class linked_map_impl {
-   public:
-      typedef linked_map_impl<K, T, M> linked_map_t;
+//-------------------------------------------------------------------
+template<class K, class V,
+         class L = std::list<std::pair<K, V>>,
+         class M = std::unordered_map<K, typename L::iterator>>
+class LinkedMap {
+public:
+    typedef typename M::key_type key_type;
+    typedef V mapped_type;
+    typedef typename L::value_type value_type;
+    typedef typename M::size_type size_type;
+    typedef typename M::difference_type difference_type;
+    typedef typename M::hasher hasher;
+    typedef typename M::key_equal key_equal;
+    typedef typename M::allocator_type allocator_type;
+    typedef typename L::reference reference;
+    typedef typename L::const_reference const_reference;
+    typedef typename L::pointer pointer;
+    typedef typename L::const_pointer const_pointer;
+    typedef typename L::iterator iterator;
+    typedef typename L::const_iterator const_iterator;
+    typedef typename L::reverse_iterator reverse_iterator;
+    typedef typename L::const_reverse_iterator const_reverse_iterator;
 
-      typedef typename M::size_type size_type;
-      typedef pair<const K, T> value_type;
-      typedef K key_type;
-      typedef T mapped_type;
-      typedef list<value_type> list_type;
+    LinkedMap() { }
+    LinkedMap(const LinkedMap& other) : _map(other._map), _list(other._list) { }
+    ~LinkedMap() { }
 
-      typedef typename list_type::iterator iterator;
-      typedef typename list_type::const_iterator const_iterator;
+    allocator_type get_allocator() const noexcept {
+        return _map.get_allocator();
+    }
 
-      linked_map_impl()
-      { }
+    bool empty() const {
+        return _list.empty();
+    }
 
-      linked_map_impl(list_type& list)
-      {
-         for (value_type& v : list) {
-            insert(v);
-         }
-      }
+    size_t size() const {
+        return _list.size();
+    }
 
-      virtual ~linked_map_impl()
-      { }
+    size_t max_size() const {
+        return std::min(_map.max_size(), _list.max_size());
+    }
 
-      linked_map_impl<K, T, M>& operator=(
-            const linked_map_impl<K, T, M>& map)
-      {
-         for (value_type v : map) {
-            insert(v);
-         }
-      }
+    void clear() {
+        _map.clear();
+        _list.clear();
+    }
 
-      bool empty() const noexcept
-      {
-         return iter_map.empty();
-      }
+    std::pair<iterator, bool> insert(const value_type& value) {
+        auto result = _map.find(value.first);
+        if (result != _map.end()) {
+            return {result->second, false};
+        }
 
-      size_type size() const noexcept
-      {
-         return iter_map.size();
-      }
+        _list.push_back(value);
+        auto iter = std::prev(_list.end());
+        _map.emplace(value.first, iter);
+        return {iter, true};
+    }
 
-      size_type max_size() const noexcept
-      {
-         return iter_map.max_size();
-      }
+    std::pair<iterator, bool> insert_or_assign(const value_type& value) {
+        auto result = _map.find(value.first);
+        if (result != _map.end()) {
+            result->first->second = value.second;
+            return {result->second, false};
+        }
 
-      size_type bucket_count() const noexcept
-      {
-         return iter_map.bucket_count();
-      }
+        insert(value);
+    }
 
-      iterator begin()
-      {
-         return value_list.begin();
-      }
+    template<class... TD>
+    std::pair<iterator, bool> emplace(const TD&&... args) {
+        auto iter = _list.emplace_back(std::forward<value_type>(args)...);
+        auto result = _map.find(iter->first);
+        if (result != _map.end()) {
+            _list.pop_back();
+            return {result->second, false};
+        }
 
-      const_iterator cbegin() const
-      {
-         return value_list.cbegin();
-      }
+        _map.emplace(iter->first, iter);
+        return {iter, true};
+    }
 
-      iterator end()
-      {
-         return value_list.end();
-      }
+    template<class... TD>
+    std::pair<iterator, bool> try_emplace(const key_type& key, const TD&&... args) {
+        auto result = _map.find(key);
+        if (result != _map.end()) {
+            return emplace(std::forward(args)...);
+        }
 
-      const_iterator cend() const
-      {
-         return value_list.cend();
-      }
+        return {result->second, false};
+    }
 
-      mapped_type& operator[](const key_type& key)
-      {
-         if (! has_key(key)) {
-            insert(value_type(key, T()));
-         }
+    iterator erase(const_iterator iter) {
+        _map.erase(iter->first);
+        return _list.erase(iter);
+    }
 
-         return at(key);
-      }
+    iterator erase(iterator iter) {
+        _map.erase(iter->first);
+        return _list.erase(iter);
+    }
 
-      mapped_type& operator[](key_type&& key)
-      {
-         if (! has_key(key)) {
-            insert(value_type(key, T()));
-         }
+    iterator erase(const_iterator first, const_iterator last) {
+        for (auto iter = first; iter != last; iter = erase(iter));
+    }
 
-         return at(key);
-      }
-
-      mapped_type& at(const key_type& key)
-      {
-         return(* iter_map.at(key)).second;
-      }
-
-      const mapped_type& at(const key_type& key) const
-      {
-         return(* iter_map.at(key)).second;
-      }
-
-      iterator find(const key_type& key)
-      {
-         auto iter = iter_map.find(key);
-
-         if (iter == iter_map.end()) {
-            return value_list.end();
-
-         } else {
-            return iter->second;
-         }
-      }
-
-      const_iterator find(const key_type& key) const
-      {
-          if (! has_key(key)) {
-            return cend();
-         }
-
-         return find(key);
-      }
-
-      bool has_key(const key_type& key) const
-      {
-         return iter_map.find(key) != iter_map.cend();
-      }
-
-      iterator insert(const key_type& key, const mapped_type& value)
-      {
-         return insert(value_type(key, value));
-      }
-
-      iterator insert(const value_type& value)
-      {
-         erase(value.first);
-
-         auto iter = value_list.insert(end(), value);
-         iter_map [value.first] = iter;
-
-         return iter;
-      }
-
-      iterator insert(const_iterator position, const key_type& key,
-            const mapped_type& value)
-      {
-         return insert(position, value_type(key, value));
-      }
-
-      iterator insert(const_iterator position, const value_type& value)
-      {
-         erase(value.first);
-
-         auto iter = value_list.insert(position, value);
-         iter_map [value.first] = value;
-
-         return iter;
-      }
-
-      iterator erase(const_iterator position)
-      {
-         iter_map.erase(position->first);
-         return value_list.erase(position);
-      }
-
-      size_type erase(const key_type& key)
-      {
-         auto iter = find(key);
-
-         if (iter != end()) {
-            erase(iter);
+    size_type erase(const key_type& key) {
+        auto result = _map.find(key);
+        if (result != _map.end()) {
+            erase(result->second);
             return 1;
+        }
 
-         } else {
-            return 0;
-         }
-      }
+        return 0;
+    }
 
-      iterator erase(const_iterator first, const_iterator last)
-      {
-         iterator iter = first;
+    void swap(LinkedMap<K, V, L, M>& other) {
+        std::swap(_map, other._map);
+        std::swap(_list, other._list);
+    }
 
-         while (iter != last && iter != cend()) {
-            iter = erase(iter);
-         }
+    mapped_type& at(const key_type& key) {
+        auto result = _map.find(key);
+        if (result == _map.end()) {
+            throw std::out_of_range("Key not found in map.");
+        }
 
-         return iter;
-      }
+        return result->second->second;
+    }
 
-      void clear() noexcept
-      {
-         iter_map.clear();
-         value_list.clear();
-      }
+    const mapped_type& at(const key_type& key) const {
+        auto result = _map.find(key);
+        if (result == _map.end()) {
+            throw std::out_of_range("Key not found in map.");
+        }
 
-      void swap(linked_map_impl<K, T, M>& map)
-      {
-         value_list.swap(map.value_list);
-         iter_map.swap(map.iter_map);
-      }
+        return result->second->second;
+    }
 
-   private:
-      M iter_map;
-      list_type value_list;
-   };
+    mapped_type& at_offset(size_t offset) {
+        if (_list.size() >= offset) {
+            throw std::out_of_range("Offset is beyond the end of the container.");
+        }
+        return _list.at(offset).second;
+    }
 
-   template <class K, class T, class C = equal_to<K>, class H = std::hash<K>,
-             class A = allocator<pair<K, typename list<pair<const K, T>>::iterator>>>
-   using linked_hash = linked_map_impl<K, T,
-      unordered_map<K, typename list<pair<const K, T>>::iterator,
-      C, H>>;
+    const mapped_type& at_offset(size_t offset) const {
+        if (_list.size() >= offset) {
+            throw std::out_of_range("Offset is beyond the end of the container.");
+        }
+        return _list.at(offset).second;
+    }
 
-   template <class K, class T, class C = less<K>,
-             class A = allocator<pair<K, typename list<pair<const K, T>>::iterator>>>
-   using linked_map = linked_map_impl<K, T,
-      map<K, typename list<pair<const K, T>>::iterator, C>>;
+    template<class T>
+    mapped_type& operator[](const T& key_or_offset) {
+        return at(key_or_offset);
+    }
+
+    template<class KeyEquiv>
+    size_t count(const KeyEquiv& key) const {
+        return _map.count(key);
+    }
+
+    template<class KeyEquiv>
+    bool contains(const KeyEquiv& key) const {
+        return _map.contains(key);
+    }
+
+    template<class KeyEquiv>
+    std::pair<iterator, iterator> equal_range(const KeyEquiv& key) {
+        iterator first_equal = _list.end();
+
+        for (auto iter = _list.begin(); iter != _list.end(); iter++) {
+            if (key_eq()(iter->first, key) && first_equal == _list.end()) {
+                first_equal = iter;
+
+            } else if (! key_eq()(iter->first, key) && first_equal != _list.end()) {
+                return {first_equal, iter};
+            }
+        }
+
+        return {first_equal, _list.end()};
+    }
+
+    template<class KeyEquiv>
+    std::pair<const_iterator, const_iterator> equal_range(const KeyEquiv& key) const {
+        const_iterator first_equal = _list.end();
+
+        for (auto iter = _list.begin(); iter != _list.end(); iter++) {
+            if (key_eq()(iter->first, key) && first_equal == _list.end()) {
+                first_equal = iter;
+
+            } else if (! key_eq()(iter->first, key) && first_equal != _list.end()) {
+                return {first_equal, iter};
+            }
+        }
+
+        return {first_equal, _list.end()};
+    }
+
+    const L& list() const {
+        return _list;
+    }
+
+    iterator begin() {
+        return _list.begin();
+    }
+
+    const_iterator begin() const {
+        return _list.begin();
+    }
+
+    const_iterator cbegin() const {
+        return begin();
+    }
+
+    iterator end() {
+        return _list.end();
+    }
+
+    const_iterator end() const {
+        return _list.end();
+    }
+
+    const_iterator cend() const {
+        return cend();
+    }
+
+    size_type bucket_count() const {
+        return _map.bucket_count();
+    }
+
+    size_type max_bucket_count() const {
+        return _map.max_bucket_count();
+    }
+
+    size_type bucket_size(size_type n) const {
+        return _map.bucket_size(n);
+    }
+
+    size_type bucket(const key_type& key) const {
+        return _map.bucket(key);
+    }
+
+    float load_factor() const {
+        return _map.load_factor();
+    }
+
+    float max_load_factor() const {
+        return _map.max_load_factor();
+    }
+
+    void max_load_factor(float factor) const {
+        _map.max_load_factor(factor);
+    }
+
+    void rehash(size_type count) const {
+        _map.rehash(count);
+    }
+
+    void reserve(size_type count) const {
+        _map.reserve(count);
+    }
+
+    hasher hash_function() const {
+        return _map.hash_function();
+    }
+
+    key_equal key_eq() const {
+        return _map.key_eq();
+    }
+
+    bool operator==(const LinkedMap<K, V, L, M>& other) const {
+        return _list == other._list;
+    }
+
+private:
+    M _map;
+    L _list;
+};
+
+//-------------------------------------------------------------------
+// Template alias for backwards compatibility.
+template<class K, class V,
+         class L = std::list<std::pair<K, V>>,
+         class M = std::unordered_map<K, typename L::iterator>>
+using linked_map = LinkedMap<K, V, L, M>;
+
 }
 
 #endif /* __MOONLIGHT_LINKED_MAP_H */

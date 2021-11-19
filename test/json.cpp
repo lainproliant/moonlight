@@ -133,10 +133,38 @@ int main() {
 
         return false;
     })
+    .test("Iterate directly over the contents of a heterogenous array.", []() {
+        auto array = json::read<json::Array>("[1,2,3,4,5,6,7]");
+        auto vector = array.extract<int>();
+        std::vector<int> vec_copy;
+
+        for (auto val : array.iterate<int>()) {
+            vec_copy.push_back(val);
+        }
+
+        assert_true(lists_equal(vector, vec_copy));
+    })
+/*    .test("Iterate directly over the contents of a heterogenous object (map).", []() {*/
+/*        auto obj = json::read<json::Object>("{\"a\": 1, \"b\": 2, \"c\": 3}");*/
+/*        std::vector<std::string> keys;*/
+/*        std::vector<int> values;*/
+/**/
+/*        for (auto val : obj.iterate_values<int>()) {*/
+/*            values.push_back(val);*/
+/*        }*/
+/**/
+/*        for (auto key : obj.iterate_keys()) {*/
+/*            keys.push_back(key);*/
+/*        }*/
+/**/
+/*        assert_true(lists_equal(values, {1, 2, 3}));*/
+/*        assert_true(lists_equal(keys, {"a", "b", "c"}));*/
+/*    })*/
     .test("Automatically map a C++ object to and from JSON.", []() {
         class Person {
-
+            // TODO
         };
     })
+
     .run();
 }

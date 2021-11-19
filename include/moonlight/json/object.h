@@ -12,6 +12,8 @@
 
 #include "moonlight/json/core.h"
 #include "moonlight/maps.h"
+#include "moonlight/generator.h"
+#include "moonlight/traits.h"
 
 #include <iostream>
 
@@ -50,9 +52,9 @@ public:
         return *this;
     }
 
-    template<class T, template<class, class> class M = std::unordered_map>
-    M<std::string, T> extract() const {
-        M<std::string, T> map;
+    template<class T, class M = std::unordered_map<std::string, T>>
+    M extract() const {
+        M map;
         std::transform(_ns.begin(), _ns.end(), std::inserter(map, map.end()),
                        [](const auto& pair) -> std::pair<std::string, T> {
                            return { pair.first, pair.second->template get<T>() };
@@ -144,6 +146,66 @@ public:
         return *this;
     }
 
+    template<class T>
+    gen::Iterator<std::pair<std::string, T>> begin() const {
+        auto iter = _ns.begin();
+
+        return gen::begin([iter, this]() mutable -> std::optional<T> {
+            if (iter == this->_ns.end()) {
+                return {};
+
+            } else if constexpr (is_raw_pointer<T>()) {
+                return {(iter++)->first, &iter->second->ref<T>()};
+
+            } else {
+                return {(iter++)->first, iter->second->get<T>()};
+            }
+        });
+    }
+
+    template<class T>
+    gen::Iterator<std::pair<std::string, T>> end() const {
+        return gen::end<std::pair<std::string, T>>();
+    }
+
+    template<class T>
+    gen::Iterable<std::pair<std::string, T>> iterate() const {
+        return gen::Iterable<std::pair<std::string, T>>(begin<T>());
+    }
+
+    gen::Iterable<std::string> iterate_keys() const {
+        auto iter = _ns.begin();
+
+        return gen::Iterable<std::string>(
+            gen::begin<std::string>([iter, this]() mutable -> std::optional<std::string> {
+                if (iter == this->_ns.end()) {
+                    return {};
+                } else {
+                    return (iter++)->first;
+                }
+            }
+        ));
+    }
+
+    template<class T>
+    gen::Iterable<T> iterate_values() const {
+        auto iter = _ns.begin();
+
+        return gen::Iterable<T>(
+            gen::begin<T>([iter, this]() mutable -> std::optional<T> {
+                if (iter == this->_ns.end()) {
+                    return {};
+
+                } else if constexpr (is_raw_pointer<T>()) {
+                    return &(iter++)->second->ref<T>();
+
+                } else {
+                    return (iter++)->second->get<T>();
+                }
+            }
+        ));
+    }
+
     unsigned int size() const {
         return _ns.size();
     }
@@ -153,7 +215,12 @@ public:
     }
 
     std::vector<std::string> keys() const {
-        return maps::keys(_ns);
+        return iterate_keys().collect();
+    }
+
+    template<class T>
+    std::vector<T> values() const {
+        return iterate_values<T>().collect();
     }
 
 private:
