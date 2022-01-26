@@ -89,6 +89,7 @@ public:
     }
 
     iterator insert(const_iterator hint, const value_type& value) {
+        (void) hint;
         auto result = _map.find(value.first);
         if (result != _map.end()) {
             return result->second;
@@ -100,18 +101,6 @@ public:
         return {iter, true};
     }
 
-    iterator insert(const_iterator hint, value_type&& value) {
-        auto result = _map.find(value.first);
-        if (result != _map.end()) {
-            return result->second;
-        }
-
-        _list.emplace_back(std::move(value));
-        auto iter = std::prev(_list.end());
-        _map.emplace(value.first, iter);
-        return iter;
-    }
-
     std::pair<iterator, bool> insert_or_assign(const value_type& value) {
         auto result = _map.find(value.first);
         if (result != _map.end()) {
@@ -119,7 +108,7 @@ public:
             return {result->second, false};
         }
 
-        insert(value);
+        return insert(value);
     }
 
     template<class... TD>
