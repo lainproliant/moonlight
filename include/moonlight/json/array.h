@@ -20,6 +20,7 @@ class Array : public Value {
 public:
     Array() : Value(Type::ARRAY) { }
     Array(const std::vector<Value::Pointer>& vec) : Value(Type::ARRAY), _vec(vec) { }
+    virtual ~Array() { }
 
     template<class T>
     Array(const std::initializer_list<T>& init) : Array() {

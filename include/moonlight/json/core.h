@@ -54,6 +54,7 @@ public:
     };
 
     Value(Type type) : _type(type) { }
+    virtual ~Value() { }
 
     Type type() const {
         return _type;

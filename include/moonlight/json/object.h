@@ -33,6 +33,7 @@ public:
         }
     }
     Object() : Value(Type::OBJECT) { }
+    virtual ~Object() { }
 
     bool contains(const std::string& name) const {
         return _ns.find(name) != _ns.end();
