@@ -9,7 +9,6 @@ using namespace moonlight::test;
 
 int main() {
     return TestSuite("moonlight json tests")
-    .die_on_signal(SIGSEGV)
     .test("Loading settings from a file", []() {
         json::Object settings = json::read_file<json::Object>("test/data/test001.json");
         json::Object graphics_settings = settings.get<json::Object>("graphics");

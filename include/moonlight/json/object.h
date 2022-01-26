@@ -24,7 +24,7 @@ namespace json {
 //-------------------------------------------------------------------
 class Object : public Value {
 public:
-    typedef std::unordered_map<std::string, Value::Pointer> Namespace;
+    typedef linked_map<std::string, Value::Pointer> Namespace;
 
     Object(const Namespace& ns) : Value(Type::OBJECT), _ns(ns) { }
     Object(const Object& obj) : Object(obj._ns) { }
