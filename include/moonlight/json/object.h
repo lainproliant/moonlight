@@ -27,7 +27,11 @@ public:
     typedef linked_map<std::string, Value::Pointer> Namespace;
 
     Object(const Namespace& ns) : Value(Type::OBJECT), _ns(ns) { }
-    Object(const Object& obj) : Object(obj._ns) { }
+    Object(const Object& obj) : Object((Namespace){}) {
+        for (auto pair : obj._ns) {
+            _ns.insert({pair.first, pair.second->clone()});
+        }
+    }
     Object() : Value(Type::OBJECT) { }
 
     bool contains(const std::string& name) const {
@@ -35,7 +39,9 @@ public:
     }
 
     Object& operator=(const Object& other) {
-        _ns = other._ns;
+        for (auto pair : other._ns) {
+            _ns.insert({pair.first, pair.second->clone()});
+        }
         return *this;
     }
 
