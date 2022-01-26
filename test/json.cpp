@@ -100,6 +100,10 @@ int main() {
         settings.set<int>("c", 3);
 
         auto map = settings.extract<int>();
+        cout << "map.size() = " << map.size() << std::endl;
+        for (auto pair : map) {
+            cout << pair.first << " => " << pair.second << std::endl;
+        }
 
         ASSERT_EQUAL(map["a"], 1);
         ASSERT_EQUAL(map["b"], 2);
@@ -151,6 +155,8 @@ int main() {
         public:
             std::string name = "";
             Address address;
+            std::vector<Address> work_addresses;
+            std::map<std::string, std::string> alternate_names;
 
             bool operator==(const Person&) const = default;
 
@@ -163,9 +169,19 @@ int main() {
                 return address;
             }
 
+            const std::map<std::string, std::string>& get_altnames() const {
+                return alternate_names;
+            }
+
+            const void set_altnames(const std::map<std::string, std::string>& names) {
+                alternate_names = names;
+            }
+
             json::Mapper<Person> __json__() {
                 return json::Mapper(this)
                     .field("name", name)
+                    .field("work_addresses", work_addresses)
+                    .property("other_names", &Person::get_altnames, &Person::set_altnames)
                     .property("address", &Person::get_address, &Person::set_address);
             }
         };

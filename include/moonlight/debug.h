@@ -470,6 +470,10 @@ private:
     std::vector<StackInfo>::const_iterator find_where() const {
         auto iter = _stack_infos.begin();
 
+        if (_where.is_nowhere()) {
+            return _stack_infos.end();
+        }
+
         for (; iter != _stack_infos.end(); iter++) {
             if (iter->source().file() == _where.file() &&
                 iter->source().line_number() == _where.line_number()) {

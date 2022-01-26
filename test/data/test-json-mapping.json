@@ -6,5 +6,27 @@
         "city": "Bremerton",
         "state": "WA",
         "zip": 98310
-    }
+    },
+    "other_names": {
+        "Legal Name": "Lee R. Supe",
+        "Preferred Name": "Lain Musgrove",
+        "AKA": "Lain Supe",
+        "Username": "lainproliant",
+        "Pet Name": "Kitty (red)"
+    },
+    "work_addresses": [
+        {
+            "number": 1000,
+            "street": "Industry Way",
+            "city": "Cambridge",
+            "state": "MA",
+            "zip": 12345
+        }, {
+            "number": 2235,
+            "street": "Schley Blvd",
+            "city": "Bremerton",
+            "state": "WA",
+            "zip": 98310
+        }
+    ]
 }
