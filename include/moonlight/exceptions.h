@@ -144,13 +144,13 @@ private:
 #define EXCEPTION_TYPE(Name) \
     class Name : public moonlight::core::Exception { \
     public: \
-        Name(const std::string& message, const debug::Source& loc = {}, const std::string& name = type_name<Name>()) : Exception(message, loc, name) { } \
+        Name(const std::string& message, const moonlight::debug::Source& loc = {}, const std::string& name = moonlight::type_name<Name>()) : Exception(message, loc, name) { } \
     };
 
 #define EXCEPTION_SUBTYPE(Base, Name) \
     class Name : public Base { \
     public: \
-        Name(const std::string& message, const debug::Source& loc = {}, const std::string& name = type_name<Name>()) : Base(message, loc, name) { } \
+        Name(const std::string& message, const moonlight::debug::Source& loc = {}, const std::string& name = moonlight::type_name<Name>()) : Base(message, loc, name) { } \
     }
 
 EXCEPTION_TYPE(AssertionFailure);
