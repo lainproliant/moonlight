@@ -18,18 +18,19 @@
 #include <inttypes.h>
 #include "moonlight/exceptions.h"
 #include "tinyformat/tinyformat.h"
-#include "moonlight/core.h"
 
 namespace moonlight {
 namespace color {
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 template<class T>
 bool in_range(T start, T end, T value) {
     return value >= start && value <= end;
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 struct fRGB;
 struct uRGB;
 
@@ -60,7 +61,8 @@ struct fHSV {
     }
 };
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 struct uRGB {
     unsigned char r;
     unsigned char g;
@@ -92,7 +94,7 @@ struct uRGB {
 
     static uRGB validate(const std::string& s) {
         if (! is_valid(s)) {
-            throw core::ValueException("RGB color string is not valid: " + s);
+            THROW(core::ValueError, "RGB color string is not valid: " + s);
         }
         return of(s);
     }
@@ -120,7 +122,8 @@ struct uRGB {
     }
 };
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 struct fRGB {
     float r;
     float g;
@@ -143,12 +146,14 @@ struct fRGB {
     }
 };
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline fHSV::operator uRGB() const {
     return static_cast<uRGB>(static_cast<fRGB>(*this));
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline fHSV::operator fRGB() const {
     fRGB rgb = { 0.0f, 0.0f, 0.0f };
     float c = 0.0f, m = 0.0f, x = 0.0f;
@@ -175,7 +180,8 @@ inline fHSV::operator fRGB() const {
     return rgb;
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline uRGB::operator fRGB() const {
     return {
         .r = r / 255.0f,
@@ -184,12 +190,14 @@ inline uRGB::operator fRGB() const {
     };
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline uRGB::operator fHSV() const {
     return static_cast<fHSV>(static_cast<fRGB>(*this));
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline fRGB::operator uRGB() const {
     return {
         .r = static_cast<unsigned char>(::floor(r * 255.0f)),
@@ -198,7 +206,8 @@ inline fRGB::operator uRGB() const {
     };
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline fRGB::operator fHSV() const {
     fHSV hsv = { 0.0f, 0.0f, 0.0f };
     float M = ::fmaxf(r, ::fmaxf(g, b));

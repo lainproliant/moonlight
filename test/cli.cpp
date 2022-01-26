@@ -15,13 +15,13 @@ int main() {
                                { "verbose", "v" },
                                { "a", "apples", "b", "bananas" });
 
-         assert_equal(std::string("test"), cmd.get_program_name());
-         assert_equal(std::string("1"), cmd.require("b", "bananas"));
-         assert_equal(std::string("2"), cmd.require("a", "apples"));
-         assert_equal(std::string("1"), cmd.require("b", "bananas"));
-         assert_true(cmd.check("v", "verbose"));
-         assert_true(!cmd.check("f", "force"));
-         lists_equal(cmd.args(), {"oranges"});
+         ASSERT_EQUAL(std::string("test"), cmd.get_program_name());
+         ASSERT_EQUAL(std::string("1"), cmd.require("b", "bananas"));
+         ASSERT_EQUAL(std::string("2"), cmd.require("a", "apples"));
+         ASSERT_EQUAL(std::string("1"), cmd.require("b", "bananas"));
+         ASSERT(cmd.check("v", "verbose"));
+         ASSERT_FALSE(cmd.check("f", "force"));
+         ASSERT_EQUAL(cmd.args(), {"oranges"});
       })
       .run();
 }

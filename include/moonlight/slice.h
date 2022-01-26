@@ -16,11 +16,6 @@
 namespace moonlight {
 
 //-------------------------------------------------------------------
-class SliceError : public moonlight::core::Exception {
-    using Exception::Exception;
-};
-
-//-------------------------------------------------------------------
 template<class C>
 inline size_t slice_offset(const C& coll, int offset, bool clip = false) {
     if (offset < 0) {
@@ -29,7 +24,7 @@ inline size_t slice_offset(const C& coll, int offset, bool clip = false) {
             if (clip) {
                 offset = 0;
             } else {
-                throw SliceError("Index out of range (-).");
+                THROW(core::IndexError, "Index out of range (-).");
             }
         }
     }
@@ -38,7 +33,7 @@ inline size_t slice_offset(const C& coll, int offset, bool clip = false) {
         if (clip) {
             offset = coll.size();
         } else {
-            throw SliceError("Index out of range (+).");
+            THROW(core::IndexError, "Index out of range (+).");
         }
     }
 

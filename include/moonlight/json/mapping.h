@@ -65,7 +65,7 @@ public:
 
     void set(Value::Pointer value) const override {
         if (! value->is<Type>()) {
-            throw TypeError("Can't save value of type " + value->type_name() + "to the \"" + name() + "\" property mapping.");
+            THROW(core::TypeError, "Can't save value of type " + value->type_name() + "to the \"" + name() + "\" property mapping.");
         }
 
         _setter(value->get<Type>());
@@ -91,7 +91,7 @@ public:
 
     void set(Value::Pointer value) const override {
         if (! value->is<Type>()) {
-            throw TypeError("Can't save value of type " + value->type_name() + "to the \"" + name() + "\" field mapping.");
+            THROW(core::TypeError, "Can't save value of type " + value->type_name() + "to the \"" + name() + "\" field mapping.");
         }
 
         _field = value->get<Type>();
@@ -122,7 +122,7 @@ public:
 
     void set(Value::Pointer value) const override {
         if (! value->is<Object>()) {
-            throw TypeError("Can't apply non-object mapping to \"" + name() + "\" object.");
+            THROW(core::TypeError, "Can't apply non-object mapping to \"" + name() + "\" object.");
         }
     }
 
@@ -138,21 +138,23 @@ public:
     Mapper(Mapper& other)
     : _instance(other._instance), _mappings(std::move(other._mappings)) { }
 
-    Mapper(Mapper&& rhs) = default;
-
     template<class UnboundGetter, class UnboundSetter>
     Mapper& property(const char* name,
-                     UnboundGetter getter,
-                     UnboundSetter setter,
+                     const UnboundGetter& getter,
+                     const UnboundSetter& setter,
                      bool required = false) {
+        using namespace std::placeholders;
+
         typedef typename std::remove_reference<typename std::result_of<decltype(std::bind(getter, _instance))()>::type>::type Type;
+
+        C* instance = _instance;
         std::function<const Type()> getter_proxy = [=]() {
-            auto bound_getter = std::bind(getter, _instance);
+            const auto bound_getter = std::bind(getter, instance);
             return bound_getter();
         };
 
         std::function<void(Type)> setter_proxy = [=](const Type& p) {
-            auto bound_setter = std::bind(setter, _instance, std::placeholders::_1);
+            const auto bound_setter = std::bind(setter, instance, _1);
             bound_setter(p);
         };
 
@@ -184,7 +186,7 @@ public:
     C& map_from_json(const json::Object& obj) const {
         for (auto& mapping : _mappings) {
             if (mapping->required() && !obj.contains(mapping->name())) {
-                throw TypeError("Missing required field \"" + mapping->name() + "\" on JSON object.");
+                THROW(core::TypeError, "Missing required field \"" + mapping->name() + "\" on JSON object.");
             }
 
             auto value = obj.get<Value::Pointer>(mapping->name());

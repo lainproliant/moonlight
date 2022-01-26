@@ -17,9 +17,31 @@
 #include <string>
 #include <vector>
 #include <map>
+#include "moonlight/traits.h"
 
 namespace moonlight {
+
 namespace str {
+
+template<typename T>
+inline std::string coerce(const T& value) {
+    std::ostringstream sb;
+
+    if constexpr (is_streamable<T>()) {
+        sb << value;
+
+    } else {
+        sb << "<" << type_name<T>() << ">";
+    }
+
+    return sb.str();
+}
+
+template<>
+inline std::string coerce(const std::string& value) {
+    return value;
+}
+
 inline void _cat(std::ostringstream& sb) {
    (void) sb;
 }
@@ -104,8 +126,8 @@ inline void split(T& tokens, const std::string& s, const std::string& delimiter)
  * @return The contents of the string, minus the delimiters,
  *    split along the delimiter boundaries in a linked list.
  */
-inline std::vector<std::string> split(const std::string& s, const std::string&
-                                      delimiter) {
+inline std::vector<std::string> split(const std::string& s,
+                                      const std::string& delimiter) {
    std::vector<std::string> tokens;
    split(tokens, s, delimiter);
    return tokens;
@@ -152,6 +174,19 @@ inline std::string trim_right(const std::string& s) {
  */
 inline std::string trim(const std::string& s) {
    return trim_left(trim_right(s));
+}
+
+/**------------------------------------------------------------------
+ * Trim a string from the beginning of another if present.
+ */
+inline std::string trim_prefix(const std::string& prefix, const std::string& s) {
+    if (s.starts_with(prefix)) {
+        std::string s_copy = s;
+        s_copy.erase(0, prefix.size());
+        return s_copy;
+    }
+
+    return s;
 }
 
 /**------------------------------------------------------------------

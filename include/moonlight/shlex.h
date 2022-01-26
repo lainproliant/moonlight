@@ -27,11 +27,6 @@ namespace moonlight {
 namespace shlex {
 
 //-------------------------------------------------------------------
-class ShellLexerError : public core::Exception {
-    using Exception::Exception;
-};
-
-//-------------------------------------------------------------------
 class ShellLexer {
 public:
     static std::string quote(const std::string& str) {
@@ -106,14 +101,14 @@ private:
             int c = input().getc();
 
             if (c == EOF) {
-                throw ShellLexerError("Unterminated single-quote string.");
+                THROW(core::ValueError, "Unterminated single-quote string.");
             }
 
             if (c == '\\') {
                 c = input().peek();
 
                 if (c == EOF) {
-                    throw ShellLexerError("Incomplete escape sequence in single-quote string.");
+                    THROW(core::ValueError, "Incomplete escape sequence in single-quote string.");
                 }
 
                 if (c == '\\' || c == '\'') {
@@ -147,14 +142,14 @@ private:
             int c = input().getc();
 
             if (c == EOF) {
-                throw ShellLexerError("Unterminated double-quote string.");
+                THROW(core::ValueError, "Unterminated double-quote string.");
             }
 
             if (c == '\\') {
                 c = input().peek();
 
                 if (c == EOF) {
-                    throw ShellLexerError("Incomplete escape sequence in double-quote string.");
+                    THROW(core::ValueError, "Incomplete escape sequence in double-quote string.");
                 }
 
                 auto iter = escape_map().find(c);
@@ -163,7 +158,7 @@ private:
                     str.push_back(iter->second);
 
                 } else {
-                    throw ShellLexerError("Unrecognized escape sequence in double-quote string.");
+                    THROW(core::ValueError, "Unrecognized escape sequence in double-quote string.");
                 }
             } else if (c == '\"') {
                 break;

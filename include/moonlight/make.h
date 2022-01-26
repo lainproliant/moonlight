@@ -15,7 +15,7 @@
 //-------------------------------------------------------------------
 template<typename T, typename... TD>
 std::shared_ptr<T> make(TD&&... params) {
-   return std::make_shared<T>(std::forward<TD>(params)...);
+    return std::make_shared<T>(std::forward<TD>(params)...);
 }
 
 #endif /* !__MOONLIGHT_MAKE_H */

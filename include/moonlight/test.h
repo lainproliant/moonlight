@@ -10,6 +10,7 @@
 
 #include "moonlight/exceptions.h"
 #include "moonlight/system.h"
+#include "moonlight/traits.h"
 
 #include <csignal>
 #include <cstdlib>
@@ -22,18 +23,6 @@
 
 namespace moonlight {
 namespace test {
-//-------------------------------------------------------------------
-class TestException : public core::Exception {
-public:
-    using core::Exception::Exception;
-};
-
-//-------------------------------------------------------------------
-class AssertionFailed : public TestException {
-public:
-    using TestException::TestException;
-};
-
 //-------------------------------------------------------------------
 class UnitTest {
 public:
@@ -60,7 +49,7 @@ public:
     TestSuite(const std::string& name) : name(name) {}
     virtual ~TestSuite() {}
 
-    TestSuite& test(std::string name, std::function<void()> test_fn) {
+    TestSuite& test(const std::string& name, std::function<void()> test_fn) {
         return test(UnitTest(name, test_fn));
     }
 
@@ -95,14 +84,21 @@ public:
 
                 try {
                     std::rethrow_exception(eptr);
+
                 } catch (const std::exception& e) {
                     out << "    FAILED (" << typeid(e).name() << "): " << e.what() << std::endl;
 #ifdef MOONLIGHT_ENABLE_STACKTRACE
-                    out << core::format_stacktrace(core::generate_stacktrace()) << std::endl;
+                    out << debug::StackTrace::generate({}, 3);
 #endif
                     if (sys::getenv("MOONLIGHT_TEST_RETHROW")) {
                         throw e;
                     }
+
+                } catch (...) {
+                    out << "    FAILED (exotic type thrown)" <<  std::endl;
+#ifdef MOONLIGHT_ENABLE_STACKTRACE
+                    out << debug::StackTrace::generate({}, 3);
+#endif
                 }
 
                 tests_failed ++;
@@ -120,12 +116,12 @@ public:
 
 private:
     static void signal_callback(int signal) {
-        std::cerr << std::endl << "FATAL: Caught signal " << signal
+        std::cout << std::endl << "FATAL: Caught signal " << signal
         << " (" << strsignal(signal) << ")"
         << std::endl;
 
 #ifdef MOONLIGHT_ENABLE_STACKTRACE
-        std::cerr << core::format_stacktrace(core::generate_stacktrace()) << std::endl;
+        std::cout << debug::StackTrace::generate({}, 3) << std::endl;
 #endif
         exit(1);
     }
@@ -135,74 +131,14 @@ private:
 };
 
 //-------------------------------------------------------------------
-inline void fail(const std::string& message = "Failed.")
-{
-    throw TestException(message);
-}
-
-//-------------------------------------------------------------------
-inline void assert_true(bool expr, const std::string& message = "Assertion failed.") {
-    if (! expr) {
-        throw AssertionFailed(message);
+#define _ASSERT(expr, msg, repr) \
+    if (! (expr)) { \
+        THROW(moonlight::core::AssertionFailure, msg ": " repr); \
     }
-}
 
-//-------------------------------------------------------------------
-inline void assert_false(bool expr, const std::string& message = "Negative assertion failed.") {
-    if (expr) {
-        throw AssertionFailed(message);
-    }
-}
-
-//-------------------------------------------------------------------
-inline void epsilon_assert(double a, double b,
-                           double epsilon = DBL_EPSILON,
-                           const std::string& message = "Value equivalence assertion failed. (double epsilon)") {
-
-    if (fabs(a - b) > epsilon) {
-        throw AssertionFailed(message);
-    }
-}
-
-//-------------------------------------------------------------------
-inline void epsilon_assert(float a, float b,
-                           float epsilon = FLT_EPSILON,
-                           const std::string& message = "Value equivalence assertion failed. (float epsilon)") {
-    if (fabsf(a - b) > epsilon) {
-        throw AssertionFailed(message);
-    }
-}
-
-//-------------------------------------------------------------------
-template<class T>
-inline void assert_equal(const T& a, const T& b,
-                         const std::string& message = "Value equivalence assertion failed.") {
-    if (a != b) {
-        throw AssertionFailed(message);
-    }
-}
-
-//-------------------------------------------------------------------
-template<>
-inline void assert_equal<double>(const double& a, const double& b, const std::string& message) {
-    try {
-        epsilon_assert(a, b);
-
-    } catch (const AssertionFailed& e) {
-        throw AssertionFailed(message);
-    }
-}
-
-//-------------------------------------------------------------------
-template<>
-inline void assert_equal<float>(const float& a, const float& b, const std::string& message) {
-    try {
-        epsilon_assert(a, b);
-
-    } catch (const AssertionFailed& e) {
-        throw AssertionFailed(message);
-    }
-}
+#define ASSERT_TRUE(expr) _ASSERT(expr, "Assertion failed.", #expr)
+#define ASSERT ASSERT_TRUE
+#define ASSERT_FALSE(expr) _ASSERT(!(expr), "Negative assertion failed.", #expr)
 
 //-------------------------------------------------------------------
 template<class T>
@@ -221,6 +157,49 @@ inline bool lists_equal(const T& listA, const T& listB) {
     return generic_list_size(listA) == generic_list_size(listB) &&
     equal(listA.begin(), listA.end(), listB.begin());
 }
+
+//-------------------------------------------------------------------
+template<class T>
+inline bool test_equal(const T& a, const T& b) {
+    if constexpr (is_iterable_type<T>()) {
+        return lists_equal(a, b);
+    }
+
+    return a == b;
+}
+
+//-------------------------------------------------------------------
+inline bool test_equal(const std::string& a, const char* b) {
+    return a == b;
+}
+
+//-------------------------------------------------------------------
+inline bool test_equal(const char* a, const std::string& b) {
+    return b == a;
+}
+
+//-------------------------------------------------------------------
+template<class T>
+inline bool ep_test_equal(T a, T b, T ep) {
+    return fabs(a - b) <= ep;
+}
+
+//-------------------------------------------------------------------
+template<double>
+inline bool test_equal(double a, double b) {
+    return ep_test_equal(a, b, DBL_EPSILON);
+}
+
+//-------------------------------------------------------------------
+template<float>
+inline bool test_equal(float a, float b) {
+    return ep_test_equal(a, b, FLT_EPSILON);
+}
+
+#define ASSERT_EQUAL(...) _ASSERT(test_equal(__VA_ARGS__), "Value equivalence assertion failed", #__VA_ARGS__)
+#define ASSERT_NOT_EQUAL(...) _ASSERT(!test_equal(__VA_ARGS__), "Value inequivalence assertion failed", #__VA_ARGS__)
+#define ASSERT_EP_EQUAL(...) _ASSERT(ep_test_equal(__VA_ARGS__), "Value equivalence assertion failed", #__VA_ARGS__)
+
 }
 }
 

@@ -16,21 +16,21 @@ int main() {
     return TestSuite("moonlight file tests")
     .die_on_signal(SIGSEGV)
     .test("scan_eq and scan_line_eq", []() {
-        auto infile = moonlight::file::open_r("data/test_file.txt");
+        auto infile = moonlight::file::open_r("test/data/test_file.txt");
         auto input = moonlight::file::BufferedInput(infile);
 
-        assert_equal((char)input.peek(), '*', "peek first asterisk");
-        assert_true(input.scan_eq("***"), "scan_eq triple asterisk");
-        assert_true(input.scan_line_eq("***", 3), "scan_line_eq triple asterisk");
+        ASSERT_EQUAL((char)input.peek(), '*');
+        ASSERT(input.scan_eq("***"));
+        ASSERT(input.scan_line_eq("***", 3));
         std::string first_line = input.getline();
         std::cout << "first line: {" << first_line << "}" << std::endl;
-        assert_equal(first_line, std::string("***asdfghjkl***\n"), "first line equivalence");
-        assert_equal((char)input.peek(), '[', "peek open bracket");
-        assert_false(input.scan_line_eq("]"), "peek close bracket");
+        ASSERT_EQUAL(first_line, std::string("***asdfghjkl***\n"));
+        ASSERT_EQUAL((char)input.peek(), '[');
+        ASSERT_FALSE(input.scan_line_eq("]"));
         std::string second_line = input.getline();
         std::cout << "second line: {" << second_line << "}" << std::endl;
-        assert_equal(second_line, std::string("[asdfghjkl\n"), "second line equivalence");
-        assert_equal(input.getc(), EOF, "end of file");
+        ASSERT_EQUAL(second_line, std::string("[asdfghjkl\n"));
+        ASSERT_EQUAL(input.getc(), EOF);
     })
     .run();
 }

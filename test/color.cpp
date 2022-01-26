@@ -23,17 +23,17 @@ int main() {
         std::cout << "rgbMagenta = " << rgbMagenta << std::endl;
         std::cout << "frgbMagenta = " << frgbMagenta << std::endl;
         std::cout << "hsvMagenta = " << hsvMagenta << std::endl;
-        epsilon_assert(hsvMagenta.h, 300.0f, 0.01f, "hsvMagenta.h != 300.0");
-        epsilon_assert(hsvMagenta.s, 1.0f, 0.01f, "hsvMagenta.s != 1.0");
-        epsilon_assert(hsvMagenta.v, 1.0f, 0.01f, "hsvMagenta.v != 1.0");
-        assert_equal(rgbMagenta, static_cast<uRGB>(hsvMagenta), "rgbMagenta != hsvMagenta");
+        ASSERT_EP_EQUAL(hsvMagenta.h, 300.0f, 0.01f);
+        ASSERT_EP_EQUAL(hsvMagenta.s, 1.0f, 0.01f);
+        ASSERT_EP_EQUAL(hsvMagenta.v, 1.0f, 0.01f);
+        ASSERT_EQUAL(rgbMagenta, static_cast<uRGB>(hsvMagenta));
     })
     .test("verify HSV color wheel rotation and conversion back to RGB", []() {
         auto hsvRed = static_cast<fHSV>(uRGB::of(0xAC0000));
         auto rgbCyan = uRGB::of(0x00ACAC);
         fHSV hsvCyan = { hsvRed.h + 180.0f, hsvRed.s, hsvRed.v };
         std::cout << "static_cast<uRGB>(hsvCyan) = " << static_cast<uRGB>(hsvCyan) << std::endl;
-        assert_equal(rgbCyan, static_cast<uRGB>(hsvCyan), "rgbCyan != hsvCyan");
+        ASSERT_EQUAL(rgbCyan, static_cast<uRGB>(hsvCyan));
     })
     .run();
 }

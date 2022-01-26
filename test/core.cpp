@@ -1,38 +1,37 @@
-#include "moonlight/core.h"
 #include "moonlight/test.h"
+#include "moonlight/file.h"
+#include "moonlight/maps.h"
+#include "moonlight/mmap.h"
 #include <map>
 #include <random>
+#include <string>
 
-using namespace std;
 using namespace moonlight;
 using namespace moonlight::test;
 
 int main() {
    return TestSuite("moonlight core tests")
       .test("map::keys/map::values test", []() {
-         map<string, int> M = {
+          std::map<std::string, int> M = {
             {"apple", 1},
             {"banana", 2},
             {"orange", 3}};
 
-         assert_true(lists_equal(
+         ASSERT_EQUAL(
             maps::keys(M).sorted().collect(),
-            {"apple", "banana", "orange"}));
-         assert_true(lists_equal(
+            {"apple", "banana", "orange"});
+         ASSERT_EQUAL(
             maps::values(M).sorted().collect(),
-            {1, 2, 3}));
+            {1, 2, 3});
       })
       .test("mmap::build static initialization", []() {
-         auto mmap = mmap::build<string, string>({
+         auto mmap = mmap::build<std::string, std::string>({
             {"fruit", {"apple", "orange", "banana", "pear"}},
             {"meat", {"beef", "chicken", "pork", "fish", "lamb"}},
             {"drink", {"coffee", "tea", "ice water"}}});
 
-         assert_true(! lists_equal(mmap::collect(mmap, "fruit"),
-                  {"apple", "banana", "pear"}));
-
-         assert_true(lists_equal(mmap::collect(mmap, "fruit"),
-                  {"apple", "orange", "banana", "pear"}));
+         ASSERT_EQUAL(mmap::collect(mmap, "fruit"),
+                  {"apple", "orange", "banana", "pear"});
       })
       .test("Finalizer tests", []() {
          std::random_device rd;
@@ -50,7 +49,7 @@ int main() {
             });
          }
 
-         assert_equal(x, (int) 1);
+         ASSERT_EQUAL(x, (int) 1);
       })
       .test("str::split test", []() {
          const std::string strA = "a:b";
@@ -68,27 +67,27 @@ int main() {
          const std::string strK = ":";
 
          std::cout << strA << " >> " << str::join(str::split(strA, ":"), ",") << std::endl;
-         assert_true(lists_equal(str::split(strA, ":"), {"a", "b"}), strA);
+         ASSERT_EQUAL(str::split(strA, ":"), {"a", "b"});
          std::cout << strB << " >> " << str::join(str::split(strB, ":"), ",") << std::endl;
-         assert_true(lists_equal(str::split(strB, ":"), {"", "b"}), strB);
+         ASSERT_EQUAL(str::split(strB, ":"), {"", "b"});
          std::cout << strC << " >> " << str::join(str::split(strC, ":"), ",") << std::endl;
-         assert_true(lists_equal(str::split(strC, ":"), {"a", ""}), strC);
+         ASSERT_EQUAL(str::split(strC, ":"), {"a", ""});
          std::cout << strD << " >> " << str::join(str::split(strD, ":"), ",") << std::endl;
-         assert_true(lists_equal(str::split(strD, ":"), {"a"}), strD);
+         ASSERT_EQUAL(str::split(strD, ":"), {"a"});
          std::cout << strE << " >> " << str::join(str::split(strE, "//"), ",") << std::endl;
-         assert_true(lists_equal(str::split(strE, "//"), {"a", "b", "c"}), strE);
+         ASSERT_EQUAL(str::split(strE, "//"), {"a", "b", "c"});
          std::cout << strF << " >> " << str::join(str::split(strF, "//"), ",") << std::endl;
-         assert_true(lists_equal(str::split(strF, "//"), {"", "b", "c"}), strF);
+         ASSERT_EQUAL(str::split(strF, "//"), {"", "b", "c"});
          std::cout << strG << " >> " << str::join(str::split(strG, "//"), ",") << std::endl;
-         assert_true(lists_equal(str::split(strG, "//"), {"a", "", "c"}), strG);
+         ASSERT_EQUAL(str::split(strG, "//"), {"a", "", "c"});
          std::cout << strH << " >> " << str::join(str::split(strH, "//"), ",") << std::endl;
-         assert_true(lists_equal(str::split(strH, "//"), {"a", "b", ""}), strH);
+         ASSERT_EQUAL(str::split(strH, "//"), {"a", "b", ""});
          std::cout << strI << " >> " << str::join(str::split(strI, "//"), ",") << std::endl;
-         assert_true(lists_equal(str::split(strI, "//"), {"", "b", ""}), strI);
+         ASSERT_EQUAL(str::split(strI, "//"), {"", "b", ""});
          std::cout << strJ << " >> " << str::join(str::split(strJ, ":"), ",") << std::endl;
-         assert_true(lists_equal(str::split(strJ, ":"), {"a", "", "b", "", ""}), strJ);
+         ASSERT_EQUAL(str::split(strJ, ":"), {"a", "", "b", "", ""});
          std::cout << strK << " >> " << str::join(str::split(strK, ":"), ",") << std::endl;
-         assert_true(lists_equal(str::split(strK, ":"), {"", ""}), strK);
+         ASSERT_EQUAL(str::split(strK, ":"), {"", ""});
       })
       .test("file::BufferedInput test", []() {
          const std::string input_string = "look it's a bird!";
@@ -96,18 +95,18 @@ int main() {
          auto reader = file::BufferedInput(in);
 
          int c = reader.getc();
-         assert_equal(c, (int) 'l', "first character check");
+         ASSERT_EQUAL(c, (int) 'l');
 
-         assert_true(reader.scan_eq("ook it's a bird!"), "first scan check");
+         ASSERT(reader.scan_eq("ook it's a bird!"));
 
          reader.advance(4);
 
-         assert_true(reader.scan_eq("it's"), "second scan check");
+         ASSERT(reader.scan_eq("it's"));
 
          size_t x;
          for (x = 0; reader.getc() != EOF; x++) { }
 
-         assert_equal(x, 12ul, "EOF check");
+         ASSERT_EQUAL(x, 12ul);
       })
       .run();
 }

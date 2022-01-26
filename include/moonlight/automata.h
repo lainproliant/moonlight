@@ -19,12 +19,8 @@ namespace automata {
 
 template<class C, class K> class Lambda;
 
-//-------------------------------------------------------------------
-class Error : public core::Exception {
-   using Exception::Exception;
-};
-
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 template<class S>
 class StateMachine {
 public:
@@ -70,7 +66,7 @@ public:
 
    void run_until_complete() {
       if (! current()) {
-         throw Error("StateMachine has no initial state.");
+         THROW(core::UsageError, "StateMachine has no initial state.");
       }
 
       try {
@@ -132,7 +128,7 @@ public:
       try {
          stack.pop_back();
       } catch (...) {
-         throw Error("The stack is empty.");
+         THROW(core::RuntimeError, "The stack is empty.");
       }
    }
 
@@ -223,7 +219,7 @@ protected:
 
    void _call_parent_impl() {
       if (snapshot->size() <= 1) {
-         throw Error("There are no more states on the stack.");
+         THROW(core::RuntimeError, "There are no more states on the stack.");
       }
 
       snapshot->pop_back();
@@ -237,7 +233,8 @@ private:
    std::optional<std::vector<StatePointer>> snapshot = {};
 };
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 template<class C>
 class State : public std::enable_shared_from_this<State<C>> {
 public:
@@ -320,7 +317,8 @@ protected:
    }
 };
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 template<class C, class K = std::string>
 class Lambda : public State<C> {
 public:
@@ -377,7 +375,7 @@ public:
          if (iter != state_map.end()) {
             return iter->second;
          } else {
-            throw Error(str::cat("Unknown state: ", name));
+            THROW(core::UsageError, str::cat("Undefined state: ", name));
          }
       }
 
@@ -474,9 +472,9 @@ public:
 
    void run() override {
       if (this->machine_ == nullptr) {
-         throw Error("Machine not injected into LambdaState. "
-                     "This is a bug in the state machine code.");
+          THROW(core::FrameworkError, "Machine not injected into LambdaState.");
       }
+
       if (impl1) {
          impl1.value()(*static_cast<Machine*>(this->machine_));
       } else {

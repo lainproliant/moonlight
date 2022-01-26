@@ -18,11 +18,6 @@ namespace moonlight {
 namespace file {
 
 //-------------------------------------------------------------------
-class FileException : public core::Exception {
-   using core::Exception::Exception;
-};
-
-//-------------------------------------------------------------------
 inline std::ifstream open_r(const std::string& filename,
                             std::ios::openmode mode = std::ios::in) {
    try {
@@ -36,7 +31,7 @@ inline std::ifstream open_r(const std::string& filename,
       std::ostringstream sb;
       sb << "Cannot open file " << filename << " for reading: "
       << strerror(errno);
-      throw FileException(sb.str());
+      THROW(core::RuntimeError, sb.str());
    }
 }
 
@@ -54,7 +49,7 @@ inline std::ofstream open_w(const std::string& filename,
       std::ostringstream sb;
       sb << "Cannot open file " << filename << " for writing: "
       << strerror(errno);
-      throw FileException(sb.str());
+      THROW(core::RuntimeError, sb.str());
    }
 }
 
@@ -72,7 +67,7 @@ inline std::fstream open_rw(const std::string& filename,
       std::ostringstream sb;
       sb << "Cannot open file " << filename << " for reading and writing: "
       << strerror(errno);
-      throw FileException(sb.str());
+      THROW(core::RuntimeError, sb.str());
    }
 }
 

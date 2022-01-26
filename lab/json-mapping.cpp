@@ -14,7 +14,8 @@
 namespace json = moonlight::json;
 
 //-------------------------------------------------------------------
-struct Address {
+class Address {
+public:
     int number;
     std::string street;
     std::string city;
@@ -40,7 +41,8 @@ struct Address {
 };
 
 //-------------------------------------------------------------------
-struct Person {
+class Person {
+public:
     std::string name = "";
     Address address;
 

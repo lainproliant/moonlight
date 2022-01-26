@@ -10,7 +10,6 @@
 #ifndef __MOONLIGHT_JSON_SERIALIZER_H
 #define __MOONLIGHT_JSON_SERIALIZER_H
 
-#include "moonlight/json/core.h"
 #include "moonlight/json/array.h"
 #include "moonlight/json/object.h"
 #include "moonlight/collect.h"
@@ -141,7 +140,7 @@ private:
     }
 
     bool _pretty = true;
-    bool _sort_keys = true;
+    bool _sort_keys = false;
     unsigned int _indent_width = 4;
     std::ostream& _out;
 };

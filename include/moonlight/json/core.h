@@ -40,31 +40,6 @@ struct has_dunder_json<T, std::void_t<
 decltype(&T::__json__)>> : public std::true_type { };
 
 //-------------------------------------------------------------------
-class Error : public moonlight::core::Exception {
-    using Exception::Exception;
-};
-
-//-------------------------------------------------------------------
-class ValueError : public Error {
-    using Error::Error;
-};
-
-//-------------------------------------------------------------------
-class KeyNotFoundError : public ValueError {
-    using ValueError::ValueError;
-};
-
-//-------------------------------------------------------------------
-class ArrayIndexOutOfBoundsError : public ValueError {
-    using ValueError::ValueError;
-};
-
-//-------------------------------------------------------------------
-class TypeError : public ValueError {
-    using ValueError::ValueError;
-};
-
-//-------------------------------------------------------------------
 class Value {
 public:
     typedef std::shared_ptr<Value> Pointer;
@@ -109,19 +84,9 @@ public:
         return false;
     }
 
-    template<>
-    bool is<Value>() const {
-        return true;
-    }
-
     template<class T>
     static Value::Pointer of(const T& value) {
         return _adt_to_json(value);
-    }
-
-    template<>
-    Value::Pointer of(const Value::Pointer& value) {
-        return value;
     }
 
     Value::Pointer of(const char* value);
@@ -145,6 +110,16 @@ private:
     Type _type;
 };
 
+template<>
+inline bool Value::is<Value>() const {
+    return true;
+}
+
+template<>
+inline Value::Pointer Value::of(const Value::Pointer& value) {
+    return value;
+}
+
 #define VALUE_IS(Type, Enum) \
 template<> \
 inline bool Value::is<Type>() const { \
@@ -162,7 +137,7 @@ inline Value::Pointer Value::of(const Type& value) { \
 template<> \
 inline ValueType Value::get() const { \
     if (! is<ValueType>()) { \
-        throw TypeError("Value is not the expected type."); \
+        throw core::TypeError("Value is not the expected type."); \
     } \
     return static_cast<const ContainerType*>(this)->value<ValueType>(); \
 }
@@ -171,14 +146,14 @@ inline ValueType Value::get() const { \
 template<> \
 inline RefType& Value::ref() { \
     if (! is<RefType>()) { \
-        throw TypeError("Value is not the expected type."); \
+        throw core::TypeError("Value is not the expected type."); \
     } \
     return static_cast<RefType&>(*this); \
 } \
 template<> \
 inline const RefType& Value::cref() const { \
     if (! is<RefType>()) { \
-        throw TypeError("Value is not the expected type."); \
+        throw core::TypeError("Value is not the expected type."); \
     } \
     return static_cast<const RefType&>(*this); \
 }
@@ -285,11 +260,6 @@ public:
         static_assert(always_false<T>(), "Value can't be extracted to a string.");
     }
 
-    template<>
-    const std::string& value<std::string>() const {
-        return _str;
-    }
-
     String& set(const std::string& str) {
         _str = str;
         return *this;
@@ -302,6 +272,11 @@ public:
 private:
     std::string _str;
 };
+
+template<>
+inline const std::string& String::value<std::string>() const {
+    return _str;
+}
 
 VALUE_IS(String, Type::STRING);
 VALUE_IS(std::string, Type::STRING);

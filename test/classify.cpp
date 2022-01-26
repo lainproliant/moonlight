@@ -29,11 +29,11 @@ int main() {
             std::cout << s << std::endl;
         }
 
-        assert_true(lists_equal(results, {
+        ASSERT_EQUAL(results, {
             "2 is even",
             "1001 is not even",
             "one"
-        }));
+        });
     })
     .test("simple functional example", []() {
         Classifier<int, std::string> classify;
@@ -52,13 +52,13 @@ int main() {
             std::cout << s << std::endl;
         }
 
-        assert_true(lists_equal(results, {
+        ASSERT_EQUAL(results, {
             "???",
             "empty",
             "lonely",
             "a crowd",
             "???"
-        }));
+        });
     })
     .run();
 }

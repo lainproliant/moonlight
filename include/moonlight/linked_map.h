@@ -190,6 +190,24 @@ public:
     }
 
     template<class KeyEquiv>
+    iterator find(const KeyEquiv& key) {
+        auto map_iter = _map.find(key);
+        if (map_iter == _map.end()) {
+            return end();
+        }
+        return map_iter->second;
+    }
+
+    template<class KeyEquiv>
+    const_iterator find(const KeyEquiv& key) const {
+        auto map_iter = _map.find(key);
+        if (map_iter == _map.end()) {
+            return end();
+        }
+        return map_iter->second;
+    }
+
+    template<class KeyEquiv>
     std::pair<iterator, iterator> equal_range(const KeyEquiv& key) {
         iterator first_equal = _list.end();
 

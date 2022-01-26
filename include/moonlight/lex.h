@@ -11,8 +11,10 @@
 #define __LEX_H
 
 #include <regex>
+#include <optional>
+#include "moonlight/exceptions.h"
+#include "moonlight/string.h"
 #include "tinyformat/tinyformat.h"
-#include "moonlight/core.h"
 #include "moonlight/collect.h"
 
 namespace moonlight {
@@ -34,12 +36,6 @@ struct Location {
         tfm::format(out, "<line %d, col %d, offset %d>", loc.line, loc.col, loc.offset);
         return out;
     }
-};
-
-// ------------------------------------------------------------------
-class LexError : public core::Exception {
-public:
-    using Exception::Exception;
 };
 
 // ------------------------------------------------------------------
@@ -228,8 +224,7 @@ public:
 
     Grammar::Pointer target() const {
         if (_target == nullptr) {
-            throw LexError(tfm::format("Rule type %s has no subgrammar target.",
-                                       type()));
+            THROW(core::UsageError, tfm::format("Rule type %s has no subgrammar target.", type()));
         }
         return _target;
     }
@@ -343,7 +338,7 @@ public:
 
             if (! result_opt.has_value()) {
                 if (_throw_on_scan_failure) {
-                    throw LexError(tfm::format("No lexical rules matched content starting at %s.", loc));
+                    THROW(core::ValueError, tfm::format("No lexical rules matched content starting at %s.", loc));
                 } else {
                     break;
                 }
@@ -357,8 +352,9 @@ public:
 
             case Action::MATCH:
                 if (! result.token.has_value()) {
-                    throw LexError(tfm::format("Match rule '%s' didn't yield a token (at %s)",
-                                               result.rule.type(), loc));
+                    THROW(core::UsageError, tfm::format("Match rule '%s' didn't yield a token (at %s)",
+                          result.rule.type(), loc));
+
                 }
                 tokens.push_back(result.token.value());
                 break;

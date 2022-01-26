@@ -36,7 +36,7 @@ int main() {
          std::cout << "Testing " << fps << "fps:" << std::endl;
          double totalErrorTime = run_timer_sim(fps, 10);
          double avgErrorPerFrame = totalErrorTime / 100;
-         assert_true(avgErrorPerFrame < 1.0);
+         ASSERT_TRUE(avgErrorPerFrame < 1.0);
       }
    })
    .test("Sample physics and graphics timers", []() {
@@ -101,8 +101,8 @@ int main() {
          << "Avg render error time: "
          << avgRenderErrorTime << std::endl;
 
-      assert_true(avgRenderErrorTime < 1.0);
-      assert_true(correctedAvgPhysicsErrorTime < 1.0);
+      ASSERT_TRUE(avgRenderErrorTime < 1.0);
+      ASSERT_TRUE(correctedAvgPhysicsErrorTime < 1.0);
    })
    .run();
 }

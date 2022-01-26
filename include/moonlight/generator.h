@@ -23,11 +23,6 @@ namespace moonlight {
 namespace gen {
 
 //-------------------------------------------------------------------
-class Error : public core::Exception {
-   using Exception::Exception;
-};
-
-//-------------------------------------------------------------------
 // A template allowing the results of a generator lambda, known
 // below as "Closure", to be wrapped in a standard library compatible
 // iterator type and used with constructs like algorithm templates
@@ -83,7 +78,7 @@ public:
       if (_value.has_value()) {
          return *_value;
       } else {
-         throw Error("Attempted to deference past the end of the sequence.");
+         THROW(core::UsageError, "Attempted to deference past the end of the sequence.");
       }
    }
 

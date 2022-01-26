@@ -66,17 +66,12 @@ public:
     T get(const std::string& name) const {
         auto value = _get_value(name);
         if (value == nullptr) {
-            throw KeyNotFoundError(name);
+            THROW(core::IndexError, name);
         }
         if (! value->is<T>()) {
-            throw TypeError(name);
+            THROW(core::TypeError, name);
         }
         return value->get<T>();
-    }
-
-    template<>
-    Value::Pointer get<Value::Pointer>(const std::string& name) const {
-        return _get_value(name);
     }
 
     template<class T>
@@ -86,18 +81,9 @@ public:
             return default_value;
         }
         if (! value->is<T>()) {
-            throw TypeError(name);
+            THROW(core::TypeError, name);
         }
         return value->get<T>();
-    }
-
-    template<>
-    Value::Pointer get<Value::Pointer>(const std::string& name, const Value::Pointer& default_value) const {
-        auto value = _get_value(name);
-        if (value == nullptr) {
-            return default_value;
-        }
-        return value;
     }
 
     template<class T>
@@ -110,12 +96,6 @@ public:
         return *this;
     }
 
-    template<>
-    Object& set(const std::string& name, const Value::Pointer& value) {
-        _ns.insert({name, value});
-        return *this;
-    }
-
     template<class T>
     T get_or_set(const std::string& name, const T& default_value) {
         auto value = _get_value(name);
@@ -124,18 +104,9 @@ public:
             value = _get_value(name);
         }
         if (! value->is<T>()) {
-            throw TypeError(name);
+            THROW(core::TypeError, name);
         }
         return value->get<T>();
-    }
-
-    template<>
-    Value::Pointer get_or_set(const std::string& name, const Value::Pointer& default_value) {
-        auto value = get<Value::Pointer>(name);
-        if (value == nullptr) {
-            return set(name, default_value).get<Value::Pointer>(name);
-        }
-        return value;
     }
 
     Object& unset(const std::string& name) {
@@ -234,6 +205,35 @@ private:
 
     Namespace _ns;
 };
+
+template<>
+inline Value::Pointer Object::get<Value::Pointer>(const std::string& name) const {
+    return _get_value(name);
+}
+
+template<>
+inline Value::Pointer Object::get<Value::Pointer>(const std::string& name, const Value::Pointer& default_value) const {
+    auto value = _get_value(name);
+    if (value == nullptr) {
+        return default_value;
+    }
+    return value;
+}
+
+template<>
+inline Object& Object::set(const std::string& name, const Value::Pointer& value) {
+    _ns.insert({name, value});
+    return *this;
+}
+
+template<>
+inline Value::Pointer Object::get_or_set(const std::string& name, const Value::Pointer& default_value) {
+    auto value = get<Value::Pointer>(name);
+    if (value == nullptr) {
+        return set(name, default_value).get<Value::Pointer>(name);
+    }
+    return value;
+}
 
 VALUE_IS(Object, Type::OBJECT);
 VALUE_OF(Object, value);

@@ -10,10 +10,13 @@
 #ifndef __MOONLIGHT_EXCEPTIONS_H
 #define __MOONLIGHT_EXCEPTIONS_H
 
-#include "moonlight/string.h"
+#include <cstdlib>
+#include <filesystem>
 #include <functional>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
+#include <unistd.h>
 
 #ifdef MOONLIGHT_ENABLE_STACKTRACE
 #include <execinfo.h>
@@ -21,175 +24,145 @@
 #include <cxxabi.h>
 #endif
 
+#include "moonlight/debug.h"
+#include "moonlight/string.h"
+#include "moonlight/constants.h"
+#include "moonlight/finally.h"
+
 namespace moonlight {
 namespace core {
 
-/**------------------------------------------------------------------
- * An object to facilitiate finalization when not in the
- * scope of an object.  For example, this object can be used
- * to ensure that a function will be called when a scope
- * is exited, whether it left through the normal flow of
- * execution or via an exception.
- *
- * Note that this will not be called for POSIX signals
- * which interrupt execution.
- *
- * Example Usage:
- *
- * void perform_task(promise<string>& string_promise,
- *                   function<void()> user_defined_task) {
- *
- *    bool success = false;
- *    string failure_reason = "i don't know";
- *
- *    Finalizer finally([&]() {
- *       if (success) {
- *          string_promise.set_value("It's done!");
- *
- *       } else {
- *          string_promise.set_value("It failed, because " +
- *             failure_reason);
- *       }
- *    });
- *
- *    try {
- *       user_defined_task();
- *       success = true;
- *    } catch (const Exception& e) {
- *       failure_reason = e.get_message();
- *    }
- * }
- */
-class Finalizer {
-public:
-   Finalizer(std::function<void()> closure) : closure(closure) { }
-   virtual ~Finalizer() {
-      closure();
-   }
-
-private:
-   std::function<void()> closure;
-};
-
-//-------------------------------------------------------------------
-inline std::vector<std::string> generate_stacktrace(int max_frames = 256) {
-   (void) max_frames;
-#ifdef MOONLIGHT_ENABLE_STACKTRACE
-#define MOONLIGHT_STACKTRACE_LINE_BUFSIZE 1024
-   std::vector<std::string> btvec;
-   char buf[MOONLIGHT_STACKTRACE_LINE_BUFSIZE];
-   void* callstack[max_frames];
-   char** symbols;
-   size_t num_frames = backtrace(callstack, max_frames);
-   symbols = backtrace_symbols(callstack, num_frames);
-   for (int x = 1; x < num_frames; x++) {
-      Dl_info info;
-      if (dladdr(callstack[x], &info) && info.dli_sname) {
-         char* demangled = nullptr;
-         int status = -1;
-         if (info.dli_sname[0] == '_') {
-            demangled = abi::__cxa_demangle(info.dli_sname, nullptr, 0, &status);
-            snprintf(buf, MOONLIGHT_STACKTRACE_LINE_BUFSIZE, "[%3d] %*p %s +%zd",
-                     x, int(2 + sizeof(void*) * 2), callstack[x],
-                     status == 0 ? demangled :
-                     info.dli_sname == 0 ? symbols[x] : info.dli_sname,
-                     (char *)callstack[x] - (char *)info.dli_saddr);
-            free(demangled);
-         }
-      } else {
-         snprintf(buf, MOONLIGHT_STACKTRACE_LINE_BUFSIZE, "[%3d] %*p %s", x,
-                  int(2 + sizeof(void*) * 2), callstack[x],
-                  symbols[x]);
-      }
-
-      btvec.push_back(std::string(buf));
-   }
-#else
-   std::vector<std::string> btvec(0);
-#endif
-
-   return btvec;
-}
-
-//-------------------------------------------------------------------
-inline std::string format_stacktrace(const std::vector<std::string>& stacktrace) {
-   std::ostringstream sb;
-   sb << "Stack Trace --> \n\t" << str::join(stacktrace, "\n\t");
-   return sb.str();
-}
-
-/**------------------------------------------------------------------
- * A generic base class for throwables that may or may not be
- * runtime exceptions.
- */
-class Throwable { };
-
-/**------------------------------------------------------------------
+/**
  * A generic base exception class.
  */
-class Exception : public std::runtime_error, Throwable {
+class Exception : public std::runtime_error {
 public:
-   Exception(const std::string& message) : std::runtime_error(message.c_str()) {
-      stacktrace = generate_stacktrace();
-#ifdef MOONLIGHT_STACKTRACE_IN_DESCRIPTION
-      std::ostringstream sb;
-      sb << message << "\n" << format_stacktrace(stacktrace) << "\n";
-      this->message = sb.str();
+	Exception(const std::string& message, debug::Source where = {},
+              const std::string& type = type_name<Exception>())
+    : std::runtime_error(message.c_str()), _type(type), _message(message),
+#ifdef MOONLIGHT_ENABLE_STACKTRACE
+    _stacktrace(debug::StackTrace::generate(where))
 #else
-      this->message = message;
+    _stacktrace(where)
 #endif
-   }
+    {
+        _full_message = full_message();
+    }
 
-   virtual const char* what() const throw()
-   {
-      return message.c_str();
-   }
+    Exception(const Exception& e) : std::runtime_error(e.message().c_str()) {
+        _type = e._type;
+        _message = e._message;
+        _stacktrace = e._stacktrace;
+        if (e._cause != nullptr) {
+            _cause = new Exception(*e._cause);
+        }
+        _full_message = full_message();
+    }
 
-   virtual const std::string& get_message() const {
-      return message;
-   }
+    virtual ~Exception() {
+        if (_cause != nullptr) {
+            delete _cause;
+        }
+    }
+
+	virtual const char* what() const throw()
+	{
+		return _full_message.c_str();
+	}
+
+    const std::string& type() const {
+        return _type;
+    }
+
+	const debug::Source& where() const throw() {
+        return _stacktrace.where();
+	}
+
+	virtual std::string full_message() const throw() {
+        std::ostringstream sb;
+        sb << type_and_message();
+
+#ifdef MOONLIGHT_STACKTRACE_IN_DESCRIPTION
+        sb << std::endl;
+        if (! _stacktrace.contains_where() && ! where().is_nowhere()) {
+            sb << "    from " << where();
+        }
+        _stacktrace.format(sb, "    at ");
+#else
+        if (! where().is_nowhere()) {
+            sb << std::endl << "    from " << where();
+        }
+#endif
+
+        if (has_cause()) {
+            sb << std::endl;
+            sb << "Caused by " << cause().full_message();
+        }
+
+		return sb.str();
+	}
+
+    std::string type_and_message() const {
+        std::ostringstream sb;
+		sb << type() << ": " << message();
+        return sb.str();
+    }
+
+    const std::string& message() const {
+        return _message;
+    }
+
+    Exception& caused_by(const Exception& cause) {
+        _cause = new Exception(cause);
+#ifdef MOONLIGHT_STACKTRACE_IN_DESCRIPTION
+        // Need to update _full_message to reflect the cause.
+        this->_full_message = full_message();
+#endif
+        return *this;
+    }
+
+    bool has_cause() const {
+        return _cause != nullptr;
+    }
+
+    const Exception& cause() const {
+        return *_cause;
+    }
+
+    friend std::ostream& operator<<(std::ostream& out, const Exception& e) {
+        return out << e.full_message();
+    }
 
 private:
-   std::string message;
-   std::vector<std::string> stacktrace;
+    std::string _type;
+    std::string _message;
+    std::string _full_message;
+    moonlight::debug::StackTrace _stacktrace;
+    Exception* _cause = nullptr;
 };
 
-//-------------------------------------------------------------------
-class ValueException : public Exception {
-   using Exception::Exception;
-};
+#define EXCEPTION_TYPE(Name) \
+    class Name : public moonlight::core::Exception { \
+    public: \
+        Name(const std::string& message, const debug::Source& loc = {}, const std::string& name = type_name<Name>()) : Exception(message, loc, name) { } \
+    };
 
-//-------------------------------------------------------------------
-class IndexException : public Exception {
-   using Exception::Exception;
-};
+#define EXCEPTION_SUBTYPE(Base, Name) \
+    class Name : public Base { \
+    public: \
+        Name(const std::string& message, const debug::Source& loc = {}, const std::string& name = type_name<Name>()) : Base(message, loc, name) { } \
+    }
 
-//-------------------------------------------------------------------
-class NotImplementedException : public Exception {
-   using Exception::Exception;
-};
+EXCEPTION_TYPE(AssertionFailure);
+EXCEPTION_TYPE(ValueError);
+EXCEPTION_TYPE(IndexError);
+EXCEPTION_TYPE(RuntimeError);
+EXCEPTION_TYPE(UsageError);
+EXCEPTION_TYPE(TypeError);
+EXCEPTION_TYPE(FrameworkError);
 
-//-------------------------------------------------------------------
-class AssertionFailure : public core::Exception {
-public:
-   AssertionFailure(const std::string& expression,
-                    const std::string& function,
-                    const std::string& filename,
-                    int line) : Exception(_construct(expression, function, filename, line)) { }
-
-   static std::string _construct(const std::string& expression,
-                                 const std::string& function,
-                                 const std::string& filename,
-                                 int line) {
-
-      std::stringstream sb;
-      sb << "Assertion failed: "
-         << "\"" << expression
-         << " @ " << function << " (" << filename << ":" << line << ")";
-      return sb.str();
-   }
-};
-
+#define THROW(excType, ...) throw excType(__VA_ARGS__, LOCATION)
+#define FAIL(...) THROW(moonlight::core::AssertionFailure, __VA_ARGS__)
 
 }
 }

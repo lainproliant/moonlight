@@ -15,9 +15,9 @@
 namespace moonlight {
 namespace hash {
 
-/**
-* Lifted from boost::hash_combine.
-*/
+/** -----------------------------------------------------------------
+ * Lifted from boost::hash_combine.
+ */
 template<class T>
 inline void combine(std::size_t& seed, const T& value) {
   std::hash<T> hash_function;

@@ -26,31 +26,30 @@ namespace curses {
 
 using moonlight::time::posix::get_ticks;
 
-//-------------------------------------------------------------------
-class CursesError : public core::Exception {
-    using Exception::Exception;
-};
-
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 const int MAX_KEYCODE = 410;
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 struct XY {
     int x;
     int y;
 };
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline XY screen_size() {
     int x, y;
     getmaxyx(stdscr, y, x);
     return {x, y};
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline XY center_on_area(const XY& sz_A, const XY& sz_B) {
     if (sz_A.x > sz_B.x || sz_A.y > sz_B.y) {
-        throw CursesError("Can't center a smaller size inside another.");
+        THROW(core::UsageError, "Can't center a smaller size inside another.");
     }
 
     return {
@@ -59,17 +58,20 @@ inline XY center_on_area(const XY& sz_A, const XY& sz_B) {
     };
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline XY center_on_screen(const XY& sz) {
     return center_on_area(sz, screen_size());
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline void cleanup() {
     endwin();
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline void init() {
     initscr();
     atexit(cleanup);
@@ -80,16 +82,18 @@ inline void init() {
     start_color();
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline void init_color() {
     if (has_colors() == FALSE) {
-        throw CursesError("This terminal does not support color.");
+        THROW(core::UsageError, "This terminal does not support color.");
     }
     start_color();
     use_default_colors();
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline void make_color_pairs() {
     init_pair(0, COLOR_BLACK, -1);
     init_pair(1, COLOR_RED, -1);
@@ -128,13 +132,15 @@ inline void make_color_pairs() {
     init_pair(37, COLOR_WHITE, COLOR_BLACK);
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline void init_mouse() {
     mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
     std::cout << "\033[?1003h\n" << std::endl;
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline int get_keycode(const std::string& named_key) {
     for (int x = 0; x <= MAX_KEYCODE; x++) {
         auto name = keyname(x);
@@ -146,13 +152,15 @@ inline int get_keycode(const std::string& named_key) {
     return ERR;
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline std::string get_keycode_name(int keycode) {
     auto name = keyname(keycode);
     return name == nullptr ? "NULL" : name;
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline void dbg_print_all_keycodes() {
     for (int x = 0; x <= MAX_KEYCODE; x++) {
         auto name = keyname(x);
@@ -160,17 +168,20 @@ inline void dbg_print_all_keycodes() {
     }
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline void show_cursor() {
     curs_set(1);
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline void hide_cursor() {
     curs_set(0);
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 class Window {
 public:
     Window(XY sz_) :
@@ -280,7 +291,8 @@ private:
     WINDOW* _window;
 };
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 class Panel : public std::enable_shared_from_this<Panel> {
 public:
     Panel(int x, int y) : Panel(XY({x, y})) { }

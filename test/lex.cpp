@@ -42,7 +42,7 @@ int main() {
         .test("a simple scheme lexer", []() {
             lex::Lexer lex;
             auto g = make_scheme_grammar();
-            auto tokens = lex.lex(g, file::slurp("./data/test_scheme"));
+            auto tokens = lex.lex(g, file::slurp("test/data/test_scheme"));
             for (auto tk : tokens) {
                 std::cout << tk << std::endl;
             }

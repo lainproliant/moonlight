@@ -12,14 +12,16 @@
 namespace moonlight {
 namespace ansi {
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline bool enabled() {
     static const bool no_color = cli::getenv("NO_COLOR").has_value();
     static const bool force_color = cli::getenv("FORCE_COLOR").has_value();
     return !no_color || force_color;
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 class Sequence {
 public:
     Sequence(const std::string& s, bool control = false)
@@ -49,7 +51,8 @@ private:
     const bool _control;
 };
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 template<class T>
 std::string as_str(const T& val) {
     std::ostringstream sb;
@@ -71,7 +74,8 @@ Sequence seq(const T& val, TD... vals) {
     return seq(val) + seq(vals...);
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 template<class T, class... TD>
 Sequence attr(const T& val, TD... vals) {
     std::vector<std::string> vec;
@@ -80,7 +84,8 @@ Sequence attr(const T& val, TD... vals) {
     return seq(str::join(vec, ";") + "m");
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 const auto clrscr = seq("2J");
 const auto clreol = seq("K");
 const auto reset = attr(0);
@@ -91,22 +96,26 @@ const auto blink = attr(5);
 const auto reverse = attr(7);
 const auto hidden = attr(8);
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline Sequence rgb(int code, int r, int g, int b) {
     return attr(code, 2, r, g, b);
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline Sequence rgb(int code, int color) {
     return rgb(code, (color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF);
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline Sequence rgb(int code, const color::uRGB& color) {
     return rgb(code, color.r, color.g, color.b);
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 class WrappedText {
 public:
     WrappedText(const Sequence& start, const std::string& text,
@@ -136,7 +145,8 @@ private:
     const Sequence _end;
 };
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 class Decorator {
 public:
     Decorator(const Sequence& start, const Sequence& end = reset)
@@ -176,10 +186,15 @@ private:
 }
 
 namespace fg {
+
+/** -----------------------------------------------------------------
+ */
 inline ansi::Decorator color(int n) {
     return ansi::attr(30 + n);
 }
 
+/** -----------------------------------------------------------------
+ */
 template<class... TD>
 ansi::Decorator rgb(TD... params) {
     return ansi::rgb(38, params...);
@@ -204,10 +219,14 @@ const auto white = color(7);
 }
 
 namespace bg {
+/** -----------------------------------------------------------------
+ */
 inline ansi::Decorator color(int n) {
     return ansi::attr(40 + n);
 }
 
+/** -----------------------------------------------------------------
+ */
 template<class... TD>
 ansi::Decorator rgb(TD... params) {
     return ansi::rgb(48, params...);
@@ -230,22 +249,32 @@ const auto show_cursor = ansi::seq("?25h").control();
 const auto save_cursor = ansi::seq("s");
 const auto restore_cursor = ansi::seq("u");
 
+/** -----------------------------------------------------------------
+ */
 inline ansi::Sequence move_cursor(int x, int y) {
     return ansi::seq(y, ";", x, "H");
 }
 
+/** -----------------------------------------------------------------
+ */
 inline ansi::Sequence move_cursor_up(int n) {
     return ansi::seq(n, "A");
 }
 
+/** -----------------------------------------------------------------
+ */
 inline ansi::Sequence move_cursor_down(int n) {
     return ansi::seq(n, "B");
 }
 
+/** -----------------------------------------------------------------
+ */
 inline ansi::Sequence move_cursor_right(int n) {
     return ansi::seq(n, "C");
 }
 
+/** -----------------------------------------------------------------
+ */
 inline ansi::Sequence move_cursor_left(int n) {
     return ansi::seq(n, "D");
 }

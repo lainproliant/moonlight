@@ -23,11 +23,11 @@
 namespace moonlight {
 namespace cli {
 
-/**
+/** -----------------------------------------------------------------
  * Convert argc and argv from main() into a vector of strings.
  */
 inline std::vector<std::string> argv_to_vector(int argc, char** argv) {
-   std::vector<std::string> vec;
+    std::vector<std::string> vec;
 
     for (int x = 0; x < argc; x++) {
         vec.push_back(std::string(argv[x]));
@@ -36,7 +36,8 @@ inline std::vector<std::string> argv_to_vector(int argc, char** argv) {
     return vec;
 }
 
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 inline std::optional<std::string> getenv(const std::string& name) {
     const char* value = std::getenv(name.c_str());
     if (value != nullptr) {
@@ -46,12 +47,8 @@ inline std::optional<std::string> getenv(const std::string& name) {
     }
 }
 
-//-------------------------------------------------------------------
-class CommandLineException : public core::Exception {
-    using core::Exception::Exception;
-};
-
-//-------------------------------------------------------------------
+/** -----------------------------------------------------------------
+ */
 class CommandLine {
 public:
     CommandLine() { }
@@ -106,9 +103,9 @@ public:
         if (value) {
             return *value;
         } else {
-            throw CommandLineException(str::cat(
-                    std::string("Missing required option "),
-                    str::join(variadic::to_vector(std::string(opts)...), "/")));
+            THROW(core::UsageError, str::cat(
+                  std::string("Missing required option "),
+                  str::join(variadic::to_vector(std::string(opts)...), "/")));
         }
     }
 
@@ -145,8 +142,8 @@ public:
                         results.multi_opts.insert({opt, value});
 
                     } else {
-                        throw CommandLineException(str::cat(
-                                "Unknown option '", opt, "'."
+                        THROW(core::UsageError, str::cat(
+                            "Unknown option '", opt, "'."
                         ));
                     }
 
@@ -162,14 +159,14 @@ public:
                         results.multi_opts.insert({longopt, value});
 
                     } else {
-                        throw CommandLineException(str::cat(
-                                "Missing required value for option '--", longopt, "'."
+                        THROW(core::UsageError, str::cat(
+                            "Missing required value for option '--", longopt, "'."
                         ));
                     }
 
                 } else {
-                    throw CommandLineException(str::cat(
-                            "Unknown flag or option '--", longopt, "'."
+                    THROW(core::UsageError, str::cat(
+                        "Unknown flag or option '--", longopt, "'."
                     ));
                 }
 
@@ -193,13 +190,13 @@ public:
                             results.opts.insert({shortopt, argv[++x]});
 
                         } else {
-                            throw CommandLineException(str::cat(
-                                    "Missing required parameter for '-", shortopt, "'."
+                            THROW(core::UsageError, str::cat(
+                                "Missing required parameter for '-", shortopt, "'."
                             ));
                         }
                     } else {
-                        throw CommandLineException(str::cat(
-                                "Unknown flag or option '-", shortopt, "'."
+                        THROW(core::UsageError, str::cat(
+                            "Unknown flag or option '-", shortopt, "'."
                         ));
                     }
                 }
@@ -222,15 +219,17 @@ private:
     std::vector<std::string> args_;
 };
 
-//-------------------------------------------------------------------
-CommandLine parse(const std::vector<std::string>& argv,
+/** -----------------------------------------------------------------
+ */
+inline CommandLine parse(const std::vector<std::string>& argv,
                   const std::set<std::string>& flag_names = {},
                   const std::set<std::string>& opt_names = {}) {
     return CommandLine::parse(argv, flag_names, opt_names);
 }
 
-//-------------------------------------------------------------------
-CommandLine parse(int argc_in, char** argv_in,
+/** -----------------------------------------------------------------
+ */
+inline CommandLine parse(int argc_in, char** argv_in,
                   const std::set<std::string>& flag_names = {},
                   const std::set<std::string>& opt_names = {}) {
     return parse(argv_to_vector(argc_in, argv_in), flag_names, opt_names);

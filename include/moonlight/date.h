@@ -31,11 +31,13 @@
 namespace moonlight {
 namespace date {
 
-const std::string DEFAULT_FORMAT = "%Y-%m-%d %H:%M:%S %Z";
-const std::string ISO_8601_UTC_FORMAT = "%FT%TZ";
+const std::string DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S %Z";
+const std::string DATETIME_8601_UTC = "%FT%TZ";
+const std::string DATE_FORMAT = "%Y-%m-%d";
 typedef std::chrono::duration<long long, std::milli> Millis;
 
-inline std::ostream& operator<<(std::ostream& out, const struct tm tm_dt) {
+// --------------------------------------------------------
+inline std::ostream& operator<<(std::ostream& out, const struct tm& tm_dt) {
     tfm::format(out, "(struct tm)<sec=%d, min=%d, hour=%d, mday=%d, mon=%d, year=%d, wday=%d, yday=%d, isdst=%d, gmtoff=%d, zone=%s>",
                 tm_dt.tm_sec,
                 tm_dt.tm_min,
@@ -47,14 +49,22 @@ inline std::ostream& operator<<(std::ostream& out, const struct tm tm_dt) {
                 tm_dt.tm_yday,
                 tm_dt.tm_isdst,
                 tm_dt.tm_gmtoff,
-                tm_dt.tm_zone);
+                tm_dt.tm_zone == NULL ? "NULL" : tm_dt.tm_zone);
     return out;
 }
 
 // --------------------------------------------------------
-class ValueError : public moonlight::core::Exception {
-    using Exception::Exception;
-};
+inline bool struct_tm_is_empty(const struct tm& tm_dt) {
+    return tm_dt.tm_zone == NULL &&
+           tm_dt.tm_year == 0 &&
+           tm_dt.tm_mon == 0 &&
+           tm_dt.tm_mday == 0 &&
+           tm_dt.tm_wday == 0 &&
+           tm_dt.tm_yday == 0 &&
+           tm_dt.tm_hour == 0 &&
+           tm_dt.tm_min == 0 &&
+           tm_dt.tm_sec == 0;
+}
 
 // --------------------------------------------------------
 enum class Month {
@@ -189,7 +199,9 @@ public:
         struct tm tm_dt;
         ::memset(&tm_dt, 0, sizeof(tm_dt));
         tm_dt.tm_isdst = -1;  // Determine if daylight savings should apply.
-        ::strptime(dt_str.c_str(), format.c_str(), &tm_dt);
+        if (::strptime(dt_str.c_str(), format.c_str(), &tm_dt) == nullptr) {
+            THROW(core::ValueError, "Date string \"" + dt_str + "\" does not match format \"" + format + ".");
+        }
         set_env_tz(env_tz);
         return tm_dt;
     }
@@ -407,6 +419,38 @@ public:
     Date(const struct tm& tm_dt)
     : Date(tm_dt.tm_year + 1900, tm_dt.tm_mon + 1, tm_dt.tm_mday) { }
 
+    static Date strptime(const std::string& date_str,
+                         const std::string& format = DATE_FORMAT) {
+        auto tm_date = Zone::utc().strptime(format, date_str);
+        if (struct_tm_is_empty(tm_date)) {
+            THROW(core::ValueError, "Could not parse Date from \"" + date_str + "\" with format string \"" + format + "\".");
+        }
+        return Date(tm_date);
+    }
+
+    static Date today(const Zone& tz = Zone::utc()) {
+        return Date(tz.mk_struct_tm(::date::floor<Millis>(
+                    std::chrono::system_clock::now().time_since_epoch())));
+    }
+
+    static Date from_isoformat(const std::string& iso_date) {
+        return strptime(iso_date, DATE_FORMAT);
+    }
+
+    std::string strftime(const std::string& format) const {
+        struct tm tm_date;
+        load_struct_tm(tm_date);
+        tm_date.tm_zone = "UTC";
+        tm_date.tm_hour = 0;
+        tm_date.tm_min = 0;
+        tm_date.tm_sec = 0;
+        return Zone::utc().strftime(format, tm_date);
+    }
+
+    std::string isoformat() const {
+        return strftime(DATE_FORMAT);
+    }
+
     /**
      * Advance forward the given number of calendar days.
      */
@@ -499,7 +543,8 @@ public:
      */
     Date with_nmonth(int nmonth) const {
         if (nmonth < 1 || nmonth > 12) {
-            throw ValueError("Numeric month value is out of range (1-12).");
+            THROW(core::ValueError, "Numeric month value is out of range (1-12)");
+            THROW(core::ValueError, "Numeric month value is out of range (1-12).");
         }
 
         return with_month(static_cast<Month>(nmonth - 1));
@@ -632,11 +677,11 @@ public:
 private:
     void validate() {
         if (day() < 1) {
-            throw ValueError("Day is out of range (less than 1).");
+            THROW(core::ValueError, "Day is out of range (less than 1).");
         }
 
         if (day() > last_day_of_month(year(), month())) {
-            throw ValueError("Day is out of range (greater than last day of month).");
+            THROW(core::ValueError, "Day is out of range (greater than last day of month).");
         }
     }
 
@@ -724,7 +769,7 @@ public:
 private:
     void validate() {
         if (_minutes < 0 || _minutes >= 60 * 24) {
-            throw ValueError("Time is out of range.");
+            THROW(core::ValueError, "Time is out of range.");
         }
     }
 
@@ -777,14 +822,17 @@ public:
     }
 
     static Datetime strptime(const std::string& dt_str,
-                             const std::string& format = DEFAULT_FORMAT,
+                             const std::string& format = DATETIME_FORMAT,
                              const Zone& tz = Zone::utc()) {
         auto tm_dt = tz.strptime(format, dt_str);
+        if (struct_tm_is_empty(tm_dt)) {
+            THROW(core::ValueError, "Could not parse Datetime from \"" + dt_str + "\" using format string \"" + format + "\".");
+        }
         return Datetime(tz, ::date::floor<Millis>(std::chrono::seconds{tz.mk_timestamp(tm_dt)}));
     }
 
     static Datetime from_isoformat(const std::string& iso_dt_str) {
-        return strptime(iso_dt_str, ISO_8601_UTC_FORMAT, Zone::utc());
+        return strptime(iso_dt_str, DATETIME_8601_UTC, Zone::utc());
     }
 
     std::string format(const std::string& fmt) const {
@@ -797,7 +845,7 @@ public:
     }
 
     std::string isoformat() const {
-        return zone(Zone::utc()).strftime(ISO_8601_UTC_FORMAT);
+        return zone(Zone::utc()).strftime(DATETIME_8601_UTC);
     }
 
     Date date() const {
@@ -873,7 +921,7 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& out, const Datetime& dt) {
-        out << dt.strftime(DEFAULT_FORMAT);
+        out << dt.strftime(DATETIME_FORMAT);
         return out;
     }
 
@@ -968,7 +1016,7 @@ public:
 private:
     void validate() {
         if (start() >= end()) {
-            throw ValueError("End must be after start for Range.");
+            THROW(core::ValueError, "End must be after start for Range.");
         }
     }
 

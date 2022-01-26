@@ -19,23 +19,20 @@ static const std::vector<int> array = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 int main() {
     return TestSuite("moonlight slice tests")
     .test("slice simple tests", []() {
-        assert_true(lists_equal({0, 1, 2}, slice(array, {}, 3)));
-        assert_true(lists_equal({7, 8, 9}, slice(array, -3, {})));
-        assert_true(lists_equal({5, 6, 7}, slice(array, -5, -2)));
+        ASSERT_EQUAL({0, 1, 2}, slice(array, {}, 3));
+        ASSERT_EQUAL({7, 8, 9}, slice(array, -3, {}));
+        ASSERT_EQUAL({5, 6, 7}, slice(array, -5, -2));
     })
     .test("no out of bounds error in range", []() {
-        assert_true(lists_equal({0, 1}, slice(array, -500, 2)));
+        ASSERT_EQUAL({0, 1}, slice(array, -500, 2));
     })
     .test("out of bounds error in offset", []() {
         try {
             slice(array, -100);
-            return false;
+            FAIL("Expected IndexError was not thrown.");
 
-        } catch (const SliceError& e) {
-            std::cerr << "Received expected SliceError: "
-                      << e.get_message()
-                      << std::endl;
-            return true;
+        } catch (const core::IndexError& e) {
+            std::cerr << "Caught expected " << e << std::endl;
         }
     })
     .run();

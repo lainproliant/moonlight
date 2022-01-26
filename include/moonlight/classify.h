@@ -16,20 +16,28 @@
 
 namespace moonlight {
 
-// ------------------------------------------------------------------
+namespace _private {
+
+template <typename RT> struct ClassifierTraits {
+    typedef std::optional<RT> Result;
+};
+
+template<> struct ClassifierTraits<void> {
+    typedef void Result;
+};
+
+}
+
+/** -----------------------------------------------------------------
+ */
 template<class T, class R = void>
 class Classifier {
 public:
     typedef std::function<bool(const T&)> MatchFunction;
     typedef std::function<R()> NullaryAction;
     typedef std::function<R(const T&)> UnaryAction;
-    template <typename RT> struct _Traits {
-        typedef std::optional<RT> Result;
-    };
-    template <> struct _Traits<void> {
-        typedef void Result;
-    };
-    typedef _Traits<R> Traits;
+
+    typedef _private::ClassifierTraits<R> Traits;
 
     class Action {
     public:

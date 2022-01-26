@@ -16,7 +16,6 @@
 namespace moonlight {
 namespace json {
 
-//-------------------------------------------------------------------
 class Array : public Value {
 public:
     Array() : Value(Type::ARRAY) { }
@@ -35,9 +34,6 @@ public:
             std::back_inserter(_vec),
             [](const auto& v) { return Value::of(v); });
     }
-
-    template<>
-    Array(const std::vector<Value::Pointer>& vec) : Value(Type::ARRAY), _vec(vec) { }
 
     template<class T>
     Array value() const {
@@ -93,11 +89,6 @@ public:
     template<class T>
     T get(unsigned int offset) const {
         return _cget(offset)->get<T>();
-    }
-
-    template<>
-    Value::Pointer get(unsigned int offset) const {
-        return _cget(offset);
     }
 
     template<class T>
@@ -165,20 +156,28 @@ private:
 
     Value::Pointer& _get(unsigned int offset) {
         if (offset >= _vec.size()) {
-            throw new ArrayIndexOutOfBoundsError(std::to_string(offset));
+            THROW(core::IndexError, std::to_string(offset));
         }
         return _vec.at(offset);
     }
 
     Value::Pointer& _back() {
         if (empty()) {
-            throw ArrayIndexOutOfBoundsError("Array is empty.");
+            THROW(core::IndexError, "Array is empty.");
         }
         return _vec.back();
     }
 
     std::vector<Value::Pointer> _vec;
 };
+
+template<>
+inline Array::Array(const std::vector<Value::Pointer>& vec) : Value(Type::ARRAY), _vec(vec) { }
+
+template<>
+inline Value::Pointer Array::get(unsigned int offset) const {
+    return _cget(offset);
+}
 
 VALUE_IS(Array, Type::ARRAY);
 VALUE_OF(Array, value);

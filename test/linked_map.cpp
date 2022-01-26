@@ -17,7 +17,7 @@ using namespace moonlight::test;
 int main() {
     return TestSuite("moonlight linked_map tests")
     .die_on_signal(SIGSEGV)
-    .test("Insertion order", []()->bool {
+    .test("Insertion order", []() {
         moonlight::linked_map<std::string, int> map;
 
         map.insert({"oranges", 1});
@@ -28,17 +28,15 @@ int main() {
             std::cout << key << ": " << map[key] << std::endl;
         }
 
-        assert_equal(map["oranges"], 1);
-        assert_equal(map["grapes"], 3);
-        assert_equal(map["bananas"], 2);
+        ASSERT_EQUAL(map["oranges"], 1);
+        ASSERT_EQUAL(map["grapes"], 3);
+        ASSERT_EQUAL(map["bananas"], 2);
 
-        assert_true(
-            lists_equal(
-                moonlight::maps::keys(map).collect(),
-                {"oranges", "grapes", "bananas"}));
-        return true;
+        ASSERT_EQUAL(
+            moonlight::maps::keys(map).collect(),
+            {"oranges", "grapes", "bananas"});
     })
-    .test("Insertion order after removal", []()->bool {
+    .test("Insertion order after removal", []() {
         moonlight::linked_map<std::string, int> map;
 
         map.insert({"oranges", 1});
@@ -49,12 +47,10 @@ int main() {
 
         map.erase("bananas");
 
-        assert_true(
-            lists_equal(
-                moonlight::maps::keys(map).collect(),
-                {"oranges", "grapes", "pears", "apricots"}));
+        ASSERT_EQUAL(
+            moonlight::maps::keys(map).collect(),
+            {"oranges", "grapes", "pears", "apricots"});
 
-        return true;
     })
     .run();
 }

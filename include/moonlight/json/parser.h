@@ -39,10 +39,10 @@ struct Location {
 };
 
 //-------------------------------------------------------------------
-class Error : public moonlight::json::Error {
+class ParseError : public moonlight::core::RuntimeError {
 public:
-    Error(const std::string& msg, const Location& loc) :
-    moonlight::json::Error(format_message(msg, loc)), _loc(loc) { }
+    ParseError(const std::string& msg, const Location& loc, debug::Source where = {}) :
+    moonlight::core::RuntimeError(format_message(msg, loc), where, type_name<ParseError>()), _loc(loc) { }
 
     static std::string format_message(const std::string& msg,
                                       const Location& loc) {
@@ -84,10 +84,6 @@ struct Context {
 //-------------------------------------------------------------------
 class State : public automata::State<Context> {
 protected:
-    Error error(const std::string& msg) {
-        return Error(msg, context().loc());
-    }
-
     bool is_double_char(int c) {
         static const std::set<char> DOUBLE_CHARS = {
             '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
@@ -111,7 +107,7 @@ protected:
         size_t pos;
         double result = std::stod(double_str, &pos);
         if (pos != double_str.size()) {
-            throw error("Malformed double precision value.");
+            THROW(ParseError, "Malformed double precision value.", context().loc());
         }
 
         return result;
@@ -134,7 +130,7 @@ protected:
 
         int c = getc();
         if (c != '"') {
-            throw error("Input is not a string literal.");
+            THROW(ParseError, "Input is not a string literal.", context().loc());
         }
 
         while ((c = getc()) != '"') {
@@ -148,13 +144,13 @@ protected:
                     int hexA = getc();
                     int hexB = getc();
                     if (hexA == EOF || hexB == EOF) {
-                        throw error("Unexpected end of file while parsing '\\x' escape sequence.");
+                        THROW(ParseError, "Unexpected end of file while parsing '\\x' escape sequence.", context().loc());
                     }
                     std::string hex = {(char)hexA, (char)hexB};
                     size_t pos;
                     int c_hex = std::stoi(hex, &pos, 16);
                     if (pos != 2) {
-                        throw error("Malformed hexidecimal number in '\\x' escape sequence.");
+                        THROW(ParseError, "Malformed hexidecimal number in '\\x' escape sequence.", context().loc());
                     }
                     result.push_back(c_hex);
                 }
@@ -208,7 +204,7 @@ public:
         } else if (value == nullptr) {
             int c = getc();
             if (c != ':') {
-                throw error("Missing colon between object key and value.");
+                THROW(ParseError, "Missing colon between object key and value.", context().loc());
             }
             push<ValueState>(&value);
 
@@ -224,7 +220,7 @@ public:
             if (c == ',' || c == '}') {
                 pop();
             } else {
-                throw error("Missing comma between object values.");
+                THROW(ParseError, "Missing comma between object values.", context().loc());
             }
         }
     }
@@ -293,7 +289,7 @@ public:
         if (c == ',' || c == ']') {
             pop();
         } else {
-            throw error("Missing comma between array values.");
+            THROW(ParseError, "Missing comma between array values.", context().loc());
         }
     }
 
@@ -376,7 +372,7 @@ public:
             pop();
 
         } else {
-            throw error("Unexpected character in value expression.");
+            THROW(ParseError, "Unexpected character in value expression.", context().loc());
         }
     }
 

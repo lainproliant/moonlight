@@ -44,7 +44,7 @@ int main() {
       }
       std::cout << std::endl;
 
-      assert_equal(context.size(), (size_t) 28);
+      ASSERT_EQUAL(context.size(), (size_t) 28);
    })
    .test("stack machine parent state test", [&]() {
       struct Context {
@@ -87,8 +87,8 @@ int main() {
       machine.run_until_complete();
       std::cout << "x = " << context.x << std::endl;
       std::cout << "y = " << context.y << std::endl;
-      assert_equal(context.x, 20);
-      assert_equal(context.y, 10);
+      ASSERT_EQUAL(context.x, 20);
+      ASSERT_EQUAL(context.y, 10);
    })
    .test("lambda state machine", [] {
       struct Context {
@@ -107,7 +107,7 @@ int main() {
          m.context().x++;
 
          if (m.current()->name() == "init") {
-            assert_true(lists_equal(m.stack_trace(), {"init"}));
+            ASSERT_EQUAL(m.stack_trace(), {"init"});
             std::cout << "init state is current" << std::endl;
             m.push("a");
          }
@@ -121,7 +121,7 @@ int main() {
          m.context().y++;
 
          if (m.current() == c) {
-            assert_true(lists_equal(m.stack_trace(), {"a", "init"}));
+            ASSERT_EQUAL(m.stack_trace(), {"a", "init"});
             std::cout << "a state is current" << std::endl;
             m.transition("b");
          }
@@ -131,7 +131,7 @@ int main() {
          std::cout << "trace: " << str::join(m.stack_trace(), ",") << std::endl;
          std::cout << "m.context().x: " << m.context().x << std::endl;
          std::cout << "m.context().y: " << m.context().y << std::endl;
-         assert_true(lists_equal(m.stack_trace(), {"b", "init"}));
+         ASSERT_EQUAL(m.stack_trace(), {"b", "init"});
          m.call_parent();
          m.context().x++;
          m.terminate();
@@ -146,18 +146,18 @@ int main() {
          machine.push("a");
          machine.run_until_complete();
 
-      } catch (const automata::Error& e) {
+      } catch (const core::RuntimeError& e) {
          // This is supposed to happen, because "a" tries to call
          // call_parent(), but in this case there is no parent to "a".
-         std::cout << "Caught expected automata::Error." << std::endl;
+         std::cout << "Caught expected RuntimeError." << std::endl;
       } catch (...) {
-         fail();
+         FAIL("Expected RuntimeError was not thrown.");
       }
 
       std::cout << "machine.context().x = " << machine.context().x << std::endl;
       std::cout << "machine.context().y = " << machine.context().y << std::endl;
-      assert_equal(machine.context().x, (int) 8);
-      assert_equal(machine.context().y, (int) 2);
+      ASSERT_EQUAL(machine.context().x, (int) 8);
+      ASSERT_EQUAL(machine.context().y, (int) 2);
    })
    .test("mixed lambdas and OOP states", []() {
       struct Context {
@@ -187,8 +187,8 @@ int main() {
       machine.push("init");
       machine.run_until_complete();
 
-      assert_equal(machine.context().x, (int) 1);
-      assert_equal(machine.context().y, (int) 1);
+      ASSERT_EQUAL(machine.context().x, (int) 1);
+      ASSERT_EQUAL(machine.context().y, (int) 1);
    })
    .test("State init and cleanup functions called appropriately.", []() {
       struct Context {
@@ -228,8 +228,8 @@ int main() {
       std::cout << "context.run_called = " << context.run_called << std::endl;
       std::cout << "context.cleanup_called = " << context.cleanup_called << std::endl;
 
-      assert_equal(context.run_called, 3);
-      assert_equal(context.cleanup_called, 2);
+      ASSERT_EQUAL(context.run_called, 3);
+      ASSERT_EQUAL(context.cleanup_called, 2);
    })
    .test("Ability to refer to parent states as objects.", []() {
       struct Context {
@@ -292,7 +292,7 @@ int main() {
       auto machine = State::Machine::init<StateA>(context);
       machine.run_until_complete();
 
-      assert_true(lists_equal(context.names, {"C", "B", "A"}));
+      ASSERT_EQUAL(context.names, {"C", "B", "A"});
    })
    .run();
 }
