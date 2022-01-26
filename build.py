@@ -58,7 +58,7 @@ def compile(src, headers):
 
 # -------------------------------------------------------------------
 @factory
-def test(test):
+def run_test(test):
     return sh(
         "{test}",
         env=ENV,
@@ -103,13 +103,13 @@ async def tests(test_sources, headers, submodules):
 # -------------------------------------------------------------------
 @default
 def run_tests(tests):
-    return tuple(test(t) for t in tests)
+    return tuple(run_test(test) for test in tests)
 
 
 # -------------------------------------------------------------------
 @target
-def all(tests, labs):
-    return (tests, labs)
+def all(run_tests, labs):
+    return (run_tests, labs)
 
 
 # -------------------------------------------------------------------
