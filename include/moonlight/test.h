@@ -88,7 +88,8 @@ public:
                 } catch (const std::exception& e) {
                     out << "    FAILED (" << typeid(e).name() << "): " << e.what() << std::endl;
 #ifdef MOONLIGHT_ENABLE_STACKTRACE
-                    out << debug::StackTrace::generate({}, 3);
+                    auto trace = debug::StackTrace::generate();
+                    trace.format(out, "        at ");
 #endif
                     if (sys::getenv("MOONLIGHT_TEST_RETHROW")) {
                         throw e;
@@ -97,7 +98,8 @@ public:
                 } catch (...) {
                     out << "    FAILED (exotic type thrown)" <<  std::endl;
 #ifdef MOONLIGHT_ENABLE_STACKTRACE
-                    out << debug::StackTrace::generate({}, 3);
+                    auto trace = debug::StackTrace::generate();
+                    trace.format(out, "        at ");
 #endif
                 }
 

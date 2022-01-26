@@ -47,6 +47,14 @@ public:
     LinkedMap(const LinkedMap& other) : _map(other._map), _list(other._list) { }
     ~LinkedMap() { }
 
+    LinkedMap& operator=(const LinkedMap& other) {
+        _list.clear();
+        _map.clear();
+        for (auto iter : other) {
+            insert(iter);
+        }
+    }
+
     allocator_type get_allocator() const noexcept {
         return _map.get_allocator();
     }
@@ -78,6 +86,30 @@ public:
         auto iter = std::prev(_list.end());
         _map.emplace(value.first, iter);
         return {iter, true};
+    }
+
+    iterator insert(const_iterator hint, const value_type& value) {
+        auto result = _map.find(value.first);
+        if (result != _map.end()) {
+            return result->second;
+        }
+
+        _list.push_back(value);
+        auto iter = std::prev(_list.end());
+        _map.emplace(value.first, iter);
+        return {iter, true};
+    }
+
+    iterator insert(const_iterator hint, value_type&& value) {
+        auto result = _map.find(value.first);
+        if (result != _map.end()) {
+            return result->second;
+        }
+
+        _list.emplace_back(std::move(value));
+        auto iter = std::prev(_list.end());
+        _map.emplace(value.first, iter);
+        return iter;
     }
 
     std::pair<iterator, bool> insert_or_assign(const value_type& value) {

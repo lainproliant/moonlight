@@ -11,6 +11,7 @@
 #define __MOONLIGHT_JSON_OBJECT_H
 
 #include "moonlight/json/core.h"
+#include "moonlight/linked_map.h"
 #include "moonlight/maps.h"
 #include "moonlight/generator.h"
 #include "moonlight/traits.h"
@@ -52,7 +53,7 @@ public:
         return *this;
     }
 
-    template<class T, class M = std::unordered_map<std::string, T>>
+    template<class T, class M = linked_map<std::string, T>>
     M extract() const {
         M map;
         std::transform(_ns.begin(), _ns.end(), std::inserter(map, map.end()),

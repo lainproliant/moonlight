@@ -49,15 +49,22 @@ void _adt_from_json_impl(T& adt, const Value& json) {
         }
 
         const Object& obj = static_cast<const Object&>(json);
-        adt = obj.extract<T::mapped_type>();
+        adt.clear();
+        for (auto pair : obj.extract<typename T::mapped_type>()) {
+            adt.insert(pair);
+        }
 
     } else /* if is_iterable_type<T>() */ {
         // json must be an array.
         if (json.type() != Value::Type::ARRAY) {
             THROW(core::TypeError, "Can't map non-array value into iterable sequence.");
         }
+
         const Array& array = static_cast<const Array&>(json);
-        adt = array.extract<T::value_type>();
+        adt.clear();
+        for (auto value : array.extract<typename T::value_type>()) {
+            adt.push_back(value);
+        }
     }
 }
 
