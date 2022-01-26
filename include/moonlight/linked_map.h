@@ -53,6 +53,7 @@ public:
         for (auto iter : other) {
             insert(iter);
         }
+        return *this;
     }
 
     allocator_type get_allocator() const noexcept {
@@ -89,24 +90,13 @@ public:
     }
 
     iterator insert(const_iterator hint, const value_type& value) {
+        (void) hint;
         auto result = _map.find(value.first);
         if (result != _map.end()) {
             return result->second;
         }
 
         _list.push_back(value);
-        auto iter = std::prev(_list.end());
-        _map.emplace(value.first, iter);
-        return {iter, true};
-    }
-
-    iterator insert(const_iterator hint, value_type&& value) {
-        auto result = _map.find(value.first);
-        if (result != _map.end()) {
-            return result->second;
-        }
-
-        _list.emplace_back(std::move(value));
         auto iter = std::prev(_list.end());
         _map.emplace(value.first, iter);
         return iter;
@@ -119,7 +109,7 @@ public:
             return {result->second, false};
         }
 
-        insert(value);
+        return insert(value);
     }
 
     template<class... TD>
