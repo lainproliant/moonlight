@@ -133,6 +133,31 @@ inline std::vector<std::string> split(const std::string& s,
    return tokens;
 }
 
+/**
+ * Split the given string into a list of strings based on the
+ * single character delimiter provided, with escape ('\\' by default)
+ */
+inline std::vector<std::string> split(const std::string& s, int delim, int escape = '\\') {
+    std::vector<std::string> tokens;
+    std::string token;
+
+    for (size_t x = 0; x < s.size(); x++) {
+        auto c = s[x];
+        if (c == escape) {
+            x++;
+            continue;
+        }
+        if (c == delim) {
+            tokens.push_back(token);
+            token.clear();
+        } else {
+            token.push_back(c);
+        }
+    }
+
+    return tokens;
+}
+
 /**------------------------------------------------------------------
  * Create a string consisting of a single character.
  */
