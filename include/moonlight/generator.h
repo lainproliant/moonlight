@@ -261,6 +261,58 @@ public:
     Iterable(const gen::Iterator<T> begin) : _begin(begin) { }
     Iterable(const typename Iterator<T>::Closure& closure) : _begin(closure) { }
 
+    static gen::Iterable<T> empty() {
+        return Iterable(end<T>());
+    }
+
+    static gen::Iterable<T> singleton(const T& value) {
+        bool yielded = false;
+        return gen::Iterable<T>([yielded, value]() mutable -> std::optional<T> {
+            if (yielded == false) {
+                yielded = true;
+                return value;
+            }
+            return {};
+        });
+    }
+
+    template<class C>
+    static gen::Iterable<T> from_collection(const C& coll) {
+        static_assert(std::is_same<T, typename C::value_type>(), "Value type must match collection.");
+        bool yielded = false;
+        return combine([coll, yielded]() mutable -> std::optional<gen::Iterable<T>> {
+            if (! yielded) {
+                yielded = true;
+                return gen::Iterable<T>(gen::wrap(coll.begin(), coll.end()));
+            }
+            return {};
+        });
+    }
+
+    static gen::Iterable<T> combine(gen::Iterable<gen::Iterable<T>> stream_of_streams) {
+        gen::Iterator<gen::Iterable<T>> stream_iter = stream_of_streams.begin();
+        gen::Iterator<T> iter = stream_iter == stream_of_streams.end() ? end<T>() : stream_iter->begin();
+
+        return gen::Iterable<T>([stream_of_streams, stream_iter, iter]() mutable -> std::optional<T> {
+            if (stream_iter == stream_of_streams.end()) {
+                return {};
+            }
+
+            if (iter == stream_iter->end()) {
+                stream_iter++;
+                if (stream_iter != stream_of_streams.end()) {
+                    iter = stream_iter->begin();
+                }
+            }
+
+            return *iter++;
+        });
+    }
+
+    static gen::Iterable<T> combine(const std::vector<gen::Iterable<T>>& iterables) {
+        return combine(gen::Iterable(wrap(iterables.begin(), iterables.end())));
+    }
+
     gen::Iterator<T> begin() const {
         return _begin;
     }
@@ -272,7 +324,7 @@ public:
     gen::Iterable<T> sorted() const {
         std::optional<std::deque<T>> lazy_sorted = {};
 
-        return gen::Iterable<T>(gen::begin<T>([lazy_sorted, this]() mutable -> std::optional<T> {
+        return gen::Iterable<T>([lazy_sorted, this]() mutable -> std::optional<T> {
             if (! lazy_sorted.has_value()) {
                 lazy_sorted = std::deque<T>();
                 std::copy(this->begin(), this->end(), std::back_inserter(*lazy_sorted));
@@ -285,13 +337,63 @@ public:
             } else {
                 return {};
             }
-        }));
+        });
+    }
+
+    gen::Iterable<T> filter_combine(std::function<gen::Iterable<T>(const T&)> f) const {
+        Iterator<T> iter = begin();
+
+        return gen::Iterable<T>([iter, f, this]() mutable -> std::optional<T> {
+            return Iterable::combine([iter, f, this] () mutable -> std::optional<Iterable<T>> {
+                if (iter == end()) {
+                    return {};
+                }
+                return f(*iter++);
+            });
+        });
+    }
+
+    gen::Iterable<T> filter(std::function<std::optional<T>(const T&)> f) const {
+        Iterable<T> iter = begin();
+
+        return gen::Iterable<T>([iter, f, this]() mutable -> std::optional<T> {
+            std::optional<T> result;
+            while (iter != end()) {
+                result = f(*iter++);
+                if (result.has_value()) {
+                    return result.value();
+                }
+            }
+            return {};
+        });
+    }
+
+    gen::Iterable<T> unique() const {
+        std::set<T> sieve = {};
+        Iterator<T> iter = begin();
+
+        return gen::Iterable<T>([sieve, iter, this]() mutable -> std::optional<T> {
+            while(iter != end() && sieve.find(*iter) != sieve.end()) {
+                iter++;
+            }
+
+            if (iter == end()) {
+                return {};
+            }
+
+            sieve.insert(*iter);
+            return *iter++;
+        });
     }
 
     std::vector<T> collect() const {
         std::vector<T> result;
         result.insert(result.begin(), begin(), end());
         return result;
+    }
+
+    bool is_empty() const {
+        return _begin() == gen::end<T>();
     }
 
 private:
