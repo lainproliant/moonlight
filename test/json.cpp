@@ -123,7 +123,7 @@ int main() {
         auto vector = array.extract<int>();
         std::vector<int> vec_copy;
 
-        for (auto val : array.iterate<int>()) {
+        for (auto val : array.stream<int>()) {
             vec_copy.push_back(val);
         }
 

@@ -29,10 +29,10 @@ inline std::map<class M::mapped_type, class M::key_type> invert(const M& map) {
 
 //-------------------------------------------------------------------
 template<class M>
-gen::Iterable <typename M::key_type> keys(const M& map) {
+gen::Stream <typename M::key_type> keys(const M& map) {
     auto iter = map.begin();
 
-    return gen::Iterable<typename M::key_type>(
+    return gen::Stream<typename M::key_type>(
         [iter, &map]() mutable -> std::optional<typename M::key_type> {
             if (iter != map.end()) {
                 return (iter++)->first;
@@ -45,10 +45,10 @@ gen::Iterable <typename M::key_type> keys(const M& map) {
 
 //-------------------------------------------------------------------
 template<class M>
-gen::Iterable<typename M::mapped_type> values(const M& map) {
+gen::Stream<typename M::mapped_type> values(const M& map) {
     auto iter = map.begin();
 
-    return gen::Iterable<typename M::mapped_type>(
+    return gen::Stream<typename M::mapped_type>(
         [iter, &map]() mutable -> std::optional<typename M::mapped_type> {
             if (iter != map.end()) {
                 return (iter++)->second;

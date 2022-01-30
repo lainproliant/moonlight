@@ -148,14 +148,14 @@ public:
     }
 
     template<class T>
-    gen::Iterable<std::pair<std::string, T>> iterate() const {
-        return gen::Iterable<std::pair<std::string, T>>(begin<T>());
+    gen::Stream<std::pair<std::string, T>> iterate() const {
+        return gen::Stream<std::pair<std::string, T>>(begin<T>());
     }
 
-    gen::Iterable<std::string> iterate_keys() const {
+    gen::Stream<std::string> iterate_keys() const {
         auto iter = _ns.begin();
 
-        return gen::Iterable<std::string>(
+        return gen::Stream<std::string>(
             gen::begin<std::string>([iter, this]() mutable -> std::optional<std::string> {
                 if (iter == this->_ns.end()) {
                     return {};
@@ -167,10 +167,10 @@ public:
     }
 
     template<class T>
-    gen::Iterable<T> iterate_values() const {
+    gen::Stream<T> iterate_values() const {
         auto iter = _ns.begin();
 
-        return gen::Iterable<T>(
+        return gen::Stream<T>(
             gen::begin<T>([iter, this]() mutable -> std::optional<T> {
                 if (iter == this->_ns.end()) {
                     return {};

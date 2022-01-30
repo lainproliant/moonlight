@@ -120,8 +120,8 @@ public:
     }
 
     template<class T>
-    gen::Iterable<T> iterate() const {
-        return gen::Iterable<T>(begin<T>());
+    gen::Stream<T> stream() const {
+        return gen::Stream<T>(begin<T>());
     }
 
     template<class T>

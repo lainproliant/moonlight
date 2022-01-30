@@ -237,81 +237,17 @@ Iterator<typename I::value_type> wrap(I begin_in, I end_in) {
     return begin<typename I::value_type>(iterate(begin_in, end_in));
 }
 
-
-//-------------------------------------------------------------------
-// An object specializing for-each iteration over a type.
-// Useful when begin() and end() functions of an object are templates.
-//
-// Example Usage:
-//
-// // in api code
-// template<class T>
-// gen::Iterable<T> iterate() const {
-//     return gen::Iterable<T>(gen::begin<T>(...));
-// }
-//
-// // in client code
-// for (auto value : variant_vec.iterate<int>()) {
-//     ...
-// }
-//
+/**
+ * A stream encapsulating lazy operations and transformations over items
+ * in an iterable sequence.
+ */
 template<class T>
-class Iterable {
+class Stream {
 public:
-    Iterable(const gen::Iterator<T> begin) : _begin(begin) { }
-    Iterable(const typename Iterator<T>::Closure& closure) : _begin(closure) { }
+    Stream(const gen::Iterator<T> begin) : _begin(begin) { }
+    Stream(const typename Iterator<T>::Closure& closure) : _begin(closure) { }
 
-    static gen::Iterable<T> empty() {
-        return Iterable(end<T>());
-    }
-
-    static gen::Iterable<T> singleton(const T& value) {
-        bool yielded = false;
-        return gen::Iterable<T>([yielded, value]() mutable -> std::optional<T> {
-            if (yielded == false) {
-                yielded = true;
-                return value;
-            }
-            return {};
-        });
-    }
-
-    template<class C>
-    static gen::Iterable<T> from_collection(const C& coll) {
-        static_assert(std::is_same<T, typename C::value_type>(), "Value type must match collection.");
-        bool yielded = false;
-        return combine([coll, yielded]() mutable -> std::optional<gen::Iterable<T>> {
-            if (! yielded) {
-                yielded = true;
-                return gen::Iterable<T>(gen::wrap(coll.begin(), coll.end()));
-            }
-            return {};
-        });
-    }
-
-    static gen::Iterable<T> combine(gen::Iterable<gen::Iterable<T>> stream_of_streams) {
-        gen::Iterator<gen::Iterable<T>> stream_iter = stream_of_streams.begin();
-        gen::Iterator<T> iter = stream_iter == stream_of_streams.end() ? end<T>() : stream_iter->begin();
-
-        return gen::Iterable<T>([stream_of_streams, stream_iter, iter]() mutable -> std::optional<T> {
-            if (stream_iter == stream_of_streams.end()) {
-                return {};
-            }
-
-            if (iter == stream_iter->end()) {
-                stream_iter++;
-                if (stream_iter != stream_of_streams.end()) {
-                    iter = stream_iter->begin();
-                }
-            }
-
-            return *iter++;
-        });
-    }
-
-    static gen::Iterable<T> combine(const std::vector<gen::Iterable<T>>& iterables) {
-        return combine(gen::Iterable(wrap(iterables.begin(), iterables.end())));
-    }
+    typedef T value_type;
 
     gen::Iterator<T> begin() const {
         return _begin;
@@ -321,10 +257,10 @@ public:
         return gen::end<T>();
     }
 
-    gen::Iterable<T> sorted() const {
+    gen::Stream<T> sorted() const {
         std::optional<std::deque<T>> lazy_sorted = {};
 
-        return gen::Iterable<T>([lazy_sorted, this]() mutable -> std::optional<T> {
+        return gen::Stream<T>([lazy_sorted, this]() mutable -> std::optional<T> {
             if (! lazy_sorted.has_value()) {
                 lazy_sorted = std::deque<T>();
                 std::copy(this->begin(), this->end(), std::back_inserter(*lazy_sorted));
@@ -340,24 +276,28 @@ public:
         });
     }
 
-    gen::Iterable<T> filter_combine(std::function<gen::Iterable<T>(const T&)> f) const {
+    template<class R>
+    gen::Stream<gen::Stream<R>> transform_split(std::function<gen::Stream<R>(const T&)> f) const {
         Iterator<T> iter = begin();
 
-        return gen::Iterable<T>([iter, f, this]() mutable -> std::optional<T> {
-            return Iterable::combine([iter, f, this] () mutable -> std::optional<Iterable<T>> {
-                if (iter == end()) {
-                    return {};
-                }
-                return f(*iter++);
-            });
+        return gen::Stream<gen::Stream<R>>([iter, f, this]() mutable -> std::optional<gen::Stream<R>> {
+            if (iter == end()) {
+                return {};
+            }
+            return f(*iter++);
         });
     }
 
-    gen::Iterable<T> filter(std::function<std::optional<T>(const T&)> f) const {
-        Iterable<T> iter = begin();
+    gen::Stream<gen::Stream<T>> transform_split(std::function<gen::Stream<T>(const T&)> f) const {
+        return transform_split<T>(f);
+    }
 
-        return gen::Iterable<T>([iter, f, this]() mutable -> std::optional<T> {
-            std::optional<T> result;
+    template<class R = T>
+    gen::Stream<R> transform(std::function<std::optional<R>(const T&)> f) const {
+        Stream<T> iter = begin();
+
+        return gen::Stream<R>([iter, f, this]() mutable -> std::optional<R> {
+            std::optional<R> result;
             while (iter != end()) {
                 result = f(*iter++);
                 if (result.has_value()) {
@@ -368,11 +308,24 @@ public:
         });
     }
 
-    gen::Iterable<T> unique() const {
+    gen::Stream<T> transform(std::function<std::optional<T>(const T&)> f) const {
+        return transform<T>(f);
+    }
+
+    gen::Stream<T> filter(std::function<bool(const T&)> predicate) const {
+        return transform<T>([predicate](const T& value) -> std::optional<T> {
+            if (predicate(value)) {
+                return value;
+            }
+            return {};
+        });
+    }
+
+    gen::Stream<T> unique() const {
         std::set<T> sieve = {};
         Iterator<T> iter = begin();
 
-        return gen::Iterable<T>([sieve, iter, this]() mutable -> std::optional<T> {
+        return gen::Stream<T>([sieve, iter, this]() mutable -> std::optional<T> {
             while(iter != end() && sieve.find(*iter) != sieve.end()) {
                 iter++;
             }
@@ -386,10 +339,15 @@ public:
         });
     }
 
-    std::vector<T> collect() const {
-        std::vector<T> result;
+    template<template<class, class> class C = std::vector, template<class> class A = std::allocator>
+    C<T, A<T>> collect() const {
+        C<T, A<T>> result;
         result.insert(result.begin(), begin(), end());
         return result;
+    }
+
+    std::vector<T> collect() const {
+        return collect<std::vector>();
     }
 
     bool is_empty() const {
@@ -400,6 +358,92 @@ private:
     gen::Iterator<T> _begin;
 };
 
+/**
+ * Creates an empty stream.
+ */
+template<class T>
+gen::Stream<T> empty() {
+    return Stream(end<T>());
+}
+
+/**
+ * Creates a stream consisting of a single value.
+ */
+template<class T>
+gen::Stream<T> singleton(const T& value) {
+    bool yielded = false;
+    return gen::Stream<T>([yielded, value]() mutable -> std::optional<T> {
+        if (yielded == false) {
+            yielded = true;
+            return value;
+        }
+        return {};
+    });
+}
+
+/**
+ * Creates a stream consisting of a single value result of a nullary
+ * function call, which isn't evaluated until the stream is read.
+ */
+template<class T>
+gen::Stream<T> lazy_singleton(std::function<T()> f) {
+    bool yielded = false;
+    return gen::Stream<T>([yielded, f]() mutable -> std::optional<T> {
+        if (yielded == false) {
+            yielded = true;
+            return f();
+        }
+        return {};
+    });
+}
+
+/**
+ * Streams the contents of the given collection.
+ */
+template<class C>
+gen::Stream<typename C::value_type> stream(const C& coll) {
+    bool yielded = false;
+    return merge([coll, yielded]() mutable -> std::optional<gen::Stream<typename C::value_type>> {
+        if (! yielded) {
+            yielded = true;
+            return gen::Stream<typename C::value_type>(gen::wrap(coll.begin(), coll.end()));
+        }
+        return {};
+    });
+}
+
+/**
+ * Merges a stream of one or more iterables into a single stream.
+ */
+template<class T>
+gen::Stream<T> merge(gen::Stream<gen::Stream<T>> stream_of_streams) {
+    gen::Iterator<gen::Stream<T>> stream_iter = stream_of_streams.begin();
+    gen::Iterator<T> iter = stream_iter == stream_of_streams.end() ? end<T>() : stream_iter->begin();
+
+    return gen::Stream<T>([stream_of_streams, stream_iter, iter]() mutable -> std::optional<T> {
+        if (stream_iter == stream_of_streams.end()) {
+            return {};
+        }
+
+        if (iter == stream_iter->end()) {
+            stream_iter++;
+            if (stream_iter != stream_of_streams.end()) {
+                iter = stream_iter->begin();
+            }
+        }
+
+        return *iter++;
+    });
+}
+
+/**
+ * Stream a collection of streams together into a single output stream.
+ */
+template<class C>
+gen::Stream<typename C::value_type::value_type> merge_stream(const C& coll) {
+    typedef typename C::value_type::value_type T;
+    return merge<T>(stream<typename C::value_type>(coll));
+}
 
 }
 }
