@@ -111,6 +111,10 @@ def run_tests(tests):
 def all(tests, labs):
     return (tests, labs)
 
+# -------------------------------------------------------------------
+@target
+def cc_json():
+    return sh("intercept-build ./build.py compile:\* -R; ./build.py -c compile:\*")
 
 # -------------------------------------------------------------------
 if __name__ == "__main__":
