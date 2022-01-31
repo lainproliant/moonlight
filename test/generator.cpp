@@ -82,5 +82,33 @@ int main() {
         }
         ASSERT_EQUAL(values, copy);
     })
+    .test("buffered stream", []() {
+        std::vector<int> values = {0, 1, 2, 3, 4, 5};
+        auto stream = gen::buffer(gen::stream(values), 3);
+
+        auto value_arrays = stream.transform<std::vector<int>>([](gen::Buffer<int> buf) -> std::optional<std::vector<int>> {
+            std::vector<int> result;
+            std::copy(buf->begin(), buf->end(), std::back_inserter(result));
+            return result;
+        }).collect();
+
+        ASSERT_EQUAL(value_arrays, {
+            {0, 1, 2},
+            {1, 2, 3},
+            {2, 3, 4},
+            {3, 4, 5}
+        });
+    })
+    .test("squash buffered stream", []() {
+        std::vector<int> values = {0, 1, 2, 3, 4, 5};
+        auto stream = gen::buffer(gen::stream(values), 3, true);
+        auto new_values = stream.transform<int>([](gen::Buffer<int> buf) -> std::optional<int> {
+            return buf->front();
+        }).collect();
+
+        std::cout << "values = " << str::join(values, ",") << std::endl;
+        std::cout << "new_values = " << str::join(new_values, ",") << std::endl;
+        ASSERT_EQUAL(values, new_values);
+    })
     .run();
 }

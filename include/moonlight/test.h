@@ -86,11 +86,7 @@ public:
                     std::rethrow_exception(eptr);
 
                 } catch (const std::exception& e) {
-                    out << "    FAILED (" << typeid(e).name() << "): " << e.what() << std::endl;
-#ifdef MOONLIGHT_ENABLE_STACKTRACE
-                    auto trace = debug::StackTrace::generate();
-                    trace.format(out, "        at ");
-#endif
+                    out << "    FAILED " << e.what() << std::endl;
                     if (sys::getenv("MOONLIGHT_TEST_RETHROW")) {
                         throw e;
                     }
@@ -138,7 +134,7 @@ private:
         THROW(moonlight::core::AssertionFailure, msg ": " repr); \
     }
 
-#define ASSERT_TRUE(expr) _ASSERT(expr, "Assertion failed.", #expr)
+#define ASSERT_TRUE(expr) _ASSERT(expr, "Assertion failed", #expr)
 #define ASSERT ASSERT_TRUE
 #define ASSERT_FALSE(expr) _ASSERT(!(expr), "Negative assertion failed.", #expr)
 
