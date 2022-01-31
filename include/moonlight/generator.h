@@ -192,7 +192,7 @@ private:
 };
 
 template<class T>
-using Buffer = std::shared_ptr<std::deque<T>>;
+using Buffer = std::deque<T>;
 
 template<class T>
 inline Buffer<T> make_buffer() {
@@ -298,6 +298,8 @@ public:
     gen::Stream<T> advance(int n) {
         return gen::Stream<T>(begin().advance(n));
     }
+
+    gen::Stream<T> trim(unsigned int left, unsigned int right);
 
     /**
      * Scans to the last item of the stream and returns it.
@@ -623,20 +625,20 @@ gen::Stream<T> gen::Stream<T>::merge(const C& coll) {
  * If the stream is empty, no windows are streamed.
  */
 template<class T>
-gen::Stream<Buffer<T>> buffer(gen::Stream<T> stream, int bufsize, bool squash = false) {
-    auto buffer = make_buffer<T>();
+gen::Stream<std::reference_wrapper<Buffer<T>>> buffer(gen::Stream<T> stream, int bufsize, bool squash = false) {
+    Buffer<T> buffer;
     auto iter = stream.begin();
     bool initialized = false;
 
-    return gen::stream<Buffer<T>>([=]() mutable -> std::optional<Buffer<T>> {
+    return gen::stream<std::reference_wrapper<Buffer<T>>>([=]() mutable -> std::optional<std::reference_wrapper<Buffer<T>>> {
         if (! initialized) {
-            while (buffer->size() < bufsize && iter != gen::end<T>()) {
-                buffer->push_back(*iter++);
-                std::cout << "DEBUG: " << str::join(*buffer, ",") << std::endl;
+            while (buffer.size() < bufsize && iter != gen::end<T>()) {
+                buffer.push_back(*iter);
+                iter++;
             }
             initialized = true;
             // If squash is false and we couldn't fill the buffer, return nothing.
-            if (squash || buffer->size() == bufsize) {
+            if (squash || buffer.size() == bufsize) {
                 return buffer;
             }
 
@@ -644,13 +646,14 @@ gen::Stream<Buffer<T>> buffer(gen::Stream<T> stream, int bufsize, bool squash = 
         }
 
         if (iter != gen::end<T>()) {
-            buffer->pop_front();
-            buffer->push_back(*iter++);
+            buffer.pop_front();
+            buffer.push_back(*iter);
+            iter++;
             return buffer;
 
         } else if (squash) {
-            buffer->pop_front();
-            if (! buffer->empty()) {
+            buffer.pop_front();
+            if (! buffer.empty()) {
                 return buffer;
             }
             return {};
@@ -658,6 +661,23 @@ gen::Stream<Buffer<T>> buffer(gen::Stream<T> stream, int bufsize, bool squash = 
 
         return {};
     });
+}
+
+template<class T>
+gen::Stream<T> gen::Stream<T>::trim(unsigned int left, unsigned int right) {
+    gen::Stream<T> stream = *this;
+
+    if (right != 0) {
+        stream = gen::buffer(stream, right + 1).template transform<T>([](auto& buf) -> std::optional<T> {
+            return buf.get().front();
+        });
+    }
+
+    if (left != 0) {
+        stream = stream.advance(left);
+    }
+
+    return stream;
 }
 
 }
