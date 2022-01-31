@@ -13,7 +13,7 @@ import random
 import shlex
 from pathlib import Path
 
-from xeno.build import build, default, factory, provide, sh, target
+from xeno.build import build, default, factory, provide, sh, target, Recipe
 from xeno.shell import check
 
 INTERACTIVE_TESTS = {"ansi"}
@@ -97,14 +97,12 @@ async def labs(lab_sources, headers, submodules):
 async def tests(test_sources, headers, submodules):
     await submodules.resolve()
     tests = [compile(src, headers) for src in test_sources]
-    return random.sample(tests, len(tests))
-
+    return [*random.sample(tests, len(tests))]
 
 # -------------------------------------------------------------------
 @default
 def run_tests(tests):
-    return tuple(test(t) for t in tests)
-
+    return (test(t) for t in tests)
 
 # -------------------------------------------------------------------
 @target
