@@ -36,7 +36,7 @@ std::function<std::optional<int>()> sleepy_range(int a, int b) {
     int y = a;
 
     auto lambda = [=]() mutable -> std::optional<int> {
-        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
         if (y >= b) {
             return {};
@@ -81,6 +81,42 @@ int main() {
             copy.push_back(*iter);
         }
         ASSERT_EQUAL(values, copy);
+    })
+    .test("buffered stream", []() {
+        std::vector<int> values = {0, 1, 2, 3, 4, 5};
+        auto stream = gen::buffer(gen::stream(values), 3);
+
+        auto value_arrays = stream.transform<std::vector<int>>([](gen::Buffer<int>& buf) -> std::optional<std::vector<int>> {
+            std::vector<int> result;
+            std::copy(buf.begin(), buf.end(), std::back_inserter(result));
+            std::cout << "result = " << str::join(result, ",") << std::endl;
+            return result;
+        }).collect();
+
+        ASSERT_EQUAL(value_arrays, {
+            {0, 1, 2},
+            {1, 2, 3},
+            {2, 3, 4},
+            {3, 4, 5}
+        });
+    })
+    .test("squash buffered stream", []() {
+        std::vector<int> values = {0, 1, 2, 3, 4, 5};
+        auto stream = gen::buffer(gen::stream(values), 3, true);
+        auto new_values = stream.transform<int>([](gen::Buffer<int>& buf) -> std::optional<int> {
+            return buf.front();
+        }).collect();
+
+        std::cout << "values = " << str::join(values, ",") << std::endl;
+        std::cout << "new_values = " << str::join(new_values, ",") << std::endl;
+        ASSERT_EQUAL(values, new_values);
+    })
+    .test("stream trim", []() {
+        std::vector<int> values = {0, 1, 2, 3, 4, 5};
+        auto new_values = gen::stream(values).trim(1, 2).collect();
+        std::cout << "values = " << str::join(values, ",") << std::endl;
+        std::cout << "new_values = " << str::join(new_values, ",") << std::endl;
+        ASSERT_EQUAL(new_values, {1, 2, 3});
     })
     .run();
 }
