@@ -84,9 +84,9 @@ int main() {
     })
     .test("buffered stream", []() {
         std::vector<int> values = {0, 1, 2, 3, 4, 5};
-        auto stream = gen::buffer(gen::stream(values), 3);
+        auto stream = gen::stream(values).buffer(3);
 
-        auto value_arrays = stream.transform<std::vector<int>>([](gen::Buffer<int>& buf) -> std::optional<std::vector<int>> {
+        auto value_arrays = stream.transform<std::vector<int>>([](gen::Buffer<int>& buf) {
             std::vector<int> result;
             std::copy(buf.begin(), buf.end(), std::back_inserter(result));
             std::cout << "result = " << str::join(result, ",") << std::endl;
@@ -102,8 +102,8 @@ int main() {
     })
     .test("squash buffered stream", []() {
         std::vector<int> values = {0, 1, 2, 3, 4, 5};
-        auto stream = gen::buffer(gen::stream(values), 3, true);
-        auto new_values = stream.transform<int>([](gen::Buffer<int>& buf) -> std::optional<int> {
+        auto stream = gen::stream(values).buffer(3, true);
+        auto new_values = stream.transform<int>([](gen::Buffer<int>& buf) {
             return buf.front();
         }).collect();
 

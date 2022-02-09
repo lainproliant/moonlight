@@ -25,12 +25,14 @@ namespace gen {
 template<class T>
 using Generator = std::function<std::optional<T>()>;
 
-//-------------------------------------------------------------------
-// A template allowing the results of a generator lambda, known
-// below as "Closure", to be wrapped in a standard library compatible
-// iterator type and used with constructs like algorithm templates
-// and the ranged-for loop.
-//
+/**
+ * A template class allowing the results of a Generator lambda to be
+ * wrapped in a standard library compatible iterator type and used with
+ * constructs like algorithm templates and the ranged-for loop.
+ *
+ * Used as a building block for higher level composition abstractions,
+ * such as gen::Stream.
+ */
 template<class T>
 class Iterator : public std::iterator<std::input_iterator_tag, T> {
 public:
@@ -112,11 +114,11 @@ private:
     std::optional<T> _value;
 };
 
-//-------------------------------------------------------------------
-// A queue template for asynchronously communicating the output
-// of a generator running in another thread with one or more
-// consumer threads.
-//
+/**
+ * A queue template for asynchronously communiating the output
+ * of a generator running in another thread with one or more
+ * consumer threads.
+ */
 template<class T>
 class Queue {
 public:
@@ -191,35 +193,37 @@ private:
     bool _completed = false;
 };
 
+/**
+ * Type used to buffer stream results for look-ahead.
+ */
 template<class T>
 using Buffer = std::deque<T>;
 
-template<class T>
-inline Buffer<T> make_buffer() {
-    return std::make_shared<std::deque<T>>();
-}
-
-//-------------------------------------------------------------------
-// Return the beginning of a virtual range representing the values
-// yielded by the given generator lambda.
+/**
+ * Return the beginning of a virtual range representing the values
+ * yielded by the given Generator lambda.
+ */
 template<class T>
 Iterator<T> begin(Generator<T> lambda) {
     return Iterator<T>(lambda);
 }
 
-//-------------------------------------------------------------------
-// Return the end of a virtual range, any virtual range, of a type.
+/**
+ * Return the end of any virtual range of the given type.
+ */
 template<class T>
 Iterator<T> end() {
     return Iterator<T>();
 }
 
-//-------------------------------------------------------------------
-// Returns a queue for processing the results of a generator
-// asynchronously.  The first parameter is a generator factory,
-// any subsequent parameters are forwarded to this factory to produce
-// the generator.
-//
+/**
+ * Creates a queue for processing the results of a Generator
+ * asynchronously.
+ *
+ * @param factory A generator factory.
+ * @param ... Subsequent parameters forwarded to the generator factory.
+ * @return a shared_ptr to a newly created Queue object.
+ */
 template<class T, class... TD>
 std::shared_ptr<Queue<T>> async(std::function<std::optional<T>(TD...)> factory, TD... params) {
 
@@ -235,9 +239,9 @@ std::shared_ptr<Queue<T>> async(std::function<std::optional<T>(TD...)> factory, 
     return queue;
 }
 
-//-------------------------------------------------------------------
-// Wraps the given set of iterators as a range into a generator.
-//
+/**
+ * Wraps the given set of iterators as a range into a Generator.
+ */
 template<class I>
 std::function<std::optional<typename I::value_type>()> iterate(I begin, I end) {
     I current = begin;
@@ -250,12 +254,12 @@ std::function<std::optional<typename I::value_type>()> iterate(I begin, I end) {
     };
 }
 
-//-------------------------------------------------------------------
-// Wraps the given set of iterators as a range into a generator,
-// then returns the beginning of a virtual range wrapping that
-// generator.  Use this to reinterpret iterators of any type
-// into virtual iterators.
-//
+/**
+ * Wraps the given set of iterators as a range into a Generator,
+ * then returns the beginning of the virtual range wrapping that
+ * Generator.  Use this to reinterpret iterators of any type
+ * as virtual Iterators.
+ */
 template<class I>
 Iterator<typename I::value_type> wrap(I begin_in, I end_in) {
     if (begin_in == end_in) {
@@ -265,8 +269,7 @@ Iterator<typename I::value_type> wrap(I begin_in, I end_in) {
 }
 
 /**
- * A stream encapsulating lazy operations and transformations over items
- * in an iterable sequence.
+ * An iterator wrapper for functional composition over items in a virtual range.
  */
 template<class T>
 class Stream {
@@ -275,31 +278,97 @@ public:
     Stream(const typename Iterator<T>::Closure& closure) : _begin(closure) { }
 
     typedef T value_type;
+
     typedef std::function<Stream<T>()> Factory;
 
+    /**
+     * Lazily generates a stream from the given Factory function.
+     */
     static gen::Stream<T> lazy(const Factory& f);
+
+    /**
+     * Creates a stream consisting of one value.
+     */
     static gen::Stream<T> singleton(const T& value);
+
+    /**
+     * Creates a stream consisting of a single value result of a nullary
+     * function call, which isn't evaluated until the stream is read.
+     */
+    static gen::Stream<T> lazy_singleton(std::function<T()> f);
+
+    /**
+     * Creates an empty stream.
+     */
     static gen::Stream<T> empty();
 
+    /**
+     * Merge the output of two streams into a single output stream.
+     */
+    gen::Stream<T> merge(gen::Stream<T> streamA, gen::Stream<T> streamB);
+
+    /**
+     * Merge the output of one or more streams in a stream of streams into
+     * a single output stream.
+     */
+    gen::Stream<T> merge(gen::Stream<gen::Stream<T>> stream_of_streams);
+
+    /**
+     * Merge the output from one or more streams into a single output stream.
+     */
     template<class... TD>
     static gen::Stream<T> merge(gen::Stream<T> stream, TD... streams);
 
+    /**
+     * Merge the output of one or more streams in an iterable collection
+     * of streams into a single output stream.
+     */
     template<class C>
     static gen::Stream<T> merge(const C& coll);
 
+    /**
+     * The beginning of the Stream's virtual range.
+     */
     gen::Iterator<T> begin() const {
         return _begin;
     }
 
+    /**
+     * The end of the Stream's virtual range.
+     */
     gen::Iterator<T> end() const {
         return gen::end<T>();
     }
 
+    /**
+     * Advance the stream forward n items, effectively skipping n items.
+     */
     gen::Stream<T> advance(int n) {
         return gen::Stream<T>(begin().advance(n));
     }
 
+    /**
+     * Trim `left` items off of the left and `right` items off of the right
+     * of the virtual range and stream the rest into a new Stream.
+     *
+     * NOTE: right trimming requires the use of a buffer the size of the right
+     * trim amount, since virtual ranges are of unknown length.
+     */
     gen::Stream<T> trim(unsigned int left, unsigned int right);
+
+    /**
+     * Buffer the stream `bufsize` items forward.  The resulting stream elements are all
+     * references into the Buffer, with each step shifting the buffer forward one element.
+     *
+     * @param bufsize The size of the buffer.
+     * @param squash Determines how to behave at the end of the scalar sequence.
+     *      If `true`, items are removed from the beginning of the buffer each step until
+     *      it is empty.  The buffer is allowed to be smaller than `bufsize`.
+     *      If `false` (the default), the buffered sequence ends when the scalar sequence
+     *      ends.  The buffer is not allowed to be smaller than `bufsize`, thus if the
+     *      scalar sequence is smaller than `bufsize`, the stream is empty.
+     */
+    gen::Stream<std::reference_wrapper<Buffer<T>>> buffer(int bufsize, bool squash = false);
 
     /**
      * Scans to the last item of the stream and returns it.
@@ -316,7 +385,7 @@ public:
     }
 
     /**
-     * Streams only the first N elements of this stream.
+     * Streams only the first `n` elements of this stream.
      */
     gen::Stream<T> limit(int n) {
         int offset = 0;
@@ -371,6 +440,10 @@ public:
         });
     }
 
+    /**
+     * Streams a new stream resulting from applying the function `f` to each
+     * element in this stream.
+     */
     gen::Stream<gen::Stream<T>> transform_split(std::function<gen::Stream<T>(const T&)> f) const {
         return transform_split<T>(f);
     }
@@ -393,6 +466,16 @@ public:
                 }
             }
             return {};
+        });
+    }
+
+    /**
+     * Transform each element in the stream using the given function.
+     */
+    template<class R = T>
+    gen::Stream<R> transform(std::function<R(const T&)> f) const {
+        return transform<R>([f](const T& value) -> std::optional<T> {
+            return f(value);
         });
     }
 
@@ -440,6 +523,9 @@ public:
         return result;
     }
 
+    /**
+     * Collects all of the items in the stream into an std::vector.
+     */
     std::vector<T> collect() const {
         return collect<std::vector>();
     }
@@ -451,6 +537,9 @@ public:
         return str::join(collect(), sep);
     }
 
+    /**
+     * Determine if the stream is currently empty.
+     */
     bool is_empty() const {
         return _begin() == gen::end<T>();
     }
@@ -458,14 +547,6 @@ public:
 private:
     gen::Iterator<T> _begin;
 };
-
-/**
- * Creates an empty stream.
- */
-template<class T>
-gen::Stream<T> empty() {
-    return Stream(end<T>());
-}
 
 /**
  * Streams values from a mutable closure (i.e. generator).
@@ -477,26 +558,15 @@ gen::Stream<T> stream(Generator<T> lambda) {
 }
 
 /**
- * Creates a stream consisting of a single value.
+ * Stream the given iterable collection.
  */
-template<class T>
-gen::Stream<T> singleton(const T& value) {
-    bool yielded = false;
-    return gen::Stream<T>([yielded, value]() mutable -> std::optional<T> {
-        if (yielded == false) {
-            yielded = true;
-            return value;
-        }
-        return {};
-    });
+template<class C>
+gen::Stream<typename C::value_type> stream(const C& coll) {
+    return gen::stream<typename C::value_type>(gen::iterate(coll.begin(), coll.end()));
 }
 
-/**
- * Creates a stream consisting of a single value result of a nullary
- * function call, which isn't evaluated until the stream is read.
- */
 template<class T>
-gen::Stream<T> lazy_singleton(std::function<T()> f) {
+inline gen::Stream<T> gen::Stream<T>::lazy_singleton(std::function<T()> f) {
     bool yielded = false;
     return gen::Stream<T>([yielded, f]() mutable -> std::optional<T> {
         if (yielded == false) {
@@ -507,27 +577,8 @@ gen::Stream<T> lazy_singleton(std::function<T()> f) {
     });
 }
 
-/**
- * Streams the contents of the given collection.
- */
-template<class T, template<class, class> class C = std::vector, template<class> class A>
-gen::Stream<T> stream(const C<T, A<T>>& coll) {
-    return gen::Stream(gen::wrap(coll.begin(), coll.end()));
-}
-
-/**
- * Streams the key-value pairs from the given map.
- */
-template<template<class, class, class...> class M, class K, class V, class... Args>
-gen::Stream<typename M<K, V, Args...>::value_type> stream(const M<K, V, Args...>& map) {
-    return gen::Stream<typename M<K, V, Args...>::value_type>(gen::wrap(map.begin(), map.end()));
-}
-
-/**
- * Merges a stream of one or more iterables into a single stream.
- */
 template<class T>
-gen::Stream<T> merge(gen::Stream<gen::Stream<T>> stream_of_streams) {
+gen::Stream<T> gen::Stream<T>::merge(gen::Stream<gen::Stream<T>> stream_of_streams) {
     gen::Iterator<gen::Stream<T>> stream_iter = stream_of_streams.begin();
     gen::Iterator<T> iter = stream_iter == stream_of_streams.end() ? end<T>() : stream_iter->begin();
 
@@ -547,16 +598,8 @@ gen::Stream<T> merge(gen::Stream<gen::Stream<T>> stream_of_streams) {
     });
 }
 
-/**
- * Stream a collection of streams together into a single output stream.
- */
-template<class C>
-gen::Stream<typename C::value_type> merge(const C& coll) {
-    return merge<typename C::value_type>(stream<typename C::value_type>(coll));
-}
-
 template<class T>
-gen::Stream<T> merge(gen::Stream<T> streamA, gen::Stream<T> streamB) {
+gen::Stream<T> gen::Stream<T>::merge(gen::Stream<T> streamA, gen::Stream<T> streamB) {
     auto iterA = streamA.begin();
     auto iterB = streamB.begin();
 
@@ -578,56 +621,44 @@ gen::Stream<T> merge(gen::Stream<T> streamA, gen::Stream<T> streamB, TD... strea
     return merge(streamA, merge(streamB, streams...));
 }
 
-/**
- * Returns a lazy-evaluated stream of one stream.
- */
 template<class T>
-gen::Stream<T> lazy_stream(const typename gen::Stream<T>::Factory f) {
-    return gen::merge(gen::lazy_singleton(f));
+inline gen::Stream<T> gen::Stream<T>::lazy(const typename gen::Stream<T>::Factory& f) {
+    return gen::merge(lazy_singleton(f));
 }
 
 template<class T>
 inline gen::Stream<T> gen::Stream<T>::singleton(const T& value) {
-    return singleton<T>(value);
-}
-
-template<class T>
-inline gen::Stream<T> gen::Stream<T>::lazy(const typename gen::Stream<T>::Factory& f) {
-    return lazy<T>(f);
+    bool yielded = false;
+    return gen::Stream<T>([yielded, value]() mutable -> std::optional<T> {
+        if (yielded == false) {
+            yielded = true;
+            return value;
+        }
+        return {};
+    });
 }
 
 template<class T>
 inline gen::Stream<T> gen::Stream<T>::empty() {
-    return empty<T>();
+    return gen::Stream(end<T>());
 }
 
 template<class T>
 template<class... TD>
-gen::Stream<T> gen::Stream<T>::merge(gen::Stream<T> stream, TD... streams) {
+inline gen::Stream<T> gen::Stream<T>::merge(gen::Stream<T> stream, TD... streams) {
     return gen::merge<T>(stream, streams...);
 }
 
 template<class T>
 template<class C>
-gen::Stream<T> gen::Stream<T>::merge(const C& coll) {
-    return gen::merge<T>(coll);
+inline gen::Stream<T> gen::Stream<T>::merge(const C& coll) {
+    return merge<T>(gen::stream<gen::Stream<T>>(coll));
 }
 
-/**
- * Buffer N elements of the given string and return an iterator of the
- * resulting deque window of at most N elements.  If the length of the stream
- * is less than or equal to N, only one window is streamed.
- *
- * If `squash` is enabled, iterating the window past the end of the source
- * stream will pop items off of the front of the buffer until the buffer
- * is empty.
- *
- * If the stream is empty, no windows are streamed.
- */
 template<class T>
-gen::Stream<std::reference_wrapper<Buffer<T>>> buffer(gen::Stream<T> stream, int bufsize, bool squash = false) {
+inline gen::Stream<std::reference_wrapper<Buffer<T>>> gen::Stream<T>::buffer(int bufsize, bool squash) {
     Buffer<T> buffer;
-    auto iter = stream.begin();
+    auto iter = begin();
     bool initialized = false;
 
     return gen::stream<std::reference_wrapper<Buffer<T>>>([=]() mutable -> std::optional<std::reference_wrapper<Buffer<T>>> {
@@ -668,7 +699,7 @@ gen::Stream<T> gen::Stream<T>::trim(unsigned int left, unsigned int right) {
     gen::Stream<T> stream = *this;
 
     if (right != 0) {
-        stream = gen::buffer(stream, right + 1).template transform<T>([](auto& buf) -> std::optional<T> {
+        stream = stream.buffer(right + 1).template transform<T>([](auto& buf) {
             return buf.get().front();
         });
     }
