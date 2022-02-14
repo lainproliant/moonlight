@@ -540,10 +540,88 @@ public:
     }
 
     /**
+     * Collects all of the pairs from a stream into a mapped collection.
+     */
+    template<class M>
+    M map_collect(std::function<std::pair<typename M::key_type, typename M::mapped_type>(const T& value)> f) const {
+        M map;
+        for (auto iter = begin(); iter != end(); iter++) {
+            map.insert(f(*iter));
+        }
+        return map;
+    }
+
+    template<class K, class V>
+    std::unordered_map<K, V> map_collect(std::function<std::pair<K, V>(const T&)> f) const {
+        return map_collect<std::unordered_map<K, V>>(f);
+    }
+
+    /**
      * Collects all of the items in the stream into an std::vector.
      */
     std::vector<T> collect() const {
         return collect<std::vector>();
+    }
+
+    /**
+     * Determine if all of the items in the sequence match a predicate.
+     */
+    bool all(std::function<bool(const T&)> f) const {
+        for (auto iter = begin(); iter != end(); iter++) {
+            if (! f(*iter)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Determine if any of the items in the sequence match a predicate.
+     */
+    bool any(std::function<bool(const T&)> f) const {
+        for (auto iter = begin(); iter != end(); iter++) {
+            if (f(*iter)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine if none of the items in the sequence match a predicate.
+     */
+    bool none(std::function<bool(const T&)> f) const {
+        for (auto iter = begin(); iter != end(); iter++) {
+            if (f(*iter)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Reduce the items in the sequence to a single value.
+     */
+    template<class R = T>
+    R reduce(std::function<R(const R& acc, const T& value)> f, const R& init = R()) {
+        R acc = init;
+        for (auto iter = begin(); iter != end(); iter++) {
+            acc = f(acc, *iter);
+        }
+        return acc;
+    }
+
+    /**
+     * Produce the sum of all of the items in the sequence.
+     */
+    template<class R = T>
+    R sum() {
+        return reduce<R>([](const R& acc, const T& value) {
+            return acc + value;
+        });
     }
 
     /**

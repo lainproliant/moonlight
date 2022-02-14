@@ -8,6 +8,7 @@
  */
 
 #include "moonlight/generator.h"
+#include "moonlight/linked_map.h"
 #include "moonlight/test.h"
 
 #include <thread>
@@ -117,6 +118,41 @@ int main() {
         std::cout << "values = " << str::join(values, ",") << std::endl;
         std::cout << "new_values = " << str::join(new_values, ",") << std::endl;
         ASSERT_EQUAL(new_values, {1, 2, 3});
+    })
+    .test("map collect", []() {
+        std::map<std::string, int> map = {
+            {"Apples", 1},
+            {"Oranges", 2},
+            {"BANANAS", 3}
+        };
+
+        auto remap = gen::stream(map).map_collect<std::string, int>([](const auto& pair) {
+            return std::pair(str::to_lower(pair.first), pair.second);
+        });
+
+        for (auto pair : remap) {
+            std::cout << pair.first << " = " << pair.second << std::endl;
+        }
+
+        ASSERT_EQUAL(remap, std::unordered_map<std::string, int>({
+            {"apples", 1},
+            {"oranges", 2},
+            {"bananas", 3}
+        }));
+    })
+    .test("reduce", []() {
+        std::vector<int> values = {10, 11, 9, 10};
+        auto stream = gen::stream(values);
+
+        auto enumerate = stream.reduce<std::pair<int, int>>([](const auto& acc, const auto& value) {
+            return std::pair(acc.first + 1, acc.second + value);
+        });
+
+        auto sum = stream.sum();
+        auto avg = enumerate.second / enumerate.first;
+
+        ASSERT_EQUAL(avg, 10);
+        ASSERT_EQUAL(sum, 40);
     })
     .run();
 }

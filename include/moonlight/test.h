@@ -157,11 +157,34 @@ inline bool lists_equal(const T& listA, const T& listB) {
 }
 
 //-------------------------------------------------------------------
+template<class M>
+inline bool maps_equal(const M& mapA, const M& mapB) {
+    if (mapA.size() != mapB.size()) {
+        return false;
+    }
+
+    for (auto iterA = mapA.begin(); iterA != mapA.end(); iterA++) {
+        auto iterB = mapB.find(iterA->first);
+
+        if (iterB == mapB.end() || iterA->second != iterB->second) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+//-------------------------------------------------------------------
 template<class T>
 inline bool test_equal(const T& a, const T& b) {
+    if constexpr(is_map_type<T>()) {
+        return maps_equal(a, b);
+    }
+
     if constexpr (is_iterable_type<T>()) {
         return lists_equal(a, b);
     }
+
 
     return a == b;
 }
