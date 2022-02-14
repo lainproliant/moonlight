@@ -672,7 +672,7 @@ inline gen::Stream<T> gen::Stream<T>::lazy_singleton(std::function<T()> f) {
 }
 
 template<class T>
-gen::Stream<T> gen::Stream<T>::merge(gen::Stream<gen::Stream<T>> stream_of_streams) {
+inline gen::Stream<T> gen::Stream<T>::merge(gen::Stream<gen::Stream<T>> stream_of_streams) {
     gen::Iterator<gen::Stream<T>> stream_iter = stream_of_streams.begin();
     gen::Iterator<T> iter = stream_iter == stream_of_streams.end() ? end<T>() : stream_iter->begin();
 
@@ -693,7 +693,7 @@ gen::Stream<T> gen::Stream<T>::merge(gen::Stream<gen::Stream<T>> stream_of_strea
 }
 
 template<class T>
-gen::Stream<T> gen::Stream<T>::merge(gen::Stream<T> streamA, gen::Stream<T> streamB) {
+inline gen::Stream<T> gen::Stream<T>::merge(gen::Stream<T> streamA, gen::Stream<T> streamB) {
     auto iterA = streamA.begin();
     auto iterB = streamB.begin();
 
@@ -711,7 +711,7 @@ gen::Stream<T> gen::Stream<T>::merge(gen::Stream<T> streamA, gen::Stream<T> stre
 }
 
 template<class T, class... TD>
-gen::Stream<T> merge(gen::Stream<T> streamA, gen::Stream<T> streamB, TD... streams) {
+inline gen::Stream<T> merge(gen::Stream<T> streamA, gen::Stream<T> streamB, TD... streams) {
     return merge(streamA, merge(streamB, streams...));
 }
 
