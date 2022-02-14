@@ -469,6 +469,22 @@ public:
         });
     }
 
+    void for_each(std::function<bool (const T&)> f) const {
+        auto iter = begin();
+
+        for (auto iter = begin(); iter != end(); iter++) {
+            if (! f(*iter)) {
+                break;
+            }
+        }
+    }
+
+    void for_each(std::function<void (const T&)> f) const {
+        for (auto iter = begin(); iter != end(); iter++) {
+            f(*iter);
+        }
+    }
+
     /**
      * Transform each element in the stream using the given function.
      */
