@@ -154,5 +154,33 @@ int main() {
         ASSERT_EQUAL(avg, 10);
         ASSERT_EQUAL(sum, 40);
     })
+    .test("stream merge", []() {
+        std::vector<int> vA = {1, 2, 3};
+        std::vector<int> vB = {4, 5, 6};
+        std::vector<int> vC = {7, 8, 9};
+
+        auto vec = gen::seq(1, 2, 3, 4).collect();
+        ASSERT_EQUAL(vec.size(), (size_t)4);
+        std::cout << str::join(vec, ", ") << std::endl;
+        ASSERT_EQUAL(vec, {1, 2, 3, 4});
+
+        auto result = gen::merge(gen::seq(
+            gen::stream(vA),
+            gen::stream(vB),
+            gen::stream(vC)
+        )).collect();
+
+        ASSERT_EQUAL(result, {1, 2, 3, 4, 5, 6, 7, 8, 9});
+
+        auto stream_coll = std::vector<gen::Stream<int>>{
+            gen::stream(vA),
+            gen::stream(vB),
+            gen::stream(vC)
+        };
+
+        auto coll_result = gen::merge(gen::stream(stream_coll)).collect();
+        ASSERT_EQUAL(coll_result, {1, 2, 3, 4, 5, 6, 7, 8, 9});
+
+    })
     .run();
 }

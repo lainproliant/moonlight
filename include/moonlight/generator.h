@@ -301,30 +301,6 @@ public:
     static gen::Stream<T> empty();
 
     /**
-     * Merge the output of two streams into a single output stream.
-     */
-    gen::Stream<T> merge(gen::Stream<T> streamA, gen::Stream<T> streamB);
-
-    /**
-     * Merge the output of one or more streams in a stream of streams into
-     * a single output stream.
-     */
-    gen::Stream<T> merge(gen::Stream<gen::Stream<T>> stream_of_streams);
-
-    /**
-     * Merge the output from one or more streams into a single output stream.
-     */
-    template<class... TD>
-    static gen::Stream<T> merge(gen::Stream<T> stream, TD... streams);
-
-    /**
-     * Merge the output of one or more streams in an iterable collection
-     * of streams into a single output stream.
-     */
-    template<class C>
-    static gen::Stream<T> merge(const C& coll);
-
-    /**
      * The beginning of the Stream's virtual range.
      */
     gen::Iterator<T> begin() const {
@@ -669,8 +645,11 @@ inline gen::Stream<T> gen::Stream<T>::lazy_singleton(std::function<T()> f) {
     });
 }
 
+/**
+ * Merge a stream of one or more other streams into a single stream.
+ */
 template<class T>
-inline gen::Stream<T> gen::Stream<T>::merge(gen::Stream<gen::Stream<T>> stream_of_streams) {
+inline gen::Stream<T> merge(gen::Stream<gen::Stream<T>> stream_of_streams) {
     gen::Iterator<gen::Stream<T>> stream_iter = stream_of_streams.begin();
     gen::Iterator<T> iter = stream_iter == stream_of_streams.end() ? end<T>() : stream_iter->begin();
 
@@ -679,10 +658,14 @@ inline gen::Stream<T> gen::Stream<T>::merge(gen::Stream<gen::Stream<T>> stream_o
             return {};
         }
 
-        if (iter == stream_iter->end()) {
-            stream_iter++;
+        while (iter == stream_iter->end()) {
+            stream_iter ++;
+
             if (stream_iter != stream_of_streams.end()) {
                 iter = stream_iter->begin();
+
+            } else {
+                return {};
             }
         }
 
@@ -690,34 +673,9 @@ inline gen::Stream<T> gen::Stream<T>::merge(gen::Stream<gen::Stream<T>> stream_o
     });
 }
 
-template<class T>
-inline gen::Stream<T> gen::Stream<T>::merge(gen::Stream<T> streamA, gen::Stream<T> streamB) {
-    auto iterA = streamA.begin();
-    auto iterB = streamB.begin();
-
-    return gen::begin([iterA, iterB, streamA, streamB]() mutable -> std::optional<T> {
-        if (iterA == streamA.end()) {
-            if (iterB == streamB.end()) {
-                return {};
-            }
-
-            return *(iterB++);
-        }
-
-        return *(iterA++);
-    });
-}
-
-template<class T, class... TD>
-inline gen::Stream<T> merge(gen::Stream<T> streamA, gen::Stream<T> streamB, TD... streams) {
-    return merge(streamA, merge(streamB, streams...));
-}
-
-template<class T>
-inline gen::Stream<T> gen::Stream<T>::lazy(const typename gen::Stream<T>::Factory& f) {
-    return gen::merge(lazy_singleton(f));
-}
-
+/**
+ * Yield a stream containing one value.
+ */
 template<class T>
 inline gen::Stream<T> gen::Stream<T>::singleton(const T& value) {
     bool yielded = false;
@@ -730,23 +688,50 @@ inline gen::Stream<T> gen::Stream<T>::singleton(const T& value) {
     });
 }
 
+/**
+ * Generate a stream from the given sequence of arguments.
+ */
+template<class T>
+inline gen::Stream<T> seq(const T& first) {
+    return gen::Stream<T>::singleton(first);
+}
+
+/**
+ * Generate a stream from the given sequence of arguments.
+ */
+template<class T, class... TD>
+inline gen::Stream<T> seq(const T& first, TD&&... rest) {
+    std::vector<T> vec{first, rest...};
+    return Stream<T>::lazy([=]() -> gen::Stream<T> {
+        return gen::stream(vec);
+    });
+}
+
+/**
+ * Lazily evaluate a stream.
+ */
+template<class T>
+inline gen::Stream<T> gen::Stream<T>::lazy(const typename gen::Stream<T>::Factory& f) {
+    return gen::merge(Stream<Stream<T>>::lazy_singleton(f));
+}
+
+/**
+ * Yield an empty stream.
+ */
 template<class T>
 inline gen::Stream<T> gen::Stream<T>::empty() {
     return gen::Stream(end<T>());
 }
 
-template<class T>
-template<class... TD>
-inline gen::Stream<T> gen::Stream<T>::merge(gen::Stream<T> stream, TD... streams) {
-    return gen::merge<T>(stream, streams...);
-}
-
-template<class T>
-template<class C>
-inline gen::Stream<T> gen::Stream<T>::merge(const C& coll) {
-    return merge<T>(gen::stream<gen::Stream<T>>(coll));
-}
-
+/**
+ * Created a buffered stream that scrolls a buffered deque view of
+ * items through the sequence with the given look-ahead.
+ *
+ * If squash is True, reaching the end of the sequence will pop items
+ * off of the end of the deque until it is empty.  Otherwise,
+ * the buffered sequence will end after the end of the main
+ * sequence is reached.
+ */
 template<class T>
 inline gen::Stream<std::reference_wrapper<Buffer<T>>> gen::Stream<T>::buffer(int bufsize, bool squash) {
     Buffer<T> buffer;
@@ -786,6 +771,10 @@ inline gen::Stream<std::reference_wrapper<Buffer<T>>> gen::Stream<T>::buffer(int
     });
 }
 
+/**
+ * Trim the given number of elements from the beginning
+ * and/or end of the stream.
+ */
 template<class T>
 gen::Stream<T> gen::Stream<T>::trim(unsigned int left, unsigned int right) {
     gen::Stream<T> stream = *this;
