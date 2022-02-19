@@ -7,7 +7,7 @@
  * Distributed under terms of the MIT license.
  */
 
-#include "sole.hpp"
+#include "sole/sole.hpp"
 #include <iostream>
 
 int main() {

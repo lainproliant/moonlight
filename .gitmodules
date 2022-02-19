@@ -7,6 +7,3 @@
 [submodule "include/sole"]
 	path = deps/sole
 	url = https://github.com/r-lyeh-archived/sole
-[submodule "deps/nanoid"]
-	path = deps/nanoid
-	url = git@github.com:/NerdyPepper/nanoid

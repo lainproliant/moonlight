@@ -20,9 +20,7 @@ INTERACTIVE_TESTS = {"ansi"}
 
 INCLUDES = ["-I./include",
             "-I./deps/date/include",
-            "-I./deps/tinyformat",
-            "-I./deps/sole",
-            "-I./deps/nanoid"]
+            "-I./deps"]
 
 ENV = dict(
     CC=os.environ.get("CC", "clang++"),
