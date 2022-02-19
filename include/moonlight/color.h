@@ -17,7 +17,6 @@
 #include <regex>
 #include <inttypes.h>
 #include "moonlight/exceptions.h"
-#include "tinyformat/tinyformat.h"
 
 namespace moonlight {
 namespace color {
@@ -43,7 +42,11 @@ struct fHSV {
     explicit operator uRGB() const;
 
     friend std::ostream& operator<<(std::ostream& out, const fHSV& hsv) {
-        tfm::format(out, "fHSV<%0.2f°, %0.2f, %0.2f>", hsv.h, hsv.s, hsv.v);
+        std::ios out_state(nullptr);
+        out_state.copyfmt(out);
+        out << "fHSV<" << std::fixed << std::setprecision(2) <<
+            hsv.h << ", " << hsv.s << ", " << hsv.v << ">";
+        out.copyfmt(out_state);
         return out;
     }
 
@@ -117,7 +120,10 @@ struct uRGB {
     }
 
     friend std::ostream& operator<<(std::ostream& out, const uRGB& rgb) {
-        tfm::format(out, "uRGB<%s>", rgb.str());
+        std::ios out_state(nullptr);
+        out_state.copyfmt(out);
+        out << "uRGB<" << std::hex << rgb.str() << ">";
+        out.copyfmt(out_state);
         return out;
     }
 };
@@ -133,7 +139,11 @@ struct fRGB {
     explicit operator fHSV() const;
 
     friend std::ostream& operator<<(std::ostream& out, const fRGB& rgb) {
-        tfm::format(out, "fRGB<%0.2f, %0.2f, %0.2f>", rgb.r, rgb.g, rgb.b);
+        std::ios out_state(nullptr);
+        out_state.copyfmt(out);
+        out << "fRGB<" << std::fixed << std::setprecision(2) <<
+            rgb.r << ", " << rgb.g << ", " << rgb.b << ">";
+        out.copyfmt(out_state);
         return out;
     }
 

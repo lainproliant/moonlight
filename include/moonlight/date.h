@@ -10,7 +10,6 @@
 #ifndef __MOONLIGHT_DATE_H
 #define __MOONLIGHT_DATE_H
 
-#include "tinyformat/tinyformat.h"
 #include "moonlight/generator.h"
 #include "moonlight/exceptions.h"
 #include "moonlight/maps.h"
@@ -38,18 +37,18 @@ typedef std::chrono::duration<long long, std::milli> Millis;
 
 // --------------------------------------------------------
 inline std::ostream& operator<<(std::ostream& out, const struct tm& tm_dt) {
-    tfm::format(out, "(struct tm)<sec=%d, min=%d, hour=%d, mday=%d, mon=%d, year=%d, wday=%d, yday=%d, isdst=%d, gmtoff=%d, zone=%s>",
-                tm_dt.tm_sec,
-                tm_dt.tm_min,
-                tm_dt.tm_hour,
-                tm_dt.tm_mday,
-                tm_dt.tm_mon,
-                tm_dt.tm_year,
-                tm_dt.tm_wday,
-                tm_dt.tm_yday,
-                tm_dt.tm_isdst,
-                tm_dt.tm_gmtoff,
-                tm_dt.tm_zone == NULL ? "NULL" : tm_dt.tm_zone);
+    out << "(struct_tm)<"
+        << "sec=" << tm_dt.tm_sec << ", "
+        << "min=" << tm_dt.tm_min << ", "
+        << "hour=" << tm_dt.tm_hour << ", "
+        << "mday=" << tm_dt.tm_mday << ", "
+        << "mon=" << tm_dt.tm_mon << ", "
+        << "year=" << tm_dt.tm_year << ", "
+        << "wday=" << tm_dt.tm_wday << ", "
+        << "yday=" << tm_dt.tm_yday << ", "
+        << "isdst=" << tm_dt.tm_isdst << ", "
+        << "gmtoff=" << tm_dt.tm_gmtoff << ", "
+        << "zone=" << (tm_dt.tm_zone == nullptr ? "null" : tm_dt.tm_zone) << ">";
     return out;
 }
 
@@ -219,8 +218,9 @@ private:
 
     static void set_env_tz(const std::optional<std::string>& tz_name = {}) {
         if (tz_name.has_value()) {
-            auto env = tfm::format("TZ=%s", tz_name.value());
-            putenv(strdup(env.c_str()));
+            std::ostringstream sb;
+            sb << "TZ=" << tz_name.value();
+            putenv(strdup(sb.str().c_str()));
         } else {
             unsetenv("TZ");
         }
@@ -339,12 +339,17 @@ public:
         if (d.factor() < 0) {
             out << "-";
         }
-        tfm::format(out, "%dd%02d:%02d:%02d %03d>",
-                    abs(d.days()),
-                    abs(d.hours()),
-                    abs(d.minutes()),
-                    abs(d.seconds()),
-                    abs(d.millis()));
+        std::ios out_state(nullptr);
+        out_state.copyfmt(out);
+        out << d.days() << "d"
+            << std::setfill('0') << std::setw(2)
+            << d.hours() << ":"
+            << d.minutes() << ":"
+            << d.seconds() << " "
+            << std::setw(3)
+            << d.millis()
+            << ">";
+        out.copyfmt(out_state);
         return out;
     }
 
@@ -656,10 +661,13 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& out, const Date& date) {
-        tfm::format(out, "Date<%04d-%02d-%02d>",
-                    date.year(),
-                    date.nmonth(),
-                    date.day());
+        std::ios out_state(nullptr);
+        out_state.copyfmt(out);
+        out << "Date<" << std::setfill('0')
+            << std::setw(4) << date.year() << "-"
+            << std::setw(2) << date.nmonth() << "-"
+            << date.day() << ">";
+        out.copyfmt(out_state);
         return out;
     }
 
@@ -757,7 +765,11 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& out, const Time& time) {
-        tfm::format(out, "Time<%02d:%02d>", time.hour(), time.minute());
+        std::ios out_state(nullptr);
+        out_state.copyfmt(out);
+        out << "Time<" << std::setw(2) << std::setfill('0')
+            << time.hour() << ":" << time.minute() << ">";
+        out.copyfmt(out_state);
         return out;
     }
 
@@ -1009,7 +1021,7 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& out, const Range& range) {
-        tfm::format(out, "Range<%s - %s>", range.start(), range.end());
+        out << "Range<" << range.start() << " - " << range.end() << ">";
         return out;
     }
 

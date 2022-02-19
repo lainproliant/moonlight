@@ -9,7 +9,7 @@
 
 #include "moonlight/color.h"
 #include "moonlight/cli.h"
-#include "tinyformat/tinyformat.h"
+#include "tinyformat.h"
 #include <iostream>
 
 using namespace moonlight;

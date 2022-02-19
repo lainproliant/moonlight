@@ -14,7 +14,6 @@
 #include <optional>
 #include "moonlight/exceptions.h"
 #include "moonlight/string.h"
-#include "tinyformat/tinyformat.h"
 #include "moonlight/collect.h"
 
 namespace moonlight {
@@ -33,7 +32,7 @@ struct Location {
     }
 
     friend std::ostream& operator<<(std::ostream& out, const Location& loc) {
-        tfm::format(out, "<line %d, col %d, offset %d>", loc.line, loc.col, loc.offset);
+        out << "<line " << loc.line << ", col " << loc.col << ", offset " << loc.offset << ">";
         return out;
     }
 };
@@ -84,16 +83,16 @@ public:
 
     friend std::ostream& operator<<(std::ostream& out, const Match& match) {
         auto literal_matches = collect::map<std::string>(match.groups(), _literalize);
-        tfm::format(out, "Match<[%s], %dc @ %s>",
-                    str::join(literal_matches, ","),
-                    match.length(),
-                    match.location());
+        out << "Match<[" << str::join(literal_matches, ",") << "], "
+            << match.length() << "c @ " << match.location() << ">";
         return out;
     }
 
 private:
     static std::string _literalize(const std::string& s) {
-        return tfm::format("\"%s\"", str::literal(s));
+        std::ostringstream sb;
+        sb << "\"" << str::literal(s) << "\"";
+        return sb.str();
     }
 
     const Location _location;
@@ -120,7 +119,7 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& out, const Token& tk) {
-        tfm::format(out, "<%s %s>", tk.type(), tk.match());
+        out << "<" << tk.type() << " " << tk.match() << ">";
         return out;
     }
 
@@ -140,11 +139,7 @@ public:
         std::optional<Token> token;
         const Location loc;
 
-        friend std::ostream& operator<<(std::ostream& out, const ScanResult& s) {
-            tfm::format(out, "ScanResult<%s, %s, %s>",
-                        s.rule, s.token.value_or(Token::nothing()), s.loc);
-            return out;
-        }
+        friend std::ostream& operator<<(std::ostream& out, const ScanResult& s);
     };
 
     static Pointer create() {
@@ -224,7 +219,9 @@ public:
 
     Grammar::Pointer target() const {
         if (_target == nullptr) {
-            THROW(core::UsageError, tfm::format("Rule type %s has no subgrammar target.", type()));
+            std::ostringstream sb;
+            sb << "Rule type " << type() << " has no subgrammar target.";
+            THROW(core::UsageError, sb.str());
         }
         return _target;
     }
@@ -263,6 +260,13 @@ private:
     std::string _type;
     Grammar::Pointer _target = nullptr;
 };
+
+// ------------------------------------------------------------------
+inline std::ostream& operator<<(std::ostream& out, const Grammar::ScanResult& s) {
+    out << "ScanResult<" << s.rule << ", "
+        << s.token.value_or(Token::nothing()) << ", " << s.loc << ">";
+    return out;
+}
 
 // ------------------------------------------------------------------
 inline Rule ignore(const std::string& rx) {
@@ -338,7 +342,9 @@ public:
 
             if (! result_opt.has_value()) {
                 if (_throw_on_scan_failure) {
-                    THROW(core::ValueError, tfm::format("No lexical rules matched content starting at %s.", loc));
+                    std::ostringstream sb;
+                    sb << "No lexical rules matched content starting at " << loc << ".";
+                    THROW(core::ValueError, sb.str());
                 } else {
                     break;
                 }
@@ -352,9 +358,10 @@ public:
 
             case Action::MATCH:
                 if (! result.token.has_value()) {
-                    THROW(core::UsageError, tfm::format("Match rule '%s' didn't yield a token (at %s)",
-                          result.rule.type(), loc));
-
+                    std::ostringstream sb;
+                    sb << "Match rule " << result.rule.type()
+                       << " didn't yield a token (at " << loc << ").";
+                    THROW(core::UsageError, sb.str());
                 }
                 tokens.push_back(result.token.value());
                 break;

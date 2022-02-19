@@ -18,14 +18,18 @@ from xeno.shell import check
 
 INTERACTIVE_TESTS = {"ansi"}
 
-INCLUDES = ["-I./include", "-I./deps/date/include"]
+INCLUDES = ["-I./include",
+            "-I./deps/date/include",
+            "-I./deps/tinyformat",
+            "-I./deps/sole",
+            "-I./deps/nanoid"]
 
 ENV = dict(
     CC=os.environ.get("CC", "clang++"),
     CFLAGS=(
         *shlex.split(os.environ.get("CFLAGS", "")),
         "-g",
-        "-fpermissive", # needed for g++ to respect "always_false<T>"
+        "-fpermissive",  # needed for g++ to respect "always_false<T>"
         *INCLUDES,
         "-DMOONLIGHT_ENABLE_STACKTRACE",
         "-DMOONLIGHT_STACKTRACE_IN_DESCRIPTION",

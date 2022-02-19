@@ -12,7 +12,6 @@
 
 #include "moonlight/exceptions.h"
 #include "moonlight/posix.h"
-#include "tinyformat/tinyformat.h"
 
 #include <climits>
 #include <functional>
@@ -164,7 +163,7 @@ inline std::string get_keycode_name(int keycode) {
 inline void dbg_print_all_keycodes() {
     for (int x = 0; x <= MAX_KEYCODE; x++) {
         auto name = keyname(x);
-        tfm::printf("%d\t%s\n", x, name == NULL ? "NULL" : name);
+        std::cout << x << "\t" << (name == NULL ? "NULL" : name) << std::endl;
     }
 }
 

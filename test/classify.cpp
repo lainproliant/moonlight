@@ -1,6 +1,6 @@
 #include "moonlight/test.h"
 #include "moonlight/classify.h"
-#include "tinyformat/tinyformat.h"
+#include "tinyformat.h"
 #include <csignal>
 #include <iostream>
 
