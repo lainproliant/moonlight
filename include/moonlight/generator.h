@@ -10,14 +10,13 @@
 #ifndef __MOONLIGHT_GENERATOR_H
 #define __MOONLIGHT_GENERATOR_H
 
-#include "moonlight/automata.h"
-
 #include <deque>
 #include <mutex>
 #include <condition_variable>
 #include <future>
 #include <optional>
 #include <iterator>
+#include "moonlight/exceptions.h"
 
 namespace moonlight {
 namespace gen {
@@ -115,7 +114,7 @@ private:
 };
 
 /**
- * A queue template for asynchronously communiating the output
+ * A queue template for asynchronously communicating the output
  * of a generator running in another thread with one or more
  * consumer threads.
  */
@@ -226,7 +225,6 @@ Iterator<T> end() {
  */
 template<class T, class... TD>
 std::shared_ptr<Queue<T>> async(std::function<std::optional<T>(TD...)> factory, TD... params) {
-
     std::shared_ptr<Queue<T>> queue = std::make_shared<Queue<T>>();
     auto thread = std::async(std::launch::async, [&] {
         for (auto iter = begin(factory, std::forward(params)...);
@@ -275,7 +273,7 @@ template<class T>
 class Stream {
 public:
     Stream(const gen::Iterator<T> begin) : _begin(begin) { }
-    Stream(const typename Iterator<T>::Closure& closure) : _begin(closure) { }
+    Stream(const Generator<T>& generator) : _begin(generator) { }
 
     typedef T value_type;
 
