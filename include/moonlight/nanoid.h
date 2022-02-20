@@ -45,7 +45,7 @@ inline std::string generate(size_t size = DEFAULT_SIZE, const std::string& alpha
     std::uniform_int_distribution<int> dist(0, alphabet.size() - 1);
 
     while (id.size() < size) {
-        id.push_back(dist(rd));
+        id.push_back(alphabet[dist(rd)]);
     }
 
     return id;
