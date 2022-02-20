@@ -18,9 +18,7 @@ from xeno.shell import check
 
 INTERACTIVE_TESTS = {"ansi"}
 
-INCLUDES = ["-I./include",
-            "-I./deps/date/include",
-            "-I./deps"]
+INCLUDES = ["-I./include", "-I./deps/date/include", "-I./deps"]
 
 ENV = dict(
     CC=os.environ.get("CC", "clang++"),
@@ -33,9 +31,9 @@ ENV = dict(
         "-DMOONLIGHT_STACKTRACE_IN_DESCRIPTION",
         "--std=c++2a",
     ),
-    LDFLAGS=(
-        *shlex.split(os.environ.get("LDFLAGS", "")),
-        "-g", "-lpthread"),
+    LDFLAGS=(*shlex.split(os.environ.get("LDFLAGS", "")), "-g", "-lpthread"),
+    PREFIX=os.environ.get("PREFIX", "/usr/local"),
+    DESTDIR=os.environ.get("DESTDIR", ""),
 )
 
 # -------------------------------------------------------------------
@@ -60,6 +58,11 @@ def compile(src, headers):
 
 # -------------------------------------------------------------------
 @factory
+def mktest(src, headers):
+    return compile(src, headers)
+
+# -------------------------------------------------------------------
+@factory
 def test(test):
     return sh(
         "{test}",
@@ -67,6 +70,21 @@ def test(test):
         test=test,
         interactive=test.output.name in INTERACTIVE_TESTS,
     )
+
+
+# -------------------------------------------------------------------
+@factory
+def install(program):
+    output = ENV["DESTDIR"] + ENV["PREFIX"] + "/bin/" + program.output.name
+    return sh(
+        "mkdir -p {DESTDIR}{PREFIX}/bin; "
+        "cp -f {program} {output}; "
+        "chmod 775 {output}",
+        env=ENV,
+        program=program,
+        output=output,
+        as_user="root"
+    ).named(program.name)
 
 
 # -------------------------------------------------------------------
@@ -83,6 +101,12 @@ def lab_sources():
 
 # -------------------------------------------------------------------
 @provide
+def util_sources():
+    return Path.cwd().glob("utils/*.cpp")
+
+
+# -------------------------------------------------------------------
+@provide
 def headers():
     return Path.cwd().glob("include/moonlight/*.h")
 
@@ -91,30 +115,48 @@ def headers():
 @target
 async def labs(lab_sources, headers, submodules):
     await submodules.resolve()
-    return [compile(src, headers) for src in lab_sources]
+    return [compile(src, headers).with_prefix("lab.") for src in lab_sources]
 
 
 # -------------------------------------------------------------------
 @target
 async def tests(test_sources, headers, submodules):
     await submodules.resolve()
-    tests = [compile(src, headers) for src in test_sources]
+    tests = [compile(src, headers).with_prefix("test.") for src in test_sources]
     return [*random.sample(tests, len(tests))]
+
+
+# -------------------------------------------------------------------
+@target
+async def utils(util_sources, headers, submodules):
+    await submodules.resolve()
+    utils = [compile(src, headers).with_prefix("util.") for src in util_sources]
+    return utils
+
+
+# -------------------------------------------------------------------
+@target
+def install_utils(utils):
+    return (install(util) for util in utils)
+
 
 # -------------------------------------------------------------------
 @default
 def run_tests(tests):
     return (test(t) for t in tests)
 
+
 # -------------------------------------------------------------------
 @target
 def all(tests, labs):
     return (tests, labs)
 
+
 # -------------------------------------------------------------------
 @target
 def cc_json():
     return sh("intercept-build ./build.py compile:\* -R; ./build.py -c compile:\*")
+
 
 # -------------------------------------------------------------------
 if __name__ == "__main__":

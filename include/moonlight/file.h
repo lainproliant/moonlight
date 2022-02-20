@@ -134,7 +134,9 @@ public:
             line.push_back(peek(x));
         }
         advance(line.size());
-        if (peek() == '\n') {
+        if (peek() == EOF) {
+            _exhausted = true;
+        } else if (peek() == '\n') {
             line.push_back(getc());
         }
         return line;
