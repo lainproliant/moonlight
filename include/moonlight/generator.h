@@ -381,7 +381,7 @@ public:
     gen::Stream<T> sorted() const {
         std::optional<std::deque<T>> lazy_sorted = {};
 
-        return gen::Stream<T>([lazy_sorted, this]() mutable -> std::optional<T> {
+        return gen::Stream<T>([=, this]() mutable -> std::optional<T> {
             if (! lazy_sorted.has_value()) {
                 lazy_sorted = std::deque<T>();
                 std::copy(begin(), end(), std::back_inserter(*lazy_sorted));
@@ -406,7 +406,7 @@ public:
     gen::Stream<gen::Stream<R>> transform_split(std::function<gen::Stream<R>(const T&)> f) const {
         Iterator<T> iter = begin();
 
-        return gen::Stream<gen::Stream<R>>([iter, f, this]() mutable -> std::optional<gen::Stream<R>> {
+        return gen::Stream<gen::Stream<R>>([=, this]() mutable -> std::optional<gen::Stream<R>> {
             if (iter == end()) {
                 return {};
             }
@@ -431,7 +431,7 @@ public:
         auto iter = begin();
         std::optional<R> result;
 
-        return gen::Stream<R>([iter, f, result, this]() mutable -> std::optional<R> {
+        return gen::Stream<R>([=, this]() mutable -> std::optional<R> {
             while (iter != end()) {
                 result = f(*iter);
                 iter++;
@@ -464,7 +464,7 @@ public:
      */
     template<class R = T>
     gen::Stream<R> transform(std::function<R(const T&)> f) const {
-        return transform<R>([f](const T& value) -> std::optional<T> {
+        return transform<R>([=](const T& value) -> std::optional<T> {
             return f(value);
         });
     }
@@ -474,7 +474,7 @@ public:
      * the predicate.
      */
     gen::Stream<T> filter(std::function<bool(const T&)> predicate) const {
-        return transform<T>([predicate](const T& value) -> std::optional<T> {
+        return transform<T>([=](const T& value) -> std::optional<T> {
             if (predicate(value)) {
                 return value;
             }
@@ -489,7 +489,7 @@ public:
         std::set<T> sieve = {};
         Iterator<T> iter = begin();
 
-        return gen::Stream<T>([sieve, iter, this]() mutable -> std::optional<T> {
+        return gen::Stream<T>([=, this]() mutable -> std::optional<T> {
             while(iter != end() && sieve.find(*iter) != sieve.end()) {
                 iter++;
             }
@@ -636,7 +636,7 @@ gen::Stream<typename C::value_type> stream(const C& coll) {
 template<class T>
 inline gen::Stream<T> gen::Stream<T>::lazy_singleton(std::function<T()> f) {
     bool yielded = false;
-    return gen::Stream<T>([yielded, f]() mutable -> std::optional<T> {
+    return gen::Stream<T>([=]() mutable -> std::optional<T> {
         if (yielded == false) {
             yielded = true;
             return f();
@@ -653,7 +653,7 @@ inline gen::Stream<T> merge(gen::Stream<gen::Stream<T>> stream_of_streams) {
     gen::Iterator<gen::Stream<T>> stream_iter = stream_of_streams.begin();
     gen::Iterator<T> iter = stream_iter == stream_of_streams.end() ? end<T>() : stream_iter->begin();
 
-    return gen::Stream<T>([stream_of_streams, stream_iter, iter]() mutable -> std::optional<T> {
+    return gen::Stream<T>([=]() mutable -> std::optional<T> {
         if (stream_iter == stream_of_streams.end()) {
             return {};
         }
@@ -679,7 +679,7 @@ inline gen::Stream<T> merge(gen::Stream<gen::Stream<T>> stream_of_streams) {
 template<class T>
 inline gen::Stream<T> gen::Stream<T>::singleton(const T& value) {
     bool yielded = false;
-    return gen::Stream<T>([yielded, value]() mutable -> std::optional<T> {
+    return gen::Stream<T>([=]() mutable -> std::optional<T> {
         if (yielded == false) {
             yielded = true;
             return value;

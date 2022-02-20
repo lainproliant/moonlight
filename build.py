@@ -8,12 +8,13 @@
 # Distributed under terms of the MIT license.
 # -------------------------------------------------------------------
 
+import asyncio
 import os
 import random
 import shlex
 from pathlib import Path
 
-from xeno.build import build, default, factory, provide, sh, target, Recipe
+from xeno.build import Recipe, build, default, factory, provide, sh, target
 from xeno.shell import check
 
 INTERACTIVE_TESTS = {"ansi"}
@@ -34,7 +35,27 @@ ENV = dict(
     LDFLAGS=(*shlex.split(os.environ.get("LDFLAGS", "")), "-g", "-lpthread"),
     PREFIX=os.environ.get("PREFIX", "/usr/local"),
     DESTDIR=os.environ.get("DESTDIR", ""),
+    STRESS_CYCLES=int(os.environ.get("STRESS_CYCLES", "10")),
 )
+
+# -------------------------------------------------------------------
+class StressTest(Recipe):
+    def __init__(self, input, cycles=ENV["STRESS_CYCLES"]):
+        super().__init__([input])
+        self.named(input.name).with_type("stress")
+        self._cycles = cycles
+        self._done = False
+
+    async def make(self):
+        for _ in range(self._cycles // 10):
+            await asyncio.wait([
+                asyncio.create_task(sh("{test}", test=test).resolve()) for _ in range(10)
+            ])
+        self._done = True
+
+    @property
+    def done(self):
+        return self._done
 
 # -------------------------------------------------------------------
 @provide
@@ -58,11 +79,6 @@ def compile(src, headers):
 
 # -------------------------------------------------------------------
 @factory
-def mktest(src, headers):
-    return compile(src, headers)
-
-# -------------------------------------------------------------------
-@factory
 def test(test):
     return sh(
         "{test}",
@@ -83,7 +99,7 @@ def install(program):
         env=ENV,
         program=program,
         output=output,
-        as_user="root"
+        as_user="root",
     ).named(program.name)
 
 
@@ -148,7 +164,13 @@ def run_tests(tests):
 
 # -------------------------------------------------------------------
 @target
-def all(tests, labs):
+def assert_tests_stable(tests):
+    return (StressTest(t) for t in tests)
+
+
+# -------------------------------------------------------------------
+@target
+def all(tests, labs, assert_tests_stable):
     return (tests, labs)
 
 
