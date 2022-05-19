@@ -129,51 +129,6 @@ private:
 };
 
 // ------------------------------------------------------------------
-class Rule;
-class Grammar : public std::enable_shared_from_this<Grammar> {
-public:
-    typedef std::shared_ptr<Grammar> Pointer;
-
-    struct ScanResult {
-        const Rule& rule;
-        std::optional<Token> token;
-        const Location loc;
-
-        friend std::ostream& operator<<(std::ostream& out, const ScanResult& s);
-    };
-
-    static Pointer create() {
-        return Pointer(new Grammar());
-    }
-
-    Pointer sub() {
-        _subGrammars.emplace_back(create_sub());
-        return _subGrammars.back();
-    }
-
-    Pointer def(const Rule& rule);
-    Pointer def(const Rule& rule, const std::string& type);
-
-    std::optional<ScanResult> scan(Location loc, const std::string& content) const;
-
-private:
-    Grammar(bool subGrammar) : _subGrammar(subGrammar) { }
-    Grammar() : _subGrammar(false) { }
-
-    static Pointer create_sub() {
-        return Pointer(new Grammar(true));
-    }
-
-    bool isSubGrammar() const {
-        return _subGrammar;
-    }
-
-    std::vector<Rule> _rules;
-    std::vector<Pointer> _subGrammars;
-    const bool _subGrammar;
-};
-
-// ------------------------------------------------------------------
 class Rule {
 public:
     typedef std::shared_ptr<Rule> Pointer;
@@ -217,20 +172,6 @@ public:
         return *this;
     }
 
-    Grammar::Pointer target() const {
-        if (_target == nullptr) {
-            std::ostringstream sb;
-            sb << "Rule type " << type() << " has no subgrammar target.";
-            THROW(core::UsageError, sb.str());
-        }
-        return _target;
-    }
-
-    Rule& target(Grammar::Pointer target) {
-        _target = target;
-        return *this;
-    }
-
     friend std::ostream& operator<<(std::ostream& out, const Rule& r) {
         out << "Rule<";
         out << (r.type() == "" ? "(no name)" : r.type()) << " ";
@@ -244,7 +185,6 @@ public:
     }
 
 private:
-
     void compile_regex() {
         if (_icase) {
             _rx = std::regex("^" + _rx_str, std::regex_constants::ECMAScript | std::regex_constants::icase);
@@ -258,8 +198,52 @@ private:
     std::regex _rx;
     std::string _rx_str;
     std::string _type;
-    Grammar::Pointer _target = nullptr;
 };
+
+// ------------------------------------------------------------------
+class Grammar : public std::enable_shared_from_this<Grammar> {
+public:
+    typedef std::shared_ptr<Grammar> Pointer;
+
+    struct ScanResult {
+        const Rule& rule;
+        std::optional<Token> token;
+        const Location loc;
+
+        friend std::ostream& operator<<(std::ostream& out, const ScanResult& s);
+    };
+
+    static Pointer create() {
+        return Pointer(new Grammar());
+    }
+
+    Pointer sub() {
+        _subGrammars.emplace_back(create_sub());
+        return _subGrammars.back();
+    }
+
+    Pointer def(const Rule& rule);
+    Pointer def(const Rule& rule, const std::string& type);
+
+    std::optional<ScanResult> scan(Location loc, const std::string& content) const;
+
+private:
+    Grammar(bool subGrammar) : _subGrammar(subGrammar) { }
+    Grammar() : _subGrammar(false) { }
+
+    static Pointer create_sub() {
+        return Pointer(new Grammar(true));
+    }
+
+    bool isSubGrammar() const {
+        return _subGrammar;
+    }
+
+    std::vector<Rule> _rules;
+    std::vector<Pointer> _subGrammars;
+    const bool _subGrammar;
+};
+
 
 // ------------------------------------------------------------------
 inline std::ostream& operator<<(std::ostream& out, const Grammar::ScanResult& s) {
