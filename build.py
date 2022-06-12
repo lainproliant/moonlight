@@ -170,7 +170,7 @@ def assert_tests_stable(tests):
 
 # -------------------------------------------------------------------
 @target
-def all(tests, labs, assert_tests_stable):
+def all(tests, labs, utils, assert_tests_stable):
     return (tests, labs)
 
 

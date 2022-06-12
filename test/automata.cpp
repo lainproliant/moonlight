@@ -145,13 +145,15 @@ int main() {
       try {
          machine.push("a");
          machine.run_until_complete();
+         FAIL("Expected RuntimeError was not thrown.");
 
       } catch (const core::RuntimeError& e) {
          // This is supposed to happen, because "a" tries to call
          // call_parent(), but in this case there is no parent to "a".
          std::cout << "Caught expected RuntimeError." << std::endl;
+
       } catch (...) {
-         FAIL("Expected RuntimeError was not thrown.");
+         FAIL("An unexpected error was thrown.");
       }
 
       std::cout << "machine.context().x = " << machine.context().x << std::endl;

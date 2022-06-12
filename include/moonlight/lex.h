@@ -130,6 +130,9 @@ private:
 
 // ------------------------------------------------------------------
 class Rule;
+typedef std::shared_ptr<std::vector<Rule>> RuleContainer;
+
+// ------------------------------------------------------------------
 class Grammar : public std::enable_shared_from_this<Grammar> {
 public:
     typedef std::shared_ptr<Grammar> Pointer;
@@ -147,30 +150,35 @@ public:
     }
 
     Pointer sub() {
-        _subGrammars.emplace_back(create_sub());
-        return _subGrammars.back();
+        _sub_grammars.emplace_back(create_sub());
+        return _sub_grammars.back();
     }
 
     Pointer def(const Rule& rule);
     Pointer def(const Rule& rule, const std::string& type);
 
+    Pointer inherit(Pointer super);
+
     std::optional<ScanResult> scan(Location loc, const std::string& content) const;
 
 private:
-    Grammar(bool subGrammar) : _subGrammar(subGrammar) { }
-    Grammar() : _subGrammar(false) { }
+    Grammar(bool sub_grammar) : _sub_grammar(sub_grammar) { }
+    Grammar() : _sub_grammar(false) { }
 
     static Pointer create_sub() {
         return Pointer(new Grammar(true));
     }
 
-    bool isSubGrammar() const {
-        return _subGrammar;
+    bool is_sub_grammar() const {
+        return _sub_grammar;
     }
 
-    std::vector<Rule> _rules;
-    std::vector<Pointer> _subGrammars;
-    const bool _subGrammar;
+    void add_rule(const Rule& rule);
+
+    std::vector<Pointer> _parents;
+    RuleContainer _rules = nullptr;
+    std::vector<Pointer> _sub_grammars;
+    const bool _sub_grammar;
 };
 
 // ------------------------------------------------------------------
@@ -244,7 +252,6 @@ public:
     }
 
 private:
-
     void compile_regex() {
         if (_icase) {
             _rx = std::regex("^" + _rx_str, std::regex_constants::ECMAScript | std::regex_constants::icase);
@@ -285,9 +292,21 @@ inline Rule pop(const std::string& rx) {
     return Rule(Action::POP).rx(rx);
 }
 
+inline Rule copy_rule(const Rule& rule) {
+    return Rule(rule.action()).rx(rule.rx_str()).target(rule.target());
+}
+
+// ------------------------------------------------------------------
+inline void Grammar::add_rule(const Rule& rule) {
+    if (_rules == nullptr) {
+        _rules = std::make_shared<std::vector<Rule>>();
+    }
+    _rules->emplace_back(rule);
+}
+
 // ------------------------------------------------------------------
 inline Grammar::Pointer Grammar::def(const Rule& rule) {
-    _rules.push_back(rule);
+    add_rule(rule);
     return shared_from_this();
 }
 
@@ -299,8 +318,14 @@ inline Grammar::Pointer Grammar::def(const Rule& rule, const std::string& type) 
 }
 
 // ------------------------------------------------------------------
+inline Grammar::Pointer Grammar::inherit(Grammar::Pointer super) {
+    _parents.push_back(super);
+    return shared_from_this();
+}
+
+// ------------------------------------------------------------------
 inline std::optional<Grammar::ScanResult> Grammar::scan(Location loc, const std::string& content) const {
-    for (const auto& rule : _rules) {
+    for (const auto& rule : *_rules) {
         std::smatch smatch = {};
         if (std::regex_search(content.begin() + loc.offset, content.end(), smatch, rule.rx())) {
             Match match(loc, smatch);
@@ -323,6 +348,13 @@ inline std::optional<Grammar::ScanResult> Grammar::scan(Location loc, const std:
         }
     }
 
+    for (const auto& parent : _parents) {
+        const auto parent_result = parent->scan(loc, content);
+        if (parent_result.has_value()) {
+            return parent_result;
+        }
+    }
+
     return {};
 }
 
@@ -336,12 +368,13 @@ public:
         gstack.push(grammar);
         Location loc;
 
-        while (loc.offset < content.size()) {
+        while (loc.offset < content.size() && !gstack.empty()) {
             const Grammar::Pointer g = gstack.top();
             auto result_opt = g->scan(loc, content);
 
             if (! result_opt.has_value()) {
-                if (_throw_on_scan_failure) {
+                std::cout << "LRS-DEBUG: result_opt.has_value() == false" << std::endl;
+                if (_throw_on_error) {
                     std::ostringstream sb;
                     sb << "No lexical rules matched content starting at " << loc << ".";
                     THROW(core::ValueError, sb.str());
@@ -384,16 +417,22 @@ public:
             loc = result.loc;
         }
 
+        if (loc.offset < content.size() && _throw_on_error) {
+            std::ostringstream sb;
+            sb << "Parsing terminated early (at " << loc << ").";
+            THROW(core::ValueError, sb.str());
+        }
+
         return tokens;
     }
 
-    Lexer& throw_on_scan_failure(bool value) {
-        _throw_on_scan_failure = value;
+    Lexer& throw_on_error(bool value) {
+        _throw_on_error = value;
         return *this;
     }
 
 private:
-    bool _throw_on_scan_failure = true;
+    bool _throw_on_error = true;
 };
 
 }

@@ -36,6 +36,14 @@ lex::Grammar::Pointer make_scheme_grammar() {
     return root;
 }
 
+lex::Grammar::Pointer make_abba_grammar() {
+    auto root = lex::Grammar::create();
+    root
+        ->def(lex::match("a"), "a")
+        ->def(lex::pop("b"), "b");
+    return root;
+}
+
 int main() {
     return TestSuite("moonlight lex tests")
         .die_on_signal(SIGSEGV)
@@ -46,6 +54,45 @@ int main() {
             for (auto tk : tokens) {
                 std::cout << tk << std::endl;
             }
+        })
+        .test("popping from root state ends parsing", []() {
+            lex::Lexer lex = lex::Lexer().throw_on_error(false);
+            auto abba = make_abba_grammar();
+
+            auto tokens = lex.lex(abba, "aaabaaa");
+            ASSERT_EQUAL(tokens.size(), 4ul);
+        })
+        .test("unexpected characters", []() {
+            lex::Lexer lex;
+            auto abba = make_abba_grammar();
+
+            try {
+                auto tokens = lex.lex(abba, "acab");
+                for (auto tk : tokens) {
+                    std::cout << tk << std::endl;
+                }
+
+            } catch (const core::ValueError& e) {
+                std::cout << "Caught expected ValueError." << std::endl;
+            } catch (...) {
+                FAIL("An unexpected error was thrown.");
+            }
+        })
+        .test("inheriting grammars", []() {
+            lex::Lexer lex;
+            auto abba = make_abba_grammar();
+
+            auto abra = lex::Grammar::create();
+            abra
+                ->inherit(abba)
+                ->def(lex::match("abra"), "abra");
+
+            auto tokens = lex.lex(abra, "aaaabraabraab");
+            for (auto tk : tokens) {
+                std::cout << tk << std::endl;
+            }
+
+            ASSERT_EQUAL(tokens.size(), 7ul);
         })
         .run();
 }
