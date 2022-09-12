@@ -211,8 +211,8 @@ public:
         return *this;
     }
 
-    Rule& icase(bool icase = true) {
-        _icase = icase;
+    Rule& icase() {
+        _icase = true;
         compile_regex();
         return *this;
     }
@@ -223,6 +223,18 @@ public:
 
     Rule& type(const std::string& type) {
         _type = type;
+        return *this;
+    }
+
+    bool advance() const {
+        return _advance;
+    }
+
+    Rule& stay() {
+        if (_action != Action::PUSH && _action != Action::POP) {
+            THROW(core::UsageError, "stay() is only allowed on PUSH or POP actions.");
+        }
+        _advance = false;
         return *this;
     }
 
@@ -262,7 +274,8 @@ private:
     }
 
     const Action _action;
-    bool _icase;
+    bool _icase = false;
+    bool _advance = true;
     std::regex _rx;
     std::string _rx_str;
     std::string _type;
@@ -387,7 +400,6 @@ public:
             auto result_opt = g->scan(loc, content);
 
             if (! result_opt.has_value()) {
-                std::cout << "LRS-DEBUG: result_opt.has_value() == false" << std::endl;
                 if (_throw_on_error) {
                     std::ostringstream sb;
                     sb << "No lexical rules matched content starting at " << loc << ".";
@@ -428,7 +440,9 @@ public:
                 break;
             }
 
-            loc = result.loc;
+            if (result.rule.advance()) {
+                loc = result.loc;
+            }
         }
 
         if (loc.offset < content.size() && _throw_on_error) {
