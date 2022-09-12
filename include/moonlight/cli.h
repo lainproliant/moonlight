@@ -23,7 +23,7 @@
 namespace moonlight {
 namespace cli {
 
-/** -----------------------------------------------------------------
+/**
  * Convert argc and argv from main() into a vector of strings.
  */
 inline std::vector<std::string> argv_to_vector(int argc, char** argv) {
@@ -36,7 +36,7 @@ inline std::vector<std::string> argv_to_vector(int argc, char** argv) {
     return vec;
 }
 
-/** -----------------------------------------------------------------
+/**
  */
 inline std::optional<std::string> getenv(const std::string& name) {
     const char* value = std::getenv(name.c_str());
@@ -47,7 +47,7 @@ inline std::optional<std::string> getenv(const std::string& name) {
     }
 }
 
-/** -----------------------------------------------------------------
+/**
  */
 class CommandLine {
 public:
@@ -219,7 +219,7 @@ private:
     std::vector<std::string> args_;
 };
 
-/** -----------------------------------------------------------------
+/**
  */
 inline CommandLine parse(const std::vector<std::string>& argv,
                   const std::set<std::string>& flag_names = {},
@@ -227,7 +227,7 @@ inline CommandLine parse(const std::vector<std::string>& argv,
     return CommandLine::parse(argv, flag_names, opt_names);
 }
 
-/** -----------------------------------------------------------------
+/**
  */
 inline CommandLine parse(int argc_in, char** argv_in,
                   const std::set<std::string>& flag_names = {},

@@ -28,7 +28,7 @@ template<> struct ClassifierTraits<void> {
 
 }
 
-/** -----------------------------------------------------------------
+/**
  */
 template<class T, class R = void>
 class Classifier {

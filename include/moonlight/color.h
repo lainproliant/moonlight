@@ -21,14 +21,14 @@
 namespace moonlight {
 namespace color {
 
-/** -----------------------------------------------------------------
+/**
  */
 template<class T>
 bool in_range(T start, T end, T value) {
     return value >= start && value <= end;
 }
 
-/** -----------------------------------------------------------------
+/**
  */
 struct fRGB;
 struct uRGB;
@@ -64,7 +64,7 @@ struct fHSV {
     }
 };
 
-/** -----------------------------------------------------------------
+/**
  */
 struct uRGB {
     unsigned char r;
@@ -128,7 +128,7 @@ struct uRGB {
     }
 };
 
-/** -----------------------------------------------------------------
+/**
  */
 struct fRGB {
     float r;
@@ -156,13 +156,13 @@ struct fRGB {
     }
 };
 
-/** -----------------------------------------------------------------
+/**
  */
 inline fHSV::operator uRGB() const {
     return static_cast<uRGB>(static_cast<fRGB>(*this));
 }
 
-/** -----------------------------------------------------------------
+/**
  */
 inline fHSV::operator fRGB() const {
     fRGB rgb = { 0.0f, 0.0f, 0.0f };
@@ -190,7 +190,7 @@ inline fHSV::operator fRGB() const {
     return rgb;
 }
 
-/** -----------------------------------------------------------------
+/**
  */
 inline uRGB::operator fRGB() const {
     return {
@@ -200,13 +200,13 @@ inline uRGB::operator fRGB() const {
     };
 }
 
-/** -----------------------------------------------------------------
+/**
  */
 inline uRGB::operator fHSV() const {
     return static_cast<fHSV>(static_cast<fRGB>(*this));
 }
 
-/** -----------------------------------------------------------------
+/**
  */
 inline fRGB::operator uRGB() const {
     return {
@@ -216,7 +216,7 @@ inline fRGB::operator uRGB() const {
     };
 }
 
-/** -----------------------------------------------------------------
+/**
  */
 inline fRGB::operator fHSV() const {
     fHSV hsv = { 0.0f, 0.0f, 0.0f };

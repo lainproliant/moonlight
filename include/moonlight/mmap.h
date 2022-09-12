@@ -16,7 +16,7 @@
 namespace moonlight {
 namespace mmap {
 
-/** -----------------------------------------------------------------
+/**
  * Template class used as parameter type for mmaps::build().
  */
 template<typename K, typename T>
@@ -25,7 +25,7 @@ struct mapping {
    std::vector<T> values;
 };
 
-/** -----------------------------------------------------------------
+/**
  * Build a multimap from the given constant mapping.  Intended for
  * use in statically defining multimaps, e.g.:
  *
@@ -48,7 +48,7 @@ inline std::multimap<K, T> build(const std::vector<mapping<K, T>>& mappings) {
    return mmap;
 }
 
-/** -----------------------------------------------------------------
+/**
  * Variadic version of mmap::build().
  *
  * ```
@@ -65,7 +65,7 @@ inline std::multimap<K, T> build(const K& key, const T& value, const KTV&... map
    return mmap;
 }
 
-/** -----------------------------------------------------------------
+/**
  */
 template<typename K, typename T, typename... KTV>
 inline void build(std::multimap<K, T>& mmap, const K& key, const T& value,
@@ -77,7 +77,7 @@ inline void build(std::multimap<K, T>& mmap, const K& key, const T& value,
 template<typename K, typename T>
 inline void build(std::multimap<K, T>& mmap) { (void) mmap; }
 
-/** -----------------------------------------------------------------
+/**
  * Collect all values from the given multimap-like iterable that match
  * the given key.
  */

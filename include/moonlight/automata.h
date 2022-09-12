@@ -19,7 +19,7 @@ namespace automata {
 
 template<class C, class K> class Lambda;
 
-/** -----------------------------------------------------------------
+/**
  */
 template<class S>
 class StateMachine {
@@ -233,7 +233,7 @@ private:
    std::optional<std::vector<StatePointer>> snapshot = {};
 };
 
-/** -----------------------------------------------------------------
+/**
  */
 template<class C>
 class State : public std::enable_shared_from_this<State<C>> {
@@ -317,7 +317,7 @@ protected:
    }
 };
 
-/** -----------------------------------------------------------------
+/**
  */
 template<class C, class K = std::string>
 class Lambda : public State<C> {

@@ -15,7 +15,7 @@
 namespace moonlight {
 namespace hash {
 
-/** -----------------------------------------------------------------
+/**
  * Lifted from boost::hash_combine.
  */
 template<class T>
