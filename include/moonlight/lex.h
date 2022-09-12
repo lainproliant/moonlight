@@ -39,6 +39,62 @@ struct Location {
 };
 
 // ------------------------------------------------------------------
+class LexParseError : public core::ValueError {
+    using ValueError::ValueError;
+};
+
+// ------------------------------------------------------------------
+class NoMatchError : public LexParseError {
+public:
+    NoMatchError(const Location& loc, char c, const std::vector<std::string>& gstack,
+                 const debug::Source& srcloc)
+    : _loc(loc), _chr(c), _gstack(gstack), LexParseError(format_message(loc, c), srcloc) { }
+
+    const Location& loc() const {
+        return _loc;
+    }
+
+    const std::vector<std::string>& gstack() const {
+        return _gstack;
+    }
+
+    char chr() const {
+        return _chr;
+    }
+
+private:
+    static std::string format_message(const Location& loc, const char chr) {
+        std::ostringstream sb;
+        sb << "No lexical rules matched content starting at " << loc << " [" << str::literal(str::chr(chr)) << "].";
+        return sb.str();
+    }
+
+    const Location& _loc;
+    const std::vector<std::string> _gstack;
+    const char _chr;
+};
+
+// ------------------------------------------------------------------
+class UnexpectedEndOfContentError : public LexParseError {
+public:
+    UnexpectedEndOfContentError(const Location& loc, const debug::Source& srcloc)
+    : _loc(loc), LexParseError(format_message(loc), srcloc) { }
+
+    const Location& loc() const {
+        return _loc;
+    }
+
+private:
+    static std::string format_message(const Location& loc) {
+        std::ostringstream sb;
+        sb << "Parsing terminated early (at " << loc << ").";
+        return sb.str();
+    }
+
+    const Location& _loc;
+};
+
+// ------------------------------------------------------------------
 enum class Action {
     IGNORE,
     MATCH,
@@ -76,6 +132,10 @@ public:
 
     const std::string& group(size_t offset = 0) const {
         return _groups[offset];
+    }
+
+    const std::string str() const {
+        return group();
     }
 
     const std::vector<std::string>& groups() const {
@@ -155,8 +215,30 @@ public:
         return _sub_grammars.back();
     }
 
+    const std::string& name() const {
+        return _name;
+    }
+
+    static std::vector<std::string> gstack_to_strv(const std::stack<Grammar::Pointer>& gstack) {
+        std::vector<std::string> result;
+        std::vector<Grammar::Pointer> gvec;
+        std::stack<Grammar::Pointer> stack_copy = gstack;
+
+        while (! stack_copy.empty()) {
+            gvec.push_back(stack_copy.top());
+            stack_copy.pop();
+        }
+
+        std::transform(gvec.begin(), gvec.end(), std::back_inserter(result), [](auto g) {
+            return g->name();
+        });
+
+        return result;
+    }
+
     Pointer def(const Rule& rule);
     Pointer def(const Rule& rule, const std::string& type);
+    Pointer named(const std::string& name);
 
     Pointer inherit(Pointer super);
 
@@ -180,6 +262,7 @@ private:
     RuleContainer _rules = nullptr;
     std::vector<Pointer> _sub_grammars;
     const bool _sub_grammar;
+    std::string _name = "?";
 };
 
 // ------------------------------------------------------------------
@@ -332,6 +415,12 @@ inline Grammar::Pointer Grammar::def(const Rule& rule, const std::string& type) 
 }
 
 // ------------------------------------------------------------------
+inline Grammar::Pointer Grammar::named(const std::string& name) {
+    _name = name;
+    return shared_from_this();
+}
+
+// ------------------------------------------------------------------
 inline Grammar::Pointer Grammar::inherit(Grammar::Pointer super) {
     _parents.push_back(super);
     return shared_from_this();
@@ -382,9 +471,15 @@ public:
 
     void debug_print_tokens(Grammar::Pointer grammar,
                             std::istream& infile = std::cin) {
-        auto tokens = lex(grammar, infile);
-        for (auto& token : tokens) {
-            std::cout << token.type() << ": " << str::literal(token.match().group()) << std::endl;
+        try {
+            auto tokens = lex(grammar, infile);
+            for (auto& token : tokens) {
+                std::cout << token.type() << ": " << str::literal(token.match().group()) << std::endl;
+            }
+
+        } catch (const NoMatchError& e) {
+            std::cout << "gstack --> " << str::join(e.gstack(), ",") << std::endl;
+            throw e;
         }
     }
 
@@ -401,9 +496,7 @@ public:
 
             if (! result_opt.has_value()) {
                 if (_throw_on_error) {
-                    std::ostringstream sb;
-                    sb << "No lexical rules matched content starting at " << loc << ".";
-                    THROW(core::ValueError, sb.str());
+                    THROW(NoMatchError, loc, content[loc.offset], Grammar::gstack_to_strv(gstack));
                 } else {
                     break;
                 }
@@ -446,9 +539,7 @@ public:
         }
 
         if (loc.offset < content.size() && _throw_on_error) {
-            std::ostringstream sb;
-            sb << "Parsing terminated early (at " << loc << ").";
-            THROW(core::ValueError, sb.str());
+            THROW(UnexpectedEndOfContentError, loc);
         }
 
         return tokens;
