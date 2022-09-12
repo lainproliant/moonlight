@@ -471,11 +471,10 @@ public:
 
     void debug_print_tokens(Grammar::Pointer grammar,
                             std::istream& infile = std::cin) {
+        _debug_print = true;
+
         try {
             auto tokens = lex(grammar, infile);
-            for (auto& token : tokens) {
-                std::cout << token.type() << ": " << str::literal(token.match().group()) << std::endl;
-            }
 
         } catch (const NoMatchError& e) {
             std::cout << "gstack --> " << str::join(e.gstack(), ",") << std::endl;
@@ -489,6 +488,13 @@ public:
         std::stack<Grammar::Pointer> gstack;
         gstack.push(grammar);
         Location loc;
+
+        auto append_token = [&](const Token& tk) {
+            tokens.push_back(tk);
+            if (_debug_print) {
+                std::cout << tk << std::endl;
+            }
+        };
 
         while (loc.offset < content.size() && !gstack.empty()) {
             const Grammar::Pointer g = gstack.top();
@@ -515,19 +521,19 @@ public:
                        << " didn't yield a token (at " << loc << ").";
                     THROW(core::UsageError, sb.str());
                 }
-                tokens.push_back(result.token.value());
+                append_token(result.token.value());
                 break;
 
             case Action::POP:
                 if (result.token.has_value()) {
-                    tokens.push_back(result.token.value());
+                    append_token(result.token.value());
                 }
                 gstack.pop();
                 break;
 
             case Action::PUSH:
                 if (result.token.has_value()) {
-                    tokens.push_back(result.token.value());
+                    append_token(result.token.value());
                 }
                 gstack.push(result.rule.target());
                 break;
@@ -551,6 +557,7 @@ public:
     }
 
 private:
+    bool _debug_print = false;
     bool _throw_on_error = true;
 };
 
