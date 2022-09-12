@@ -12,6 +12,7 @@
 
 #include <regex>
 #include <optional>
+#include "moonlight/file.h"
 #include "moonlight/exceptions.h"
 #include "moonlight/string.h"
 #include "moonlight/collect.h"
@@ -361,6 +362,19 @@ inline std::optional<Grammar::ScanResult> Grammar::scan(Location loc, const std:
 // ------------------------------------------------------------------
 class Lexer {
 public:
+    std::vector<Token> lex(Grammar::Pointer grammar,
+                           std::istream& infile) const {
+        return lex(grammar, file::to_string(infile));
+    }
+
+    void debug_print_tokens(Grammar::Pointer grammar,
+                            std::istream& infile = std::cin) {
+        auto tokens = lex(grammar, infile);
+        for (auto& token : tokens) {
+            std::cout << token.type() << ": " << str::literal(token.match().group()) << std::endl;
+        }
+    }
+
     std::vector<Token> lex(Grammar::Pointer grammar,
                            const std::string& content) const {
         std::vector<Token> tokens;
