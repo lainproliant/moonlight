@@ -203,6 +203,8 @@ public:
         std::optional<Token> token;
         const Location loc;
 
+        static ScanResult fallout(const Location& loc);
+
         friend std::ostream& operator<<(std::ostream& out, const ScanResult& s);
     };
 
@@ -239,6 +241,7 @@ public:
     Pointer def(const Rule& rule);
     Pointer def(const Rule& rule, const std::string& type);
     Pointer named(const std::string& name);
+    Pointer fallout();
 
     Pointer inherit(Pointer super);
 
@@ -262,6 +265,7 @@ private:
     RuleContainer _rules = nullptr;
     std::vector<Pointer> _sub_grammars;
     const bool _sub_grammar;
+    bool _fallout = false;
     std::string _name = "?";
 };
 
@@ -271,6 +275,8 @@ public:
     typedef std::shared_ptr<Rule> Pointer;
 
     Rule(Action action) : _action(action) { }
+
+    static const Rule& fallout_pop();
 
     Action action() const {
         return _action;
@@ -421,6 +427,12 @@ inline Grammar::Pointer Grammar::named(const std::string& name) {
 }
 
 // ------------------------------------------------------------------
+inline Grammar::Pointer Grammar::fallout() {
+    _fallout = true;
+    return shared_from_this();
+}
+
+// ------------------------------------------------------------------
 inline Grammar::Pointer Grammar::inherit(Grammar::Pointer super) {
     _parents.push_back(super);
     return shared_from_this();
@@ -458,7 +470,34 @@ inline std::optional<Grammar::ScanResult> Grammar::scan(Location loc, const std:
         }
     }
 
+    if (_fallout) {
+        return ScanResult::fallout(loc);
+    }
+
     return {};
+}
+
+// ------------------------------------------------------------------
+inline Rule define_fallout_pop() {
+    static Rule pop = Rule(Action::POP);
+    pop.type("fallout-pop");
+    pop.stay();
+    return pop;
+}
+
+// ------------------------------------------------------------------
+inline const Rule& Rule::fallout_pop() {
+    static Rule pop = define_fallout_pop();
+    return pop;
+}
+
+// ------------------------------------------------------------------
+inline Grammar::ScanResult Grammar::ScanResult::fallout(const Location& loc) {
+    return {
+        Rule::fallout_pop(),
+        {},
+        loc
+    };
 }
 
 // ------------------------------------------------------------------
