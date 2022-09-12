@@ -203,7 +203,8 @@ public:
         std::optional<Token> token;
         const Location loc;
 
-        static ScanResult fallout(const Location& loc);
+        static ScanResult default_pop(const Location& loc);
+        static ScanResult default_push(const Location& loc, Grammar::Pointer target);
 
         friend std::ostream& operator<<(std::ostream& out, const ScanResult& s);
     };
@@ -241,7 +242,8 @@ public:
     Pointer def(const Rule& rule);
     Pointer def(const Rule& rule, const std::string& type);
     Pointer named(const std::string& name);
-    Pointer fallout();
+    Pointer else_pop();
+    Pointer else_push(Pointer target);
 
     Pointer inherit(Pointer super);
 
@@ -263,9 +265,10 @@ private:
 
     std::vector<Pointer> _parents;
     RuleContainer _rules = nullptr;
+    Pointer _default_push_target = nullptr;
     std::vector<Pointer> _sub_grammars;
     const bool _sub_grammar;
-    bool _fallout = false;
+    bool _default_pop = false;
     std::string _name = "?";
 };
 
@@ -276,7 +279,8 @@ public:
 
     Rule(Action action) : _action(action) { }
 
-    static const Rule& fallout_pop();
+    static const Rule& default_pop();
+    static const Rule& default_push(Grammar::Pointer target);
 
     Action action() const {
         return _action;
@@ -427,8 +431,14 @@ inline Grammar::Pointer Grammar::named(const std::string& name) {
 }
 
 // ------------------------------------------------------------------
-inline Grammar::Pointer Grammar::fallout() {
-    _fallout = true;
+inline Grammar::Pointer Grammar::else_pop() {
+    _default_pop = true;
+    return shared_from_this();
+}
+
+// ------------------------------------------------------------------
+inline Grammar::Pointer Grammar::else_push(Grammar::Pointer target) {
+    _default_push_target = target;
     return shared_from_this();
 }
 
@@ -470,31 +480,66 @@ inline std::optional<Grammar::ScanResult> Grammar::scan(Location loc, const std:
         }
     }
 
-    if (_fallout) {
-        return ScanResult::fallout(loc);
+    if (_default_pop) {
+        return ScanResult::default_pop(loc);
+    }
+
+    if (_default_push_target) {
+        return ScanResult::default_push(loc, _default_push_target);
     }
 
     return {};
 }
 
 // ------------------------------------------------------------------
-inline Rule define_fallout_pop() {
+inline Rule define_default_pop() {
     static Rule pop = Rule(Action::POP);
-    pop.type("fallout-pop");
+    pop.type("default-pop");
     pop.stay();
     return pop;
 }
 
 // ------------------------------------------------------------------
-inline const Rule& Rule::fallout_pop() {
-    static Rule pop = define_fallout_pop();
+inline const Rule& Rule::default_pop() {
+    static Rule pop = []() {
+        Rule pop = Rule(Action::POP);
+        pop.type("default-pop");
+        pop.stay();
+        return pop;
+    }();
     return pop;
 }
 
 // ------------------------------------------------------------------
-inline Grammar::ScanResult Grammar::ScanResult::fallout(const Location& loc) {
+inline const Rule& Rule::default_push(Grammar::Pointer target) {
+    static std::map<Grammar::Pointer, Rule> push_rules_map;
+
+    if (! push_rules_map.contains(target)) {
+        push_rules_map.insert({target, [&]() {
+            Rule push = Rule(Action::PUSH);
+            push.target(target);
+            push.type("default-push");
+            push.stay();
+            return push;
+        }()});
+    }
+
+    return push_rules_map.at(target);
+}
+
+// ------------------------------------------------------------------
+inline Grammar::ScanResult Grammar::ScanResult::default_pop(const Location& loc) {
     return {
-        Rule::fallout_pop(),
+        Rule::default_pop(),
+        {},
+        loc
+    };
+}
+
+// ------------------------------------------------------------------
+inline Grammar::ScanResult Grammar::ScanResult::default_push(const Location& loc, Grammar::Pointer target) {
+    return {
+        Rule::default_push(target),
         {},
         loc
     };
