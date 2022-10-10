@@ -35,7 +35,7 @@ ENV = dict(
     LDFLAGS=(*shlex.split(os.environ.get("LDFLAGS", "")), "-g", "-lpthread"),
     PREFIX=os.environ.get("PREFIX", "/usr/local"),
     DESTDIR=os.environ.get("DESTDIR", ""),
-    STRESS_CYCLES=int(os.environ.get("STRESS_CYCLES", "10")),
+    STRESS_CYCLES=os.environ.get("STRESS_CYCLES", "100"),
 )
 
 # -------------------------------------------------------------------
@@ -43,14 +43,15 @@ class StressTest(Recipe):
     def __init__(self, input, cycles=ENV["STRESS_CYCLES"]):
         super().__init__([input])
         self.named(input.name).with_type("stress")
-        self._cycles = cycles
+        self._cycles = int(cycles)
         self._done = False
+        self._test = input
 
     async def make(self):
-        for _ in range(self._cycles // 10):
-            await asyncio.wait([
-                asyncio.create_task(sh("{test}", test=test).resolve()) for _ in range(10)
-            ])
+        for x in range(self._cycles):
+            test = sh("{test}", test=self._test, interactive=True)
+            await test.resolve()
+            assert test.done, f"Stress test failed after {x} iterations."
         self._done = True
 
     @property

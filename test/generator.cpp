@@ -160,16 +160,18 @@ int main() {
         std::vector<int> vB = {4, 5, 6};
         std::vector<int> vC = {7, 8, 9};
 
-        auto vec = gen::seq(1, 2, 3, 4).collect();
+        auto vec = gen::stream({1, 2, 3, 4}).collect();
         ASSERT_EQUAL(vec.size(), (size_t)4);
         std::cout << str::join(vec, ", ") << std::endl;
         ASSERT_EQUAL(vec, {1, 2, 3, 4});
 
-        auto result = gen::merge(gen::seq(
-            gen::stream(vA),
-            gen::stream(vB),
-            gen::stream(vC)
-        )).collect();
+        gen::Stream<int> sA = gen::stream(vA);
+        gen::Stream<int> sB = gen::stream(vB);
+        gen::Stream<int> sC = gen::stream(vC);
+
+        auto result = gen::merge(gen::stream({sA, sB, sC})).collect();
+
+        std::cout << str::join(result, ", ") << std::endl;
 
         ASSERT_EQUAL(result, {1, 2, 3, 4, 5, 6, 7, 8, 9});
 
@@ -180,7 +182,7 @@ int main() {
         };
 
         auto coll_result = gen::merge(gen::stream(stream_coll)).collect();
-        //ASSERT_EQUAL(coll_result, {1, 2, 3, 4, 5, 6, 7, 8, 9});
+        ASSERT_EQUAL(coll_result, {1, 2, 3, 4, 5, 6, 7, 8, 9});
 
     })
     .run();

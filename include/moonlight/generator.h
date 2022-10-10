@@ -15,8 +15,8 @@
 #include <condition_variable>
 #include <future>
 #include <optional>
-#include <iterator>
 #include "moonlight/exceptions.h"
+#include "moonlight/variadic.h"
 
 namespace moonlight {
 namespace gen {
@@ -33,9 +33,15 @@ using Generator = std::function<std::optional<T>()>;
  * such as gen::Stream.
  */
 template<class T>
-class Iterator : public std::iterator<std::input_iterator_tag, T> {
+class Iterator {
 public:
     typedef Generator<T> Closure;
+
+    using iterator_category = std::input_iterator_tag;
+    using difference_type = ptrdiff_t;
+    using value_type = T;
+    using pointer = const T*;
+    using reference = const T&;
 
     Iterator() : _value({}), _position(-1) { }
     Iterator(const Closure& closure) : _closure(closure), _value(_closure()) { }
@@ -64,7 +70,7 @@ public:
 
     Iterator<T> advance(const int distance) {
         auto iter = *this;
-        for (int x = 0; x < distance && iter != /*end<T>()*/Iterator<T>(); x++, iter++);
+        for (int x = 0; x < distance && iter != gen::Iterator<T>(); x++, iter++);
         return iter;
     }
 
@@ -94,18 +100,13 @@ public:
         if (_value.has_value()) {
             return *_value;
         } else {
-            THROW(core::UsageError, "Attempted to deference past the end of the sequence.");
+            THROW(core::UsageError, "Attempted to dereference past the end of the sequence.");
         }
     }
 
     const T* operator->() {
         return &(operator*());
     }
-
-    using value_type = T;
-    using pointer = const T*;
-    using reference = const T&;
-    using iterator_category = std::forward_iterator_tag;
 
 private:
     Closure _closure;
@@ -272,7 +273,7 @@ Iterator<typename I::value_type> wrap(I begin_in, I end_in) {
 template<class T>
 class Stream {
 public:
-    Stream(const gen::Iterator<T> begin) : _begin(begin) { }
+    Stream(const gen::Iterator<T>& begin) : _begin(begin) { }
     Stream(const Generator<T>& generator) : _begin(generator) { }
 
     typedef T value_type;
@@ -612,8 +613,25 @@ public:
         return _begin() == gen::end<T>();
     }
 
+protected:
+    void init(const gen::Iterator<T>& begin) {
+        _begin = begin;
+    }
+
 private:
     gen::Iterator<T> _begin;
+};
+
+template<class T>
+class InitListStream : public Stream<T> {
+public:
+    InitListStream(const std::initializer_list<T>& init_list)
+    : Stream<T>(gen::end<T>()), _vec(init_list) {
+        this->init(gen::iterate(_vec.begin(), _vec.end()));
+    }
+
+private:
+    std::vector<T> _vec;
 };
 
 /**
@@ -634,6 +652,11 @@ gen::Stream<typename C::value_type> stream(const C& coll) {
 }
 
 template<class T>
+gen::InitListStream<T> stream(std::initializer_list<T> init_list) {
+    return InitListStream<T>(init_list);
+}
+
+template<class T>
 inline gen::Stream<T> gen::Stream<T>::lazy_singleton(std::function<T()> f) {
     bool yielded = false;
     return gen::Stream<T>([=]() mutable -> std::optional<T> {
@@ -649,27 +672,27 @@ inline gen::Stream<T> gen::Stream<T>::lazy_singleton(std::function<T()> f) {
  * Merge a stream of one or more other streams into a single stream.
  */
 template<class T>
-inline gen::Stream<T> merge(gen::Stream<gen::Stream<T>> stream_of_streams) {
-    gen::Iterator<gen::Stream<T>> stream_iter = stream_of_streams.begin();
-    gen::Iterator<T> iter = stream_iter == stream_of_streams.end() ? end<T>() : stream_iter->begin();
+inline gen::Stream<T> merge(const gen::Stream<gen::Stream<T>>& sos) {
+    gen::Iterator<gen::Stream<T>> sos_iter = sos.begin();
+    gen::Iterator<T> iter = gen::end<T>();
+
+    if (sos_iter != sos.end()) {
+        iter = sos_iter->begin();
+    }
 
     return gen::Stream<T>([=]() mutable -> std::optional<T> {
-        if (stream_iter == stream_of_streams.end()) {
-            return {};
-        }
+        while (sos_iter != sos.end() && iter == sos_iter->end()) {
+            sos_iter ++;
 
-        while (iter == stream_iter->end()) {
-            stream_iter ++;
-
-            if (stream_iter != stream_of_streams.end()) {
-                iter = stream_iter->begin();
+            if (sos_iter != sos.end()) {
+                iter = sos_iter->begin();
 
             } else {
                 return {};
             }
         }
 
-        return *iter++;
+        return *(iter ++);
     });
 }
 
@@ -685,25 +708,6 @@ inline gen::Stream<T> gen::Stream<T>::singleton(const T& value) {
             return value;
         }
         return {};
-    });
-}
-
-/**
- * Generate a stream from the given sequence of arguments.
- */
-template<class T>
-inline gen::Stream<T> seq(const T& first) {
-    return gen::Stream<T>::singleton(first);
-}
-
-/**
- * Generate a stream from the given sequence of arguments.
- */
-template<class T, class... TD>
-inline gen::Stream<T> seq(const T& first, TD&&... rest) {
-    std::vector<T> vec{first, rest...};
-    return Stream<T>::lazy([=]() -> gen::Stream<T> {
-        return gen::stream(vec);
     });
 }
 

@@ -30,8 +30,19 @@ public:
     test_fn(test_fn), name(name) {}
     virtual ~UnitTest() {}
 
-    void run() const {
-        test_fn();
+    void run(std::ostream& out = std::cout) const {
+        int cycles = 1;
+        std::optional<std::string> cycles_str = sys::getenv("MOONLIGHT_TEST_CYCLES");
+        if (cycles_str.has_value()) {
+            cycles = std::stoi(cycles_str.value());
+        }
+
+        for (int x = 0; x < cycles; x++) {
+            test_fn();
+            if (cycles > 1) {
+                out << "   [ " << x+1 << " / " << cycles << " ]" << std::endl;
+            }
+        }
     }
 
     std::string get_name() const {
@@ -74,6 +85,12 @@ public:
         out << "===== " << name << " =====" << std::endl;
 
         for (const UnitTest& test : tests) {
+            if (sys::getenv("MOONLIGHT_TEST_UNGUARDED")) {
+                test.run();
+                out << "    PASSED" << std::endl;
+                continue;
+            }
+
             try {
                 out << "Running test: '" << test.get_name() << "'..." << std::endl;
                 test.run();
