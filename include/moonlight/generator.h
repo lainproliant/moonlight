@@ -74,21 +74,21 @@ public:
         return iter;
     }
 
-    bool operator==(const Iterator<T>& other) {
+    bool operator==(const Iterator<T>& other) const {
         return (_position == -1 && other._position == -1) ||
         (&_closure == &other._closure && _position == other._position);
     }
 
-    bool operator==(Iterator<T>& other) {
+    bool operator==(Iterator<T>& other) const {
         return (_position == -1 && other._position == -1) ||
         (&_closure == &other._closure && _position == other._position);
     }
 
-    bool operator!=(const Iterator<T>& other) {
+    bool operator!=(const Iterator<T>& other) const {
         return !(*this == other);
     }
 
-    bool operator!=(Iterator<T>& other) {
+    bool operator!=(Iterator<T>& other) const {
         return !(*this == other);
     }
 
@@ -400,8 +400,8 @@ public:
     }
 
     /**
-     * Streams a new stream resulting from applying the function `f` to each
-     * element in this stream.
+     * Streams a new stream of streams resulting from applying the function `f` to each
+     * element in this stream, where `f` generates a stream of results for each element.
      */
     template<class R>
     gen::Stream<gen::Stream<R>> transform_split(std::function<gen::Stream<R>(const T&)> f) const {
@@ -416,8 +416,8 @@ public:
     }
 
     /**
-     * Streams a new stream resulting from applying the function `f` to each
-     * element in this stream.
+     * Streams a new stream of streams resulting from applying the function `f` to each
+     * element in this stream, where `f` generates a stream of results for each element.
      */
     gen::Stream<gen::Stream<T>> transform_split(std::function<gen::Stream<T>(const T&)> f) const {
         return transform_split<T>(f);
@@ -444,6 +444,11 @@ public:
         });
     }
 
+    /**
+     * Call the given function for each element in the stream, or until
+     * the given function returns `false` to indicate the loop should
+     * be terminated early.
+     */
     void for_each(std::function<bool (const T&)> f) const {
         auto iter = begin();
 
@@ -454,6 +459,9 @@ public:
         }
     }
 
+    /**
+     * Call the given function for each element in the stream.
+     */
     void for_each(std::function<void (const T&)> f) const {
         for (auto iter = begin(); iter != end(); iter++) {
             f(*iter);
@@ -603,7 +611,14 @@ public:
      * Joins all of the items in the stream, as strings, with the given separator.
      */
     std::string join(const std::string& sep) {
-        return str::join(collect(), sep);
+        std::ostringstream sb;
+        for (auto iter = begin(); iter != end(); iter++) {
+            sb << *iter;
+            if (std::next(iter) != end()) {
+                sb << sep;
+            }
+        }
+        return sb.str();
     }
 
     /**
