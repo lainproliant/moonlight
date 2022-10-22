@@ -12,27 +12,27 @@
 
 #include <memory>
 
-template<class A, class B>
+template<class B, class A>
 B* as(A* ptr) {
     return dynamic_cast<B>(ptr);
 }
 
-template<class A, class B>
+template<class B, class A>
 const B* as(const A* ptr) {
     return dynamic_cast<A>(ptr);
 }
 
-template<class A, class B>
+template<class B, class A>
 B* as(const std::shared_ptr<A>& ptr) {
     return as<B>(ptr.get());
 }
 
-template<class A, class B>
+template<class B, class A>
 const B* as(const std::shared_ptr<const A>& ptr) {
     return as<B>(ptr.get());
 }
 
-template<class A, class B>
+template<class B, class A>
 std::shared_ptr<B> shared_as(const std::shared_ptr<A>& ptr) {
     return std::dynamic_pointer_cast<B>(ptr);
 }
