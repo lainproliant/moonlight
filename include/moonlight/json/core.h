@@ -12,6 +12,7 @@
 
 #include "moonlight/exceptions.h"
 #include "moonlight/traits.h"
+#include "moonlight/meta.h"
 #include <memory>
 #include <optional>
 

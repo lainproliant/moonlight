@@ -277,7 +277,7 @@ class Rule {
 public:
     typedef std::shared_ptr<Rule> Pointer;
 
-    Rule(Action action) : _action(action) { }
+    explicit Rule(Action action) : _action(action) { }
 
     static const Rule& default_pop();
     static const Rule& default_push(Grammar::Pointer target);
