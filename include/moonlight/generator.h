@@ -315,6 +315,28 @@ public:
         return gen::end<T>();
     }
 
+    gen::Stream<T> operator+(const Stream<T>& other) {
+        gen::Iterator<T> iter = gen::end<T>();
+        int mode = 0;
+
+        return gen::Stream<T>([=, this]() mutable -> std::optional<T> {
+            while (iter == gen::end<T>() && mode < 2) {
+                if (mode == 1) {
+                    iter = other.begin();
+                } else {
+                    iter = begin();
+                }
+                mode++;
+            }
+
+            if (iter == gen::end<T>()) {
+                return {};
+            }
+
+            return *(iter ++);
+        });
+    }
+
     /**
      * Advance the stream forward n items, effectively skipping n items.
      */

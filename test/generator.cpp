@@ -195,5 +195,19 @@ int main() {
         std::cout << s << std::endl;
         ASSERT_EQUAL(s, "0,65537,131074,196611,262148,327685,393222,458759,524296,589833,655370,720907,786444,851981,917518,983055");
     })
+    .test("Concatenate two Stream objects", []() {
+        auto streamA = gen::stream(range(0, 10));
+        auto streamB = gen::stream(range(10, 20));
+        auto streamC = gen::stream(range(0, 20));
+
+
+        auto streamAB = streamA + streamB;
+        auto sAB = streamAB.join(",");
+        auto sC = streamC.join(",");
+        std::cout << sAB << std::endl;
+        std::cout << sC << std::endl;
+
+        ASSERT_EQUAL(sAB, sC);
+    })
     .run();
 }
