@@ -209,5 +209,17 @@ int main() {
 
         ASSERT_EQUAL(sAB, sC);
     })
+    .test("Concatenate in place one Stream object onto another", []() {
+        auto streamA = gen::stream(range(0, 10));
+        auto streamB = gen::stream(range(10, 20));
+        auto streamC = gen::stream(range(0, 20));
+
+        streamA += streamB;
+        auto sA = streamA.join(",");
+        auto sC = streamC.join(",");
+        std::cout << sA << std::endl;
+        std::cout << sC << std::endl;
+        ASSERT_EQUAL(sA, sC);
+    })
     .run();
 }

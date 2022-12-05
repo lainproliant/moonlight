@@ -315,6 +315,9 @@ public:
         return gen::end<T>();
     }
 
+    /**
+     * Concatenate two streams together into one.
+     */
     gen::Stream<T> operator+(const Stream<T>& other) {
         gen::Iterator<T> iter = gen::end<T>();
         int mode = 0;
@@ -335,6 +338,12 @@ public:
 
             return *(iter ++);
         });
+    }
+
+    gen::Stream<T>& operator+=(const Stream<T>& other) {
+        auto combined = *(this) + other;
+        _begin = combined._begin;
+        return *this;
     }
 
     /**
