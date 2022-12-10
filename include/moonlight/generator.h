@@ -703,6 +703,11 @@ gen::InitListStream<T> stream(std::initializer_list<T> init_list) {
 }
 
 template<class T>
+gen::Stream<T> one(const T& t) {
+    return gen::Stream<T>::singleton(t);
+}
+
+template<class T>
 inline gen::Stream<T> gen::Stream<T>::lazy_singleton(std::function<T()> f) {
     bool yielded = false;
     return gen::Stream<T>([=]() mutable -> std::optional<T> {
