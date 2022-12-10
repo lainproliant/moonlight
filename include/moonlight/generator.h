@@ -273,6 +273,7 @@ Iterator<typename I::value_type> wrap(I begin_in, I end_in) {
 template<class T>
 class Stream {
 public:
+    Stream() : _begin(gen::end<T>()) { }
     Stream(const gen::Iterator<T>& begin) : _begin(begin) { }
     Stream(const Generator<T>& generator) : _begin(generator) { }
 
@@ -705,6 +706,11 @@ gen::InitListStream<T> stream(std::initializer_list<T> init_list) {
 template<class T>
 gen::Stream<T> one(const T& t) {
     return gen::Stream<T>::singleton(t);
+}
+
+template<class T>
+gen::Stream<T> nothing() {
+    return gen::Stream<T>();
 }
 
 template<class T>
