@@ -318,7 +318,7 @@ public:
     /**
      * Concatenate two streams together into one.
      */
-    gen::Stream<T> operator+(const Stream<T>& other) {
+    gen::Stream<T> operator+(const Stream<T>& other) const {
         gen::Iterator<T> iter = gen::end<T>();
         int mode = 0;
 
