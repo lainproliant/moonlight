@@ -169,7 +169,7 @@ int main() {
         gen::Stream<int> sB = gen::stream(vB);
         gen::Stream<int> sC = gen::stream(vC);
 
-        auto result = gen::merge(gen::stream({sA, sB, sC})).collect();
+        auto result = gen::stream({sA, sB, sC}).sum().collect();
 
         std::cout << str::join(result, ", ") << std::endl;
 
@@ -181,7 +181,7 @@ int main() {
             gen::stream(vC)
         };
 
-        auto coll_result = gen::merge(gen::stream(stream_coll)).collect();
+        auto coll_result = gen::stream(stream_coll).sum().collect();
         ASSERT_EQUAL(coll_result, {1, 2, 3, 4, 5, 6, 7, 8, 9});
 
     })

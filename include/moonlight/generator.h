@@ -726,34 +726,6 @@ inline gen::Stream<T> gen::Stream<T>::lazy_singleton(std::function<T()> f) {
 }
 
 /**
- * Merge a stream of one or more other streams into a single stream.
- */
-template<class T>
-inline gen::Stream<T> merge(const gen::Stream<gen::Stream<T>>& sos) {
-    gen::Iterator<gen::Stream<T>> sos_iter = sos.begin();
-    gen::Iterator<T> iter = gen::end<T>();
-
-    if (sos_iter != sos.end()) {
-        iter = sos_iter->begin();
-    }
-
-    return gen::Stream<T>([=]() mutable -> std::optional<T> {
-        while (sos_iter != sos.end() && iter == sos_iter->end()) {
-            sos_iter ++;
-
-            if (sos_iter != sos.end()) {
-                iter = sos_iter->begin();
-
-            } else {
-                return {};
-            }
-        }
-
-        return *(iter ++);
-    });
-}
-
-/**
  * Yield a stream containing one value.
  */
 template<class T>
@@ -773,7 +745,7 @@ inline gen::Stream<T> gen::Stream<T>::singleton(const T& value) {
  */
 template<class T>
 inline gen::Stream<T> gen::Stream<T>::lazy(const typename gen::Stream<T>::Factory& f) {
-    return gen::merge(Stream<Stream<T>>::lazy_singleton(f));
+    return (Stream<Stream<T>>::empty() + Stream<Stream<T>>::lazy_singleton(f)).sum();
 }
 
 /**

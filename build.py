@@ -8,14 +8,12 @@
 # Distributed under terms of the MIT license.
 # -------------------------------------------------------------------
 
-import asyncio
 import os
 import random
 import shlex
 from pathlib import Path
 
 from xeno.build import Recipe, build, default, factory, provide, sh, target
-from xeno.shell import check
 
 INTERACTIVE_TESTS = {"ansi"}
 
