@@ -757,7 +757,7 @@ inline gen::Stream<T> gen::Stream<T>::empty() {
 }
 
 /**
- * Created a buffered stream that scrolls a buffered deque view of
+ * Create a buffered stream that scrolls a buffered deque view of
  * items through the sequence with the given look-ahead.
  *
  * If squash is True, reaching the end of the sequence will pop items

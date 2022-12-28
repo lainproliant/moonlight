@@ -13,7 +13,7 @@ import random
 import shlex
 from pathlib import Path
 
-from xeno.build import Recipe, build, default, factory, provide, sh, target
+from xeno.build import Recipe, build, default, action, provide, sh, target
 
 INTERACTIVE_TESTS = {"ansi"}
 
@@ -63,7 +63,7 @@ def submodules():
 
 
 # -------------------------------------------------------------------
-@factory
+@action
 def compile(src, headers):
     cmd = "{CC} {CFLAGS} {src} {LDFLAGS} -o {output}"
 
@@ -77,7 +77,7 @@ def compile(src, headers):
 
 
 # -------------------------------------------------------------------
-@factory
+@action
 def test(test):
     return sh(
         "{test}",
@@ -88,7 +88,7 @@ def test(test):
 
 
 # -------------------------------------------------------------------
-@factory
+@action
 def install(program):
     output = ENV["DESTDIR"] + ENV["PREFIX"] + "/bin/" + program.output.name
     return sh(
