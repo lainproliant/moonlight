@@ -23,6 +23,7 @@ ENV = dict(
     CC=os.environ.get("CC", "clang++"),
     CFLAGS=(
         *shlex.split(os.environ.get("CFLAGS", "")),
+        "-Wall",
         "-g",
         "-fpermissive",  # needed for g++ to respect "always_false<T>"
         *INCLUDES,

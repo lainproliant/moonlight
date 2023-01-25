@@ -116,7 +116,7 @@ typedef void* BacktraceFrame;
 /**
  * Retrieve the current stack frames as an array.
  */
-inline std::vector<BacktraceFrame> backtrace_frames(int skip_frames = 2, int max_frames = 256) {
+inline std::vector<BacktraceFrame> backtrace_frames(unsigned long skip_frames = 2, int max_frames = 256) {
     std::vector<BacktraceFrame> frames(max_frames);
     int total_frames = backtrace(&frames[0], max_frames);
     frames.resize(total_frames);
