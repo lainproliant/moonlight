@@ -44,7 +44,7 @@ public:
     using reference = const T&;
 
     Iterator() : _value({}), _position(-1) { }
-    Iterator(const Closure& closure) : _closure(closure), _value(_closure()) { }
+    Iterator(const Closure& closure) : _value(closure()), _closure(closure) { }
     Iterator(const Iterator& iter)
     : _value(iter._value), _position(iter._position), _closure(iter._closure) { }
 
