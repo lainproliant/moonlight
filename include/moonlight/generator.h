@@ -109,9 +109,9 @@ public:
     }
 
 private:
-    std::optional<T> _value;
-    int _position = 0;
     Closure _closure;
+    int _position = 0;
+    std::optional<T> _value;
 };
 
 /**
