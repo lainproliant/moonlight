@@ -43,10 +43,10 @@ public:
     using pointer = const T*;
     using reference = const T&;
 
-    Iterator() : _value({}), _position(-1) { }
+    Iterator() : _position(-1), _value({}) { }
     Iterator(const Closure& closure) : _closure(closure), _value(_closure()) { }
     Iterator(const Iterator& iter)
-    : _value(iter._value), _position(iter._position), _closure(iter._closure) { }
+    : _closure(iter._closure), _position(iter._position), _value(iter._value) { }
 
     Iterator<T>& operator++() {
         if (_value.has_value()) {
