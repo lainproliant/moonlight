@@ -40,6 +40,19 @@ int main() {
         auto split_again = shlex::split(joined_again);
         ASSERT_EQUAL(split.size(), (size_t)3);
     })
+    .test("shlex comments", []() {
+        std::string lineA = "#this is a comment";
+        std::string lineB = "# this is a comment";
+        std::string lineC = "this is#a comment";
+        std::string lineD = "this is #a comment";
+        std::string lineE = "this is # a comment";
+
+        ASSERT_EQUAL(shlex::split(lineA), {});
+        ASSERT_EQUAL(shlex::split(lineB), {});
+        ASSERT_EQUAL(shlex::split(lineC), {"this", "is"});
+        ASSERT_EQUAL(shlex::split(lineD), {"this", "is"});
+        ASSERT_EQUAL(shlex::split(lineE), {"this", "is"});
+    })
     .run();
 
 }

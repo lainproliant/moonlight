@@ -48,7 +48,6 @@ public:
     }
 
     gen::Iterator<std::string> begin() {
-        // TODO
         return gen::begin<std::string>(std::bind(&ShellLexer::read_token, this));
     }
 
@@ -67,6 +66,10 @@ protected:
 
 private:
     std::optional<std::string> read_token() {
+        if (input().peek() == EOF) {
+            return {};
+        }
+
         if (_punctuation.find(input().peek()) != _punctuation.end()) {
             int c = input().getc();
             return str::chr(c);
@@ -81,8 +84,6 @@ private:
         case '\"':
             return parse_double_quotes();
         case '#':
-            while (input().peek() != EOF && input().peek() != '\n') input().advance();
-            return read_token();
         case EOF:
             return {};
         case ' ':
@@ -177,7 +178,9 @@ private:
     std::string parse_word() {
         std::string str;
 
-        while (input().peek() != EOF && ! isspace(input().peek())) {
+        while (input().peek() != EOF &&
+               ! isspace(input().peek()) &&
+               ! (input().peek() == '#')) {
             str.push_back(input().getc());
         }
 
