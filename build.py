@@ -14,7 +14,6 @@ import random
 import shlex
 from pathlib import Path
 
-from xeno.recipe import Recipe
 from xeno.build import provide, recipe, task, engine
 from xeno.cookbook import sh
 
@@ -55,6 +54,7 @@ async def stress_test(program, cycles: int = 10):
 # -------------------------------------------------------------------
 @task
 def submodules():
+    """Fetch git submodules needed for compilation."""
     return sh("git submodule update --init --recursive")
 
 
@@ -80,14 +80,14 @@ def test(t):
 
 # -------------------------------------------------------------------
 @recipe(factory=True)
-def install(target):
-    path = Path(ENV["DESTDIR"]) / ENV["PREFIX"] / "bin" / target.name
+def install(program):
+    path = Path(ENV["DESTDIR"]) / ENV["PREFIX"] / "bin" / program.target.name
     return sh(
         "mkdir -p {DESTDIR}{PREFIX}/bin; "
         "cp -f {program} {target}; "
         "chmod 775 {target}",
         env=ENV,
-        program=target,
+        program=program,
         target=path,
         as_user="root",
     )
@@ -120,12 +120,14 @@ def headers():
 # -------------------------------------------------------------------
 @task(dep="submodules")
 def labs(lab_sources, headers, submodules):
+    """Compile labs programs, little demos for testing features out."""
     return [compile(src, headers) for src in lab_sources]
 
 
 # -------------------------------------------------------------------
 @task(dep="submodules")
 def tests(test_sources, headers, submodules):
+    """Compile and shuffle the unit tests."""
     tests = [compile(src, headers) for src in test_sources]
     return [*random.sample(tests, len(tests))]
 
@@ -133,6 +135,7 @@ def tests(test_sources, headers, submodules):
 # -------------------------------------------------------------------
 @task
 def utils(util_sources, headers, submodules):
+    """Build util programs."""
     utils = [compile(src, headers) for src in util_sources]
     return utils
 
@@ -140,33 +143,39 @@ def utils(util_sources, headers, submodules):
 # -------------------------------------------------------------------
 @task
 def install_utils(utils):
+    """Install the util programs to the system."""
     return (install(util) for util in utils)
 
 
 # -------------------------------------------------------------------
 @task(default=True)
 def run_tests(tests):
+    """Run all of the unit tests."""
     return [test(t) for t in tests]
 
 
 # -------------------------------------------------------------------
 @task
 def assert_tests_stable(tests):
+    """Repeatedly run all of the unit tests to assert they are stable."""
     return (stress_test(t) for t in tests)
 
 
 # -------------------------------------------------------------------
 @task
 def all(tests, labs, utils):
+    """Compile tests, labs, and utils."""
     return (tests, labs, utils)
 
 
 # -------------------------------------------------------------------
 @task
 def cc_json():
+    """Generate compile_commands.json for IDEs."""
     return sh("intercept-build ./build.py compile:\\* -R; ./build.py -c compile:\\*")
 
 
 # -------------------------------------------------------------------
 if __name__ == "__main__":
+    engine.name = "Build Script for Moonlight C++"
     engine.build(*sys.argv[1:])
