@@ -17,6 +17,13 @@ from pathlib import Path
 from xeno.build import provide, recipe, task, engine
 from xeno.cookbook import sh
 
+# -------------------------------------------------------------------
+DEPS = [
+    "https://github.com/c42f/tinyformat",
+    "https://github.com/HowardHinnant/date",
+    "https://github.com/r-lyeh-archived/sole",
+]
+
 INTERACTIVE_TESTS = {"ansi"}
 
 INCLUDES = ["-I./include", "-I./deps/date/include", "-I./deps"]
@@ -44,6 +51,19 @@ ENV = dict(
 )
 
 
+# --------------------------------------------------------------------
+@recipe(factory=True)
+def checkout_dep(repo):
+    name = repo.split("/")[-1]
+    return sh("git clone {repo} {target}", repo=repo, target=Path("deps") / name)
+
+
+# --------------------------------------------------------------------
+@task
+def dependencies():
+    return [checkout_dep(repo) for repo in DEPS]
+
+
 # -------------------------------------------------------------------
 @recipe(sigil=lambda r: f'{r.name}:{r.arg("program").target.name}')
 async def stress_test(program, cycles: int = 10):
@@ -52,14 +72,7 @@ async def stress_test(program, cycles: int = 10):
 
 
 # -------------------------------------------------------------------
-@task
-def submodules():
-    """Fetch git submodules needed for compilation."""
-    return sh("git submodule update --init --recursive")
-
-
-# -------------------------------------------------------------------
-@recipe(factory=True, sigil=lambda r: f'{r.name}:{r.target.name}')
+@recipe(factory=True, sigil=lambda r: f"{r.name}:{r.target.name}")
 def compile(src, headers):
     cmd = "{CC} {CFLAGS} {src} {LDFLAGS} -o {target}"
 
@@ -118,15 +131,15 @@ def headers():
 
 
 # -------------------------------------------------------------------
-@task(dep="submodules")
-def labs(lab_sources, headers, submodules):
+@task(dep="dependencies")
+def labs(lab_sources, headers, dependencies):
     """Compile labs programs, little demos for testing features out."""
     return [compile(src, headers) for src in lab_sources]
 
 
 # -------------------------------------------------------------------
-@task(dep="submodules")
-def tests(test_sources, headers, submodules):
+@task(dep="dependencies")
+def tests(test_sources, headers, dependencies):
     """Compile and shuffle the unit tests."""
     tests = [compile(src, headers) for src in test_sources]
     return [*random.sample(tests, len(tests))]
@@ -134,7 +147,7 @@ def tests(test_sources, headers, submodules):
 
 # -------------------------------------------------------------------
 @task
-def utils(util_sources, headers, submodules):
+def utils(util_sources, headers):
     """Build util programs."""
     utils = [compile(src, headers) for src in util_sources]
     return utils

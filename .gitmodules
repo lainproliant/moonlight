@@ -1,9 +1,0 @@
-[submodule "include/tinyformat"]
-	path = deps/tinyformat
-	url = https://github.com/c42f/tinyformat
-[submodule "include/date"]
-	path = deps/date
-	url = https://github.com/HowardHinnant/date
-[submodule "include/sole"]
-	path = deps/sole
-	url = https://github.com/r-lyeh-archived/sole
