@@ -1,3 +1,4 @@
 *.mypy_cache
 .cache
 compile_commands.json
+deps

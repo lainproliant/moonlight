@@ -60,7 +60,7 @@ def checkout_dep(repo):
 
 # --------------------------------------------------------------------
 @task
-def dependencies():
+def deps():
     return [checkout_dep(repo) for repo in DEPS]
 
 
@@ -131,15 +131,15 @@ def headers():
 
 
 # -------------------------------------------------------------------
-@task(dep="dependencies")
-def labs(lab_sources, headers, dependencies):
+@task(dep="deps")
+def labs(lab_sources, headers, deps):
     """Compile labs programs, little demos for testing features out."""
     return [compile(src, headers) for src in lab_sources]
 
 
 # -------------------------------------------------------------------
-@task(dep="dependencies")
-def tests(test_sources, headers, dependencies):
+@task(dep="deps")
+def tests(test_sources, headers, deps):
     """Compile and shuffle the unit tests."""
     tests = [compile(src, headers) for src in test_sources]
     return [*random.sample(tests, len(tests))]
