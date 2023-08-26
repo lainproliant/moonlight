@@ -280,6 +280,7 @@ public:
     Stream() : _begin(gen::end<T>()) { }
     Stream(const gen::Iterator<T>& begin) : _begin(begin) { }
     Stream(const Generator<T>& generator) : _begin(generator) { }
+    Stream(const Stream<T>& stream) : _begin(stream._begin) { }
 
     typedef T value_type;
 
@@ -359,6 +360,19 @@ public:
     }
 
     /**
+     * Trim `n` items off of the left off of the virtual range.
+     */
+    gen::Stream<T> trim_left(unsigned int n);
+
+    /**
+     * Trim `n` items off of the right of the virtual range.
+     *
+     * NOTE: right trimming requires the use of a buffer the size of the right
+     * trim amount, since virtual ranges are of unknown length.
+     */
+    gen::Stream<T> trim_right(unsigned int n);
+
+    /**
      * Trim `left` items off of the left and `right` items off of the right
      * of the virtual range and stream the rest into a new Stream.
      *
@@ -379,7 +393,7 @@ public:
      *      ends.  The buffer is not allowed to be smaller than `bufsize`, thus if the
      *      scalar sequence is smaller than `bufsize`, the stream is empty.
      */
-    gen::Stream<std::reference_wrapper<Buffer<T>>> buffer(int bufsize, bool squash = false);
+    gen::Stream<std::reference_wrapper<Buffer<T>>> buffer(unsigned int bufsize, bool squash = false);
 
     /**
      * Scans to the last item of the stream and returns it.
@@ -770,7 +784,7 @@ inline gen::Stream<T> gen::Stream<T>::empty() {
  * sequence is reached.
  */
 template<class T>
-inline gen::Stream<std::reference_wrapper<Buffer<T>>> gen::Stream<T>::buffer(int bufsize, bool squash) {
+inline gen::Stream<std::reference_wrapper<Buffer<T>>> gen::Stream<T>::buffer(unsigned int bufsize, bool squash) {
     Buffer<T> buffer;
     auto iter = begin();
     bool initialized = false;
@@ -809,23 +823,34 @@ inline gen::Stream<std::reference_wrapper<Buffer<T>>> gen::Stream<T>::buffer(int
 }
 
 /**
+ * Trim the given number of elements off of the left of the stream.
+ */
+template<class T>
+gen::Stream<T> gen::Stream<T>::trim_left(unsigned int n) {
+    return advance(n);
+}
+
+/**
+ * Trim the given number of elements off of the right of the sequence.
+ */
+template<class T>
+gen::Stream<T> gen::Stream<T>::trim_right(unsigned int n) {
+    if (n == 0) {
+        return gen::Stream<T>(*this);
+    }
+    return buffer(n+1).template transform<T>([](auto buf) -> T {
+        return buf.get().front();
+    });
+}
+
+/**
  * Trim the given number of elements from the beginning
  * and/or end of the stream.
  */
 template<class T>
 gen::Stream<T> gen::Stream<T>::trim(unsigned int left, unsigned int right) {
-    gen::Stream<T> stream = *this;
-
-    if (right != 0) {
-        stream = stream.buffer(right + 1).template transform<T>([](auto& buf) {
-            return buf.get().front();
-        });
-    }
-
-    if (left != 0) {
-        stream = stream.advance(left);
-    }
-
+    auto stream = trim_left(left);
+    stream = stream.trim_right(right);
     return stream;
 }
 

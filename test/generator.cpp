@@ -113,6 +113,21 @@ int main() {
         std::cout << "new_values = " << str::join(new_values, ",") << std::endl;
         ASSERT_EQUAL(values, new_values);
     })
+    .test("stream left trim", []() {
+        std::vector<int> values = {0, 1, 2, 3, 4, 5};
+        auto new_values = gen::stream(values).trim_left(2).collect();
+        std::cout << "values = " << str::join(values, ",") << std::endl;
+        std::cout << "new_values = " << str::join(new_values, ",") << std::endl;
+        ASSERT_EQUAL(new_values, {2, 3, 4, 5});
+
+    })
+    .test("stream right trim", []() {
+        std::vector<int> values = {0, 1, 2, 3, 4, 5};
+        auto new_values = gen::stream(values).trim_right(3).collect();
+        std::cout << "values = " << str::join(values, ",") << std::endl;
+        std::cout << "new_values = " << str::join(new_values, ",") << std::endl;
+        ASSERT_EQUAL(new_values, {0, 1, 2});
+    })
     .test("stream trim", []() {
         std::vector<int> values = {0, 1, 2, 3, 4, 5};
         auto new_values = gen::stream(values).trim(1, 2).collect();
