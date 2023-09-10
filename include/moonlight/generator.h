@@ -849,9 +849,7 @@ gen::Stream<T> gen::Stream<T>::trim_right(unsigned int n) {
  */
 template<class T>
 gen::Stream<T> gen::Stream<T>::trim(unsigned int left, unsigned int right) {
-    auto stream = trim_left(left);
-    stream = stream.trim_right(right);
-    return stream;
+    return trim_left(left).trim_right(right);
 }
 
 }
