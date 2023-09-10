@@ -10,12 +10,11 @@
 
 import os
 import random
-import shlex
 from pathlib import Path
 
-from xeno.build import recipe, provide, task, engine, build
-from xeno.recipes.cxx import compile, ENV
-from xeno.recipes import test, install, sh
+from xeno.build import build, engine, provide, task
+from xeno.recipes import checkout, install, sh, test
+from xeno.recipes.cxx import ENV, compile
 
 # -------------------------------------------------------------------
 DEPS = [
@@ -45,17 +44,10 @@ ENV.update(
 
 
 # --------------------------------------------------------------------
-@recipe(factory=True)
-def checkout_dep(repo):
-    name = repo.split("/")[-1]
-    return sh("git clone {repo} {target}", repo=repo, target=Path("deps") / name)
-
-
-# --------------------------------------------------------------------
 @task
 def deps():
     """Fetch third-party repos."""
-    return [checkout_dep(repo) for repo in DEPS]
+    return [checkout(repo) for repo in DEPS]
 
 
 # -------------------------------------------------------------------

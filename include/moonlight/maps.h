@@ -29,13 +29,15 @@ inline std::map<class M::mapped_type, class M::key_type> invert(const M& map) {
 
 //-------------------------------------------------------------------
 template<class M>
-gen::Stream <typename M::key_type> keys(const M& map) {
+gen::Stream <std::pair<typename M::key_type, typename M::mapped_type>> items(const M& map) {
     auto iter = map.begin();
 
-    return gen::Stream<typename M::key_type>(
-        [iter, &map]() mutable -> std::optional<typename M::key_type> {
+    return gen::Stream<std::pair<typename M::key_type, typename M::mapped_type>>(
+        [iter, &map]() mutable -> std::optional<std::pair<typename M::key_type, typename M::mapped_type>> {
             if (iter != map.end()) {
-                return (iter++)->first;
+                auto& val = *iter;
+                iter++;
+                return val;
             } else {
                 return {};
             }
@@ -45,18 +47,18 @@ gen::Stream <typename M::key_type> keys(const M& map) {
 
 //-------------------------------------------------------------------
 template<class M>
-gen::Stream<typename M::mapped_type> values(const M& map) {
-    auto iter = map.begin();
+gen::Stream <typename M::key_type> keys(const M& map) {
+    return maps::items(map).template transform<typename M::key_type>([](const auto& item) {
+        return item.first;
+    });
+}
 
-    return gen::Stream<typename M::mapped_type>(
-        [iter, &map]() mutable -> std::optional<typename M::mapped_type> {
-            if (iter != map.end()) {
-                return (iter++)->second;
-            } else {
-                return {};
-            }
-        }
-    );
+//-------------------------------------------------------------------
+template<class M>
+gen::Stream<typename M::mapped_type> values(const M& map) {
+    return maps::items(map).template transform<typename M::mapped_type>([](const auto& item) {
+        return item.second;
+    });
 }
 
 }
