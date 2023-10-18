@@ -88,7 +88,7 @@ public:
     }
 
     template<typename O, typename... OD>
-    std::optional<const std::string> get(const O& opt, const OD&... opts) {
+    std::optional<const std::string> get(const O& opt, const OD&... opts) const {
         auto value = _get(opt);
         if (value) {
             return *value;
