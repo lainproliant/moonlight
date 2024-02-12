@@ -12,6 +12,13 @@
 
 #include <regex>
 #include <optional>
+#include <algorithm>
+#include <memory>
+#include <map>
+#include <string>
+#include <vector>
+#include <stack>
+
 #include "moonlight/file.h"
 #include "moonlight/exceptions.h"
 #include "moonlight/string.h"
@@ -45,53 +52,53 @@ class LexParseError : public core::ValueError {
 
 // ------------------------------------------------------------------
 class NoMatchError : public LexParseError {
-public:
-    NoMatchError(const Location& loc, char c, const std::vector<std::string>& gstack,
-                 const debug::Source& srcloc)
-    : _loc(loc), _chr(c), _gstack(gstack), LexParseError(format_message(loc, c), srcloc) { }
+ public:
+     NoMatchError(const Location& loc, char c, const std::vector<std::string>& gstack,
+                  const debug::Source& srcloc)
+     : LexParseError(format_message(loc, c), srcloc), _loc(loc), _gstack(gstack), _chr(c) { }
 
-    const Location& loc() const {
-        return _loc;
-    }
+     const Location& loc() const {
+         return _loc;
+     }
 
-    const std::vector<std::string>& gstack() const {
-        return _gstack;
-    }
+     const std::vector<std::string>& gstack() const {
+         return _gstack;
+     }
 
-    char chr() const {
-        return _chr;
-    }
+     char chr() const {
+         return _chr;
+     }
 
-private:
-    static std::string format_message(const Location& loc, const char chr) {
-        std::ostringstream sb;
-        sb << "No lexical rules matched content starting at " << loc << " [" << str::literal(str::chr(chr)) << "].";
-        return sb.str();
-    }
+ private:
+     static std::string format_message(const Location& loc, const char chr) {
+         std::ostringstream sb;
+         sb << "No lexical rules matched content starting at " << loc << " [" << str::literal(str::chr(chr)) << "].";
+         return sb.str();
+     }
 
-    const Location& _loc;
-    const std::vector<std::string> _gstack;
-    const char _chr;
+     const Location& _loc;
+     const std::vector<std::string> _gstack;
+     const char _chr;
 };
 
 // ------------------------------------------------------------------
 class UnexpectedEndOfContentError : public LexParseError {
-public:
-    UnexpectedEndOfContentError(const Location& loc, const debug::Source& srcloc)
-    : _loc(loc), LexParseError(format_message(loc), srcloc) { }
+ public:
+     UnexpectedEndOfContentError(const Location& loc, const debug::Source& srcloc)
+     : LexParseError(format_message(loc), srcloc), _loc(loc) { }
 
-    const Location& loc() const {
-        return _loc;
-    }
+     const Location& loc() const {
+         return _loc;
+     }
 
-private:
-    static std::string format_message(const Location& loc) {
-        std::ostringstream sb;
-        sb << "Parsing terminated early (at " << loc << ").";
-        return sb.str();
-    }
+ private:
+     static std::string format_message(const Location& loc) {
+         std::ostringstream sb;
+         sb << "Parsing terminated early (at " << loc << ").";
+         return sb.str();
+     }
 
-    const Location& _loc;
+     const Location& _loc;
 };
 
 // ------------------------------------------------------------------
@@ -115,78 +122,78 @@ inline const std::string& _action_name(Action action) {
 
 // ------------------------------------------------------------------
 class Match {
-public:
-    Match(const Location& location, const std::smatch& smatch)
-    : _location(location), _length(smatch.length()), _groups(smatch.begin(), smatch.end()) { }
+ public:
+     Match(const Location& location, const std::smatch& smatch)
+     : _location(location), _length(smatch.length()), _groups(smatch.begin(), smatch.end()) { }
 
-    Match(const Location& location)
-    : _location(location), _length(0) { }
+     explicit Match(const Location& location)
+     : _location(location), _length(0) { }
 
-    const Location& location() const {
-        return _location;
-    }
+     const Location& location() const {
+         return _location;
+     }
 
-    unsigned int length() const {
-        return _length;
-    }
+     unsigned int length() const {
+         return _length;
+     }
 
-    const std::string& group(size_t offset = 0) const {
-        return _groups[offset];
-    }
+     const std::string& group(size_t offset = 0) const {
+         return _groups[offset];
+     }
 
-    const std::string str() const {
-        return group();
-    }
+     const std::string str() const {
+         return group();
+     }
 
-    const std::vector<std::string>& groups() const {
-        return _groups;
-    }
+     const std::vector<std::string>& groups() const {
+         return _groups;
+     }
 
-    friend std::ostream& operator<<(std::ostream& out, const Match& match) {
-        auto literal_matches = collect::map<std::string>(match.groups(), _literalize);
-        out << "Match<[" << str::join(literal_matches, ",") << "], "
-            << match.length() << "c @ " << match.location() << ">";
-        return out;
-    }
+     friend std::ostream& operator<<(std::ostream& out, const Match& match) {
+         auto literal_matches = collect::map<std::string>(match.groups(), _literalize);
+         out << "Match<[" << str::join(literal_matches, ",") << "], "
+         << match.length() << "c @ " << match.location() << ">";
+         return out;
+     }
 
-private:
-    static std::string _literalize(const std::string& s) {
-        std::ostringstream sb;
-        sb << "\"" << str::literal(s) << "\"";
-        return sb.str();
-    }
+ private:
+     static std::string _literalize(const std::string& s) {
+         std::ostringstream sb;
+         sb << "\"" << str::literal(s) << "\"";
+         return sb.str();
+     }
 
-    const Location _location;
-    unsigned int _length;
-    const std::vector<std::string> _groups;
+     const Location _location;
+     unsigned int _length;
+     const std::vector<std::string> _groups;
 };
 
 // ------------------------------------------------------------------
 class Token {
-public:
-    Token(const std::string& type, const Match& smatch)
-    : _type(type), _match(smatch) { }
+ public:
+     Token(const std::string& type, const Match& smatch)
+     : _type(type), _match(smatch) { }
 
-    static Token nothing() {
-        return Token("NOTHING", Match(Location::nowhere()));
-    }
+     static Token nothing() {
+         return Token("NOTHING", Match(Location::nowhere()));
+     }
 
-    const std::string& type() const {
-        return _type;
-    }
+     const std::string& type() const {
+         return _type;
+     }
 
-    const Match& match() const {
-        return _match;
-    }
+     const Match& match() const {
+         return _match;
+     }
 
-    friend std::ostream& operator<<(std::ostream& out, const Token& tk) {
-        out << "<" << tk.type() << " " << tk.match() << ">";
-        return out;
-    }
+     friend std::ostream& operator<<(std::ostream& out, const Token& tk) {
+         out << "<" << tk.type() << " " << tk.match() << ">";
+         return out;
+     }
 
-private:
-    const std::string _type;
-    const Match _match;
+ private:
+     const std::string _type;
+     const Match _match;
 };
 
 // ------------------------------------------------------------------
@@ -195,190 +202,190 @@ typedef std::shared_ptr<std::vector<Rule>> RuleContainer;
 
 // ------------------------------------------------------------------
 class Grammar : public std::enable_shared_from_this<Grammar> {
-public:
-    typedef std::shared_ptr<Grammar> Pointer;
+ public:
+     typedef std::shared_ptr<Grammar> Pointer;
 
-    struct ScanResult {
-        const Rule& rule;
-        std::optional<Token> token;
-        const Location loc;
+     struct ScanResult {
+         const Rule& rule;
+         std::optional<Token> token;
+         const Location loc;
 
-        static ScanResult default_pop(const Location& loc);
-        static ScanResult default_push(const Location& loc, Grammar::Pointer target);
+         static ScanResult default_pop(const Location& loc);
+         static ScanResult default_push(const Location& loc, Grammar::Pointer target);
 
-        friend std::ostream& operator<<(std::ostream& out, const ScanResult& s);
-    };
+         friend std::ostream& operator<<(std::ostream& out, const ScanResult& s);
+     };
 
-    static Pointer create() {
-        return Pointer(new Grammar());
-    }
+     static Pointer create() {
+         return Pointer(new Grammar());
+     }
 
-    Pointer sub() {
-        _sub_grammars.emplace_back(create_sub());
-        return _sub_grammars.back();
-    }
+     Pointer sub() {
+         _sub_grammars.emplace_back(create_sub());
+         return _sub_grammars.back();
+     }
 
-    const std::string& name() const {
-        return _name;
-    }
+     const std::string& name() const {
+         return _name;
+     }
 
-    static std::vector<std::string> gstack_to_strv(const std::stack<Grammar::Pointer>& gstack) {
-        std::vector<std::string> result;
-        std::vector<Grammar::Pointer> gvec;
-        std::stack<Grammar::Pointer> stack_copy = gstack;
+     static std::vector<std::string> gstack_to_strv(const std::stack<Grammar::Pointer>& gstack) {
+         std::vector<std::string> result;
+         std::vector<Grammar::Pointer> gvec;
+         std::stack<Grammar::Pointer> stack_copy = gstack;
 
-        while (! stack_copy.empty()) {
-            gvec.push_back(stack_copy.top());
-            stack_copy.pop();
-        }
+         while (! stack_copy.empty()) {
+             gvec.push_back(stack_copy.top());
+             stack_copy.pop();
+         }
 
-        std::transform(gvec.begin(), gvec.end(), std::back_inserter(result), [](auto g) {
-            return g->name();
-        });
+         std::transform(gvec.begin(), gvec.end(), std::back_inserter(result), [](auto g) {
+             return g->name();
+         });
 
-        return result;
-    }
+         return result;
+     }
 
-    Pointer def(const Rule& rule);
-    Pointer def(const Rule& rule, const std::string& type);
-    Pointer named(const std::string& name);
-    Pointer else_pop();
-    Pointer else_push(Pointer target);
+     Pointer def(const Rule& rule);
+     Pointer def(const Rule& rule, const std::string& type);
+     Pointer named(const std::string& name);
+     Pointer else_pop();
+     Pointer else_push(Pointer target);
 
-    Pointer inherit(Pointer super);
+     Pointer inherit(Pointer super);
 
-    std::optional<ScanResult> scan(Location loc, const std::string& content) const;
+     std::optional<ScanResult> scan(Location loc, const std::string& content) const;
 
-private:
-    Grammar(bool sub_grammar) : _sub_grammar(sub_grammar) { }
-    Grammar() : _sub_grammar(false) { }
+ private:
+     explicit Grammar(bool sub_grammar) : _sub_grammar(sub_grammar) { }
+     Grammar() : _sub_grammar(false) { }
 
-    static Pointer create_sub() {
-        return Pointer(new Grammar(true));
-    }
+     static Pointer create_sub() {
+         return Pointer(new Grammar(true));
+     }
 
-    bool is_sub_grammar() const {
-        return _sub_grammar;
-    }
+     bool is_sub_grammar() const {
+         return _sub_grammar;
+     }
 
-    void add_rule(const Rule& rule);
+     void add_rule(const Rule& rule);
 
-    std::vector<Pointer> _parents;
-    RuleContainer _rules = nullptr;
-    Pointer _default_push_target = nullptr;
-    std::vector<Pointer> _sub_grammars;
-    const bool _sub_grammar;
-    bool _default_pop = false;
-    std::string _name = "?";
+     std::vector<Pointer> _parents;
+     RuleContainer _rules = nullptr;
+     Pointer _default_push_target = nullptr;
+     std::vector<Pointer> _sub_grammars;
+     const bool _sub_grammar;
+     bool _default_pop = false;
+     std::string _name = "?";
 };
 
 // ------------------------------------------------------------------
 class Rule {
-public:
-    typedef std::shared_ptr<Rule> Pointer;
+ public:
+     typedef std::shared_ptr<Rule> Pointer;
 
-    explicit Rule(Action action) : _action(action) { }
+     explicit Rule(Action action) : _action(action) { }
 
-    static const Rule& default_pop();
-    static const Rule& default_push(Grammar::Pointer target);
+     static const Rule& default_pop();
+     static const Rule& default_push(Grammar::Pointer target);
 
-    Action action() const {
-        return _action;
-    }
+     Action action() const {
+         return _action;
+     }
 
-    const std::string& action_name() const {
-        return _action_name(action());
-    }
+     const std::string& action_name() const {
+         return _action_name(action());
+     }
 
-    const std::regex& rx() const {
-        return _rx;
-    }
+     const std::regex& rx() const {
+         return _rx;
+     }
 
-    const std::string& rx_str() const {
-        return _rx_str;
-    }
+     const std::string& rx_str() const {
+         return _rx_str;
+     }
 
-    Rule& rx(const std::string& rx) {
-        _rx_str = rx;
-        compile_regex();
-        return *this;
-    }
+     Rule& rx(const std::string& rx) {
+         _rx_str = rx;
+         compile_regex();
+         return *this;
+     }
 
-    Rule& icase() {
-        _icase = true;
-        compile_regex();
-        return *this;
-    }
+     Rule& icase() {
+         _icase = true;
+         compile_regex();
+         return *this;
+     }
 
-    const std::string& type() const {
-        return _type;
-    }
+     const std::string& type() const {
+         return _type;
+     }
 
-    Rule& type(const std::string& type) {
-        _type = type;
-        return *this;
-    }
+     Rule& type(const std::string& type) {
+         _type = type;
+         return *this;
+     }
 
-    bool advance() const {
-        return _advance;
-    }
+     bool advance() const {
+         return _advance;
+     }
 
-    Rule& stay() {
-        if (_action != Action::PUSH && _action != Action::POP) {
-            THROW(core::UsageError, "stay() is only allowed on PUSH or POP actions.");
-        }
-        _advance = false;
-        return *this;
-    }
+     Rule& stay() {
+         if (_action != Action::PUSH && _action != Action::POP) {
+             THROW(core::UsageError, "stay() is only allowed on PUSH or POP actions.");
+         }
+         _advance = false;
+         return *this;
+     }
 
-    Grammar::Pointer target() const {
-        if (_target == nullptr) {
-            std::ostringstream sb;
-            sb << "Rule type " << type() << " has no subgrammar target.";
-            THROW(core::UsageError, sb.str());
-        }
-        return _target;
-    }
+     Grammar::Pointer target() const {
+         if (_target == nullptr) {
+             std::ostringstream sb;
+             sb << "Rule type " << type() << " has no subgrammar target.";
+             THROW(core::UsageError, sb.str());
+         }
+         return _target;
+     }
 
-    Rule& target(Grammar::Pointer target) {
-        _target = target;
-        return *this;
-    }
+     Rule& target(Grammar::Pointer target) {
+         _target = target;
+         return *this;
+     }
 
-    friend std::ostream& operator<<(std::ostream& out, const Rule& r) {
-        out << "Rule<";
-        out << (r.type() == "" ? "(no name)" : r.type()) << " ";
-        out << r.action_name() << " ";
-        out << str::literal(r.rx_str());
-        if (r._icase) {
-            out << "i";
-        }
-        out << ">";
-        return out;
-    }
+     friend std::ostream& operator<<(std::ostream& out, const Rule& r) {
+         out << "Rule<";
+         out << (r.type() == "" ? "(no name)" : r.type()) << " ";
+         out << r.action_name() << " ";
+         out << str::literal(r.rx_str());
+         if (r._icase) {
+             out << "i";
+         }
+         out << ">";
+         return out;
+     }
 
-private:
-    void compile_regex() {
-        if (_icase) {
-            _rx = std::regex("^" + _rx_str, std::regex_constants::ECMAScript | std::regex_constants::icase);
-        } else {
-            _rx = std::regex("^" + _rx_str, std::regex_constants::ECMAScript);
-        }
-    }
+ private:
+     void compile_regex() {
+         if (_icase) {
+             _rx = std::regex("^" + _rx_str, std::regex_constants::ECMAScript | std::regex_constants::icase);
+         } else {
+             _rx = std::regex("^" + _rx_str, std::regex_constants::ECMAScript);
+         }
+     }
 
-    const Action _action;
-    bool _icase = false;
-    bool _advance = true;
-    std::regex _rx;
-    std::string _rx_str;
-    std::string _type;
-    Grammar::Pointer _target = nullptr;
+     const Action _action;
+     bool _icase = false;
+     bool _advance = true;
+     std::regex _rx;
+     std::string _rx_str;
+     std::string _type;
+     Grammar::Pointer _target = nullptr;
 };
 
 // ------------------------------------------------------------------
 inline std::ostream& operator<<(std::ostream& out, const Grammar::ScanResult& s) {
     out << "ScanResult<" << s.rule << ", "
-        << s.token.value_or(Token::nothing()) << ", " << s.loc << ">";
+    << s.token.value_or(Token::nothing()) << ", " << s.loc << ">";
     return out;
 }
 
@@ -547,105 +554,104 @@ inline Grammar::ScanResult Grammar::ScanResult::default_push(const Location& loc
 
 // ------------------------------------------------------------------
 class Lexer {
-public:
-    std::vector<Token> lex(Grammar::Pointer grammar,
-                           std::istream& infile) const {
-        return lex(grammar, file::to_string(infile));
-    }
+ public:
+     std::vector<Token> lex(Grammar::Pointer grammar,
+                            std::istream& infile) const {
+         return lex(grammar, file::to_string(infile));
+     }
 
-    void debug_print_tokens(Grammar::Pointer grammar,
-                            std::istream& infile = std::cin) {
-        _debug_print = true;
+     void debug_print_tokens(Grammar::Pointer grammar,
+                             std::istream& infile = std::cin) {
+         _debug_print = true;
 
-        try {
-            auto tokens = lex(grammar, infile);
+         try {
+             auto tokens = lex(grammar, infile);
+         } catch (const NoMatchError& e) {
+             std::cout << "gstack --> " << str::join(e.gstack(), ",") << std::endl;
+             throw e;
+         }
+     }
 
-        } catch (const NoMatchError& e) {
-            std::cout << "gstack --> " << str::join(e.gstack(), ",") << std::endl;
-            throw e;
-        }
-    }
+     std::vector<Token> lex(Grammar::Pointer grammar,
+                            const std::string& content) const {
+         std::vector<Token> tokens;
+         std::stack<Grammar::Pointer> gstack;
+         gstack.push(grammar);
+         Location loc;
 
-    std::vector<Token> lex(Grammar::Pointer grammar,
-                           const std::string& content) const {
-        std::vector<Token> tokens;
-        std::stack<Grammar::Pointer> gstack;
-        gstack.push(grammar);
-        Location loc;
+         auto append_token = [&](const Token& tk) {
+             tokens.push_back(tk);
+             if (_debug_print) {
+                 std::cout << tk << std::endl;
+             }
+         };
 
-        auto append_token = [&](const Token& tk) {
-            tokens.push_back(tk);
-            if (_debug_print) {
-                std::cout << tk << std::endl;
-            }
-        };
+         while (loc.offset < content.size() && !gstack.empty()) {
+             const Grammar::Pointer g = gstack.top();
+             auto result_opt = g->scan(loc, content);
 
-        while (loc.offset < content.size() && !gstack.empty()) {
-            const Grammar::Pointer g = gstack.top();
-            auto result_opt = g->scan(loc, content);
+             if (! result_opt.has_value()) {
+                 if (_throw_on_error) {
+                     THROW(NoMatchError, loc, content[loc.offset], Grammar::gstack_to_strv(gstack));
+                 } else {
+                     break;
+                 }
+             }
 
-            if (! result_opt.has_value()) {
-                if (_throw_on_error) {
-                    THROW(NoMatchError, loc, content[loc.offset], Grammar::gstack_to_strv(gstack));
-                } else {
-                    break;
-                }
-            }
+             auto result = result_opt.value();
 
-            auto result = result_opt.value();
+             switch (result.rule.action()) {
+             case Action::IGNORE:
+                 break;
 
-            switch(result.rule.action()) {
-            case Action::IGNORE:
-                break;
+             case Action::MATCH:
+                 if (! result.token.has_value()) {
+                     std::ostringstream sb;
+                     sb << "Match rule " << result.rule.type()
+                     << " didn't yield a token (at " << loc << ").";
+                     THROW(core::UsageError, sb.str());
+                 }
+                 append_token(result.token.value());
+                 break;
 
-            case Action::MATCH:
-                if (! result.token.has_value()) {
-                    std::ostringstream sb;
-                    sb << "Match rule " << result.rule.type()
-                       << " didn't yield a token (at " << loc << ").";
-                    THROW(core::UsageError, sb.str());
-                }
-                append_token(result.token.value());
-                break;
+             case Action::POP:
+                 if (result.token.has_value()) {
+                     append_token(result.token.value());
+                 }
+                 gstack.pop();
+                 break;
 
-            case Action::POP:
-                if (result.token.has_value()) {
-                    append_token(result.token.value());
-                }
-                gstack.pop();
-                break;
+             case Action::PUSH:
+                 if (result.token.has_value()) {
+                     append_token(result.token.value());
+                 }
+                 gstack.push(result.rule.target());
+                 break;
+             }
 
-            case Action::PUSH:
-                if (result.token.has_value()) {
-                    append_token(result.token.value());
-                }
-                gstack.push(result.rule.target());
-                break;
-            }
+             if (result.rule.advance()) {
+                 loc = result.loc;
+             }
+         }
 
-            if (result.rule.advance()) {
-                loc = result.loc;
-            }
-        }
+         if (loc.offset < content.size() && _throw_on_error) {
+             THROW(UnexpectedEndOfContentError, loc);
+         }
 
-        if (loc.offset < content.size() && _throw_on_error) {
-            THROW(UnexpectedEndOfContentError, loc);
-        }
+         return tokens;
+     }
 
-        return tokens;
-    }
+     Lexer& throw_on_error(bool value) {
+         _throw_on_error = value;
+         return *this;
+     }
 
-    Lexer& throw_on_error(bool value) {
-        _throw_on_error = value;
-        return *this;
-    }
-
-private:
-    bool _debug_print = false;
-    bool _throw_on_error = true;
+ private:
+     bool _debug_print = false;
+     bool _throw_on_error = true;
 };
 
-}
-}
+}  // namespace lex
+}  // namespace moonlight
 
 #endif /* !__LEX_H */
