@@ -7,14 +7,12 @@
  * Distributed under terms of the MIT license.
  */
 
-#include "sole/sole.hpp"
+#include "moonlight/uuid.h"
 #include <iostream>
 
 int main() {
-    auto uuid = sole::uuid4();
-    std::cout << uuid.pretty() << std::endl;
-    std::cout << uuid.str() << std::endl;
-    std::cout << uuid.base62() << std::endl;
-    std::cout << std::hex << uuid.ab << " " << uuid.cd << std::endl;
+    auto gen = moonlight::uuid::Generator();
+    auto uuid = gen();
+    std::cout << uuid << std::endl;
     return 0;
 }

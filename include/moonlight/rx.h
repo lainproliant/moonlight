@@ -7,8 +7,8 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef __RX_H
-#define __RX_H
+#ifndef __MOONLIGHT_RX_H
+#define __MOONLIGHT_RX_H
 
 #include <regex>
 
@@ -68,4 +68,4 @@ inline Capture capture(const std::regex& rx, const std::string& str) {
 }
 }
 
-#endif /* !__RX_H */
+#endif /* !__MOONLIGHT_RX_H */

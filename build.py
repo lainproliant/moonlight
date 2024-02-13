@@ -18,14 +18,21 @@ from xeno.recipes.cxx import ENV, compile
 
 # -------------------------------------------------------------------
 DEPS = [
-    "https://github.com/c42f/tinyformat",
     "https://github.com/HowardHinnant/date",
-    "https://github.com/r-lyeh-archived/sole",
+    "https://github.com/c42f/tinyformat",
+    "https://github.com/mariusbancila/stduuid",
+    "https://github.com/tplgy/cppcodec",
 ]
 
 INTERACTIVE_TESTS = {"ansi"}
 
-INCLUDES = ["-I./include", "-I./deps/date/include", "-I./deps"]
+INCLUDES = [
+    "-I./include",
+    "-I./deps/date/include",
+    "-I./deps",
+    "-I./deps/stduuid/include",
+    "-I./deps/cppcodec",
+]
 
 ENV.update(
     append="CFLAGS,LDFLAGS",
@@ -37,7 +44,7 @@ ENV.update(
         "-DMOONLIGHT_STACKTRACE_IN_DESCRIPTION",
         "--std=c++2a",
     ],
-    LDFLAGS=["-g", "-lpthread"],
+    LDFLAGS=["-g", "-lpthread", "-lutil"],
     PREFIX=os.environ.get("PREFIX", "/usr/local"),
     DESTDIR=os.environ.get("DESTDIR", ""),
 )
