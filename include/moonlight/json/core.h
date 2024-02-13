@@ -10,11 +10,14 @@
 #ifndef __MOONLIGHT_JSON_CORE_H
 #define __MOONLIGHT_JSON_CORE_H
 
+#include <memory>
+#include <map>
+#include <optional>
+#include <string>
+
 #include "moonlight/exceptions.h"
 #include "moonlight/traits.h"
 #include "moonlight/meta.h"
-#include <memory>
-#include <optional>
 
 namespace moonlight {
 namespace json {
@@ -42,74 +45,74 @@ decltype(&T::__json__)>> : public std::true_type { };
 
 //-------------------------------------------------------------------
 class Value {
-public:
-    typedef std::shared_ptr<Value> Pointer;
+ public:
+     typedef std::shared_ptr<Value> Pointer;
 
-    enum class Type {
-        NONE,
-        BOOLEAN,
-        NUMBER,
-        STRING,
-        OBJECT,
-        ARRAY
-    };
+     enum class Type {
+         NONE,
+         BOOLEAN,
+         NUMBER,
+         STRING,
+         OBJECT,
+         ARRAY
+     };
 
-    Value(Type type) : _type(type) { }
-    virtual ~Value() { }
+     explicit Value(Type type) : _type(type) { }
+     virtual ~Value() { }
 
-    Type type() const {
-        return _type;
-    }
+     Type type() const {
+         return _type;
+     }
 
-    const std::string& type_name() const {
-        static const std::map<Type, std::string> TYPE_NAMES = {
-            {Type::NONE, "NONE"},
-            {Type::BOOLEAN, "BOOLEAN"},
-            {Type::NUMBER, "NUMBER"},
-            {Type::STRING, "STRING"},
-            {Type::OBJECT, "OBJECT"},
-            {Type::ARRAY, "ARRAY"}
-        };
+     const std::string& type_name() const {
+         static const std::map<Type, std::string> TYPE_NAMES = {
+             {Type::NONE, "NONE"},
+             {Type::BOOLEAN, "BOOLEAN"},
+             {Type::NUMBER, "NUMBER"},
+             {Type::STRING, "STRING"},
+             {Type::OBJECT, "OBJECT"},
+             {Type::ARRAY, "ARRAY"}
+         };
 
-        return TYPE_NAMES.find(type())->second;
-    }
+         return TYPE_NAMES.find(type())->second;
+     }
 
-    virtual Value::Pointer clone() const = 0;
+     virtual Value::Pointer clone() const = 0;
 
-    template<class T>
-    bool is() const {
-        if (has_dunder_json<T>() || is_map_type<T>()) {
-            return type() == Type::OBJECT;
-        } else if (is_iterable_type<T>()) {
-            return type() == Type::ARRAY;
-        }
-        return false;
-    }
+     template<class T>
+     bool is() const {
+         if (has_dunder_json<T>() || is_map_type<T>()) {
+             return type() == Type::OBJECT;
+         } else if (is_iterable_type<T>()) {
+             return type() == Type::ARRAY;
+         }
+         return false;
+     }
 
-    template<class T>
-    static Value::Pointer of(const T& value) {
-        return _adt_to_json(value);
-    }
+     template<class T>
+     static Value::Pointer of(const T& value) {
+         return _adt_to_json(value);
+     }
 
-    Value::Pointer of(const char* value);
+     Value::Pointer of(const char* value);
 
-    template<class T>
-    T get() const {
-        return _adt_from_json<T>(*this);
-    }
+     template<class T>
+     T get() const {
+         return _adt_from_json<T>(*this);
+     }
 
-    template<class T>
-    T& ref() {
-        static_assert(always_false<T>(), "Value can't be referenced via the given type.");
-    }
+     template<class T>
+     T& ref() {
+         static_assert(always_false<T>(), "Value can't be referenced via the given type.");
+     }
 
-    template<class T>
-    const T& cref() const {
-        static_assert(always_false<T>(), "Value can't be referenced via the given type.");
-    }
+     template<class T>
+     const T& cref() const {
+         static_assert(always_false<T>(), "Value can't be referenced via the given type.");
+     }
 
-private:
-    Type _type;
+ private:
+     Type _type;
 };
 
 template<>
@@ -165,12 +168,12 @@ VALUE_REF(Value);
 
 //-------------------------------------------------------------------
 class Null : public Value {
-public:
-    Null() : Value(Type::NONE) { }
+ public:
+     Null() : Value(Type::NONE) { }
 
-    Value::Pointer clone() const override {
-        return std::make_shared<Null>();
-    }
+     Value::Pointer clone() const override {
+         return std::make_shared<Null>();
+     }
 };
 
 VALUE_IS(Null, Type::NONE);
@@ -180,27 +183,27 @@ VALUE_REF(Null);
 
 //-------------------------------------------------------------------
 class Boolean : public Value {
-public:
-    Boolean(bool value) : Value(Type::BOOLEAN), _value(value) { }
-    Boolean() : Boolean(false) { }
+ public:
+     explicit Boolean(bool value) : Value(Type::BOOLEAN), _value(value) { }
+     Boolean() : Boolean(false) { }
 
-    template<class T>
-    T value() const {
-        return static_cast<T>(_value);
-    }
+     template<class T>
+     T value() const {
+         return static_cast<T>(_value);
+     }
 
-    template<class T>
-    Boolean& set(T value) {
-        _value = static_cast<bool>(value);
-        return *this;
-    }
+     template<class T>
+     Boolean& set(T value) {
+         _value = static_cast<bool>(value);
+         return *this;
+     }
 
-    Value::Pointer clone() const override {
-        return std::make_shared<Boolean>(_value);
-    }
+     Value::Pointer clone() const override {
+         return std::make_shared<Boolean>(_value);
+     }
 
-private:
-    bool _value;
+ private:
+     bool _value;
 };
 
 VALUE_IS(Boolean, Type::BOOLEAN);
@@ -211,27 +214,27 @@ VALUE_REF(Boolean);
 
 //-------------------------------------------------------------------
 class Number : public Value {
-public:
-    Number(double value) : Value(Type::NUMBER), _value(value) { }
-    Number() : Number(0.0) { }
+ public:
+     explicit Number(double value) : Value(Type::NUMBER), _value(value) { }
+     Number() : Number(0.0) { }
 
-    template<class T>
-    T value() const {
-        return static_cast<T>(_value);
-    }
+     template<class T>
+     T value() const {
+         return static_cast<T>(_value);
+     }
 
-    template<class T>
-    Number& set(T value) {
-        _value = static_cast<double>(value);
-        return *this;
-    }
+     template<class T>
+     Number& set(T value) {
+         _value = static_cast<double>(value);
+         return *this;
+     }
 
-    Value::Pointer clone() const override {
-        return std::make_shared<Number>(_value);
-    }
+     Value::Pointer clone() const override {
+         return std::make_shared<Number>(_value);
+     }
 
-private:
-    double _value;
+ private:
+     double _value;
 };
 
 VALUE_IS(Number, Type::NUMBER);
@@ -252,27 +255,27 @@ VALUE_REF(Number);
 
 //-------------------------------------------------------------------
 class String : public Value {
-public:
-    String(const std::string& str) : Value(Type::STRING), _str(str) { }
-    String(const char* str) : String(std::string(str)) { }
-    String() : String("") { }
+ public:
+     explicit String(const std::string& str) : Value(Type::STRING), _str(str) { }
+     explicit String(const char* str) : String(std::string(str)) { }
+     String() : String("") { }
 
-    template<class T>
-    const std::string& value() const {
-        static_assert(always_false<T>(), "Value can't be extracted to a string.");
-    }
+     template<class T>
+     const std::string& value() const {
+         static_assert(always_false<T>(), "Value can't be extracted to a string.");
+     }
 
-    String& set(const std::string& str) {
-        _str = str;
-        return *this;
-    }
+     String& set(const std::string& str) {
+         _str = str;
+         return *this;
+     }
 
-    Value::Pointer clone() const override {
-        return std::make_shared<String>(_str);
-    }
+     Value::Pointer clone() const override {
+         return std::make_shared<String>(_str);
+     }
 
-private:
-    std::string _str;
+ private:
+     std::string _str;
 };
 
 template<>
@@ -291,8 +294,8 @@ inline Value::Pointer Value::of(const char* value) {
     return String(value).clone();
 }
 
-}
-}
+}  // namespace json
+}  // namespace moonlight
 
 
 

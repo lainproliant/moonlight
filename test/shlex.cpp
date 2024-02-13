@@ -35,7 +35,8 @@ int main() {
         ASSERT_EQUAL(split.size(), (size_t)3);
 
         auto joined_again = shlex::join(result);
-        ASSERT_EQUAL(joined_again, std::string("\'banana cream \"\" \'\"\'\"\'pie\'\"\'\"\'\' oranges \'pineapple \n\n\'"));
+        ASSERT_EQUAL(joined_again, std::string(
+                "\'banana cream \"\" \'\"\'\"\'pie\'\"\'\"\'\' oranges \'pineapple \n\n\'"));
 
         auto split_again = shlex::split(joined_again);
         ASSERT_EQUAL(split.size(), (size_t)3);

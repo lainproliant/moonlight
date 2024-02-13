@@ -52,18 +52,18 @@ namespace core {
  * }
  */
 class Finalizer {
-public:
-	Finalizer(std::function<void()> closure) : closure(closure) { }
-	virtual ~Finalizer() {
-		closure();
-	}
+ public:
+     explicit Finalizer(std::function<void()> closure) : closure(closure) { }
+     virtual ~Finalizer() {
+         closure();
+     }
 
-private:
-	std::function<void()> closure;
+ private:
+     std::function<void()> closure;
 };
 
-}
-}
+}  // namespace core
+}  // namespace moonlight
 
 
 #endif /* !__MOONLIGHT_FINALLY_H */

@@ -15,6 +15,14 @@
 #include <condition_variable>
 #include <future>
 #include <optional>
+#include <memory>
+#include <set>
+#include <utility>
+#include <unordered_map>
+#include <string>
+#include <vector>
+#include <algorithm>
+
 #include "moonlight/exceptions.h"
 #include "moonlight/variadic.h"
 
@@ -34,88 +42,79 @@ using Generator = std::function<std::optional<T>()>;
  */
 template<class T>
 class Iterator {
-public:
-    typedef Generator<T> Closure;
+ public:
+     typedef Generator<T> Closure;
 
-    using iterator_category = std::input_iterator_tag;
-    using difference_type = ptrdiff_t;
-    using value_type = T;
-    using pointer = const T*;
-    using reference = const T&;
+     using iterator_category = std::input_iterator_tag;
+     using difference_type = ptrdiff_t;
+     using value_type = T;
+     using pointer = const T*;
+     using reference = const T&;
 
-    Iterator() : _position(-1), _value({}) { }
-    Iterator(const Closure& closure) : _closure(closure), _value(_closure()) {
-        if (! _value.has_value()) {
-            _position = -1;
-        }
-    }
-    Iterator(const Iterator& iter)
-    : _closure(iter._closure), _position(iter._position), _value(iter._value) { }
+     Iterator() : _position(-1), _value({}) { }
+     Iterator(const Closure& closure) : _closure(closure), _value(_closure()) {
+         if (! _value.has_value()) {
+             _position = -1;
+         }
+     }
+     Iterator(const Iterator& iter)
+     : _closure(iter._closure), _position(iter._position), _value(iter._value) { }
 
-    Iterator<T>& operator++() {
-        if (_value.has_value()) {
-            auto new_value = _closure();
-            if (new_value.has_value()) {
-                _value.emplace(new_value.value());
-                _position ++;
-            } else {
-                _value.reset();
-                _position = -1;
-            }
-        }
-        return *this;
-    }
+     Iterator<T>& operator++() {
+         if (_value.has_value()) {
+             auto new_value = _closure();
+             if (new_value.has_value()) {
+                 _value.emplace(new_value.value());
+                 _position ++;
+             } else {
+                 _value.reset();
+                 _position = -1;
+             }
+         }
+         return *this;
+     }
 
-    Iterator<T> operator++(int) {
-        Iterator iter(*this);
-        ++(*this);
-        return iter;
-    }
+     Iterator<T> operator++(int) {
+         Iterator iter(*this);
+         ++(*this);
+         return iter;
+     }
 
-    Iterator<T> advance(const int distance) {
-        auto iter = *this;
-        for (int x = 0; x < distance && iter != gen::Iterator<T>(); x++, iter++);
-        return iter;
-    }
+     Iterator<T> advance(const int distance) {
+         auto iter = *this;
+         for (int x = 0; x < distance && iter != gen::Iterator<T>(); x++, iter++) { }
+         return iter;
+     }
 
-    bool operator==(const Iterator<T>& other) const {
-        return (_position == -1 && other._position == -1) ||
-        (&_closure == &other._closure && _position == other._position);
-    }
+     bool operator==(const Iterator<T>& other) const {
+         return (_position == -1 && other._position == -1) ||
+         (&_closure == &other._closure && _position == other._position);
+     }
 
-    bool operator==(Iterator<T>& other) const {
-        return (_position == -1 && other._position == -1) ||
-        (&_closure == &other._closure && _position == other._position);
-    }
+     bool operator!=(const Iterator<T>& other) const {
+         return !(*this == other);
+     }
 
-    bool operator!=(const Iterator<T>& other) const {
-        return !(*this == other);
-    }
+     int position() const {
+         return _position;
+     }
 
-    bool operator!=(Iterator<T>& other) const {
-        return !(*this == other);
-    }
+     const T& operator*() {
+         if (_value.has_value()) {
+             return *_value;
+         } else {
+             THROW(core::UsageError, "Attempted to dereference past the end of the sequence.");
+         }
+     }
 
-    int position() const {
-        return _position;
-    }
+     const T* operator->() {
+         return &(operator*());
+     }
 
-    const T& operator*() {
-        if (_value.has_value()) {
-            return *_value;
-        } else {
-            THROW(core::UsageError, "Attempted to dereference past the end of the sequence.");
-        }
-    }
-
-    const T* operator->() {
-        return &(operator*());
-    }
-
-private:
-    Closure _closure;
-    int _position = 0;
-    std::optional<T> _value;
+ private:
+     Closure _closure;
+     int _position = 0;
+     std::optional<T> _value;
 };
 
 /**
@@ -125,76 +124,76 @@ private:
  */
 template<class T>
 class Queue {
-public:
-    typedef std::future<std::optional<T>> Future;
-    typedef std::function<void(const T&)> Handler;
+ public:
+     typedef std::future<std::optional<T>> Future;
+     typedef std::function<void(const T&)> Handler;
 
-    // Indicates that the generator has no more results to provide.
-    void complete() {
-        std::unique_lock<std::mutex> lock(_mutex);
-        _completed = true;
-        lock.unlock();
-        _cv.notify_all();
-    }
+     // Indicates that the generator has no more results to provide.
+     void complete() {
+         std::unique_lock<std::mutex> lock(_mutex);
+         _completed = true;
+         lock.unlock();
+         _cv.notify_all();
+     }
 
-    // Called by the generator to yield a result into the queue.
-    void yield(const T& value) {
-        std::unique_lock<std::mutex> lock(_mutex);
-        _yielded_items.push_back(value);
-        lock.unlock();
-        _cv.notify_one();
-    }
+     // Called by the generator to yield a result into the queue.
+     void yield(const T& value) {
+         std::unique_lock<std::mutex> lock(_mutex);
+         _yielded_items.push_back(value);
+         lock.unlock();
+         _cv.notify_one();
+     }
 
-    // Called by the consumer to get the next result from the queue.
-    // Blocks until a result is provided, and may return an empty
-    // optional if the generator completes after this method is
-    // called on another thread and there are no more results to
-    // consume.
-    std::optional<T> next() {
-        std::unique_lock<std::mutex> lock(_mutex);
-        _cv.wait(lock, [&]{ return _yielded_items.empty() || _completed; });
+     // Called by the consumer to get the next result from the queue.
+     // Blocks until a result is provided, and may return an empty
+     // optional if the generator completes after this method is
+     // called on another thread and there are no more results to
+     // consume.
+     std::optional<T> next() {
+         std::unique_lock<std::mutex> lock(_mutex);
+         _cv.wait(lock, [&]{ return _yielded_items.empty() || _completed; });
 
-        if (_yielded_items.empty() && _completed) {
-            return {};
-        }
+         if (_yielded_items.empty() && _completed) {
+             return {};
+         }
 
-        T value = _yielded_items.front();
-        _yielded_items.pop_front();
-        return value;
-    }
+         T value = _yielded_items.front();
+         _yielded_items.pop_front();
+         return value;
+     }
 
-    // See above, simply wraps the blocking behavior of `next()`
-    // in an async future.
-    Future async_next() {
-        return std::async(std::launch::async, [&] {
-            return this->next();
-        });
-    }
+     // See above, simply wraps the blocking behavior of `next()`
+     // in an async future.
+     Future async_next() {
+         return std::async(std::launch::async, [&] {
+             return this->next();
+         });
+     }
 
-    // Block until all values from the generator have been consumed
-    // and handled by the given handler callback.
-    void process(Handler handler) {
-        std::optional<T> value;
-        while (value = this->next(), value) {
-            handler(*value);
-        }
-    }
+     // Block until all values from the generator have been consumed
+     // and handled by the given handler callback.
+     void process(Handler handler) {
+         std::optional<T> value;
+         while (value = this->next(), value) {
+             handler(*value);
+         }
+     }
 
-    // Wraps the above `process()` behavior in an async future.
-    std::future<void> process_async(Handler handler) {
-        return std::async(std::launch::async, [&] {
-            std::optional<T> value;
-            while (value = this->next(), value) {
-                handler(*value);
-            }
-        });
-    }
+     // Wraps the above `process()` behavior in an async future.
+     std::future<void> process_async(Handler handler) {
+         return std::async(std::launch::async, [&] {
+             std::optional<T> value;
+             while (value = this->next(), value) {
+                 handler(*value);
+             }
+         });
+     }
 
-private:
-    std::deque<T> _yielded_items;
-    std::mutex _mutex;
-    std::condition_variable _cv;
-    bool _completed = false;
+ private:
+     std::deque<T> _yielded_items;
+     std::mutex _mutex;
+     std::condition_variable _cv;
+     bool _completed = false;
 };
 
 /**
@@ -276,427 +275,427 @@ Iterator<typename I::value_type> wrap(I begin_in, I end_in) {
  */
 template<class T>
 class Stream {
-public:
-    Stream() : _begin(gen::end<T>()) { }
-    Stream(const gen::Iterator<T>& begin) : _begin(begin) { }
-    Stream(const Generator<T>& generator) : _begin(generator) { }
-    Stream(const Stream<T>& stream) : _begin(stream._begin) { }
+ public:
+     Stream() : _begin(gen::end<T>()) { }
+     Stream(const gen::Iterator<T>& begin) : _begin(begin) { }
+     Stream(const Generator<T>& generator) : _begin(generator) { }
+     Stream(const Stream<T>& stream) : _begin(stream._begin) { }
 
-    typedef T value_type;
+     typedef T value_type;
 
-    typedef std::function<Stream<T>()> Factory;
+     typedef std::function<Stream<T>()> Factory;
 
-    /**
-     * Lazily generates a stream from the given Factory function.
-     */
-    static gen::Stream<T> lazy(const Factory& f);
+     /**
+      * Lazily generates a stream from the given Factory function.
+      */
+     static gen::Stream<T> lazy(const Factory& f);
 
-    /**
-     * Creates a stream consisting of one value.
-     */
-    static gen::Stream<T> singleton(const T& value);
+     /**
+      * Creates a stream consisting of one value.
+      */
+     static gen::Stream<T> singleton(const T& value);
 
-    /**
-     * Creates a stream consisting of a single value result of a nullary
-     * function call, which isn't evaluated until the stream is read.
-     */
-    static gen::Stream<T> lazy_singleton(std::function<T()> f);
+     /**
+      * Creates a stream consisting of a single value result of a nullary
+      * function call, which isn't evaluated until the stream is read.
+      */
+     static gen::Stream<T> lazy_singleton(std::function<T()> f);
 
-    /**
-     * Creates an empty stream.
-     */
-    static gen::Stream<T> empty();
+     /**
+      * Creates an empty stream.
+      */
+     static gen::Stream<T> empty();
 
-    /**
-     * The beginning of the Stream's virtual range.
-     */
-    gen::Iterator<T> begin() const {
-        return _begin;
-    }
+     /**
+      * The beginning of the Stream's virtual range.
+      */
+     gen::Iterator<T> begin() const {
+         return _begin;
+     }
 
-    /**
-     * The end of the Stream's virtual range.
-     */
-    gen::Iterator<T> end() const {
-        return gen::end<T>();
-    }
+     /**
+      * The end of the Stream's virtual range.
+      */
+     gen::Iterator<T> end() const {
+         return gen::end<T>();
+     }
 
-    /**
-     * Concatenate two streams together into one.
-     */
-    gen::Stream<T> operator+(const Stream<T>& other) const {
-        gen::Iterator<T> iter = gen::end<T>();
-        int mode = 0;
+     /**
+      * Concatenate two streams together into one.
+      */
+     gen::Stream<T> operator+(const Stream<T>& other) const {
+         gen::Iterator<T> iter = gen::end<T>();
+         int mode = 0;
 
-        return gen::Stream<T>([=, this]() mutable -> std::optional<T> {
-            while (iter == gen::end<T>() && mode < 2) {
-                if (mode == 1) {
-                    iter = other.begin();
-                } else {
-                    iter = begin();
-                }
-                mode++;
-            }
+         return gen::Stream<T>([=, this]() mutable -> std::optional<T> {
+             while (iter == gen::end<T>() && mode < 2) {
+                 if (mode == 1) {
+                     iter = other.begin();
+                 } else {
+                     iter = begin();
+                 }
+                 mode++;
+             }
 
-            if (iter == gen::end<T>()) {
-                return {};
-            }
+             if (iter == gen::end<T>()) {
+                 return {};
+             }
 
-            return *(iter ++);
-        });
-    }
+             return *(iter ++);
+         });
+     }
 
-    gen::Stream<T>& operator+=(const Stream<T>& other) {
-        auto combined = *(this) + other;
-        _begin = combined._begin;
-        return *this;
-    }
+     gen::Stream<T>& operator+=(const Stream<T>& other) {
+         auto combined = *(this) + other;
+         _begin = combined._begin;
+         return *this;
+     }
 
-    /**
-     * Advance the stream forward n items, effectively skipping n items.
-     */
-    gen::Stream<T> advance(int n) {
-        return gen::Stream<T>(begin().advance(n));
-    }
+     /**
+      * Advance the stream forward n items, effectively skipping n items.
+      */
+     gen::Stream<T> advance(int n) {
+         return gen::Stream<T>(begin().advance(n));
+     }
 
-    /**
-     * Trim `n` items off of the left off of the virtual range.
-     */
-    gen::Stream<T> trim_left(unsigned int n);
+     /**
+      * Trim `n` items off of the left off of the virtual range.
+      */
+     gen::Stream<T> trim_left(unsigned int n);
 
-    /**
-     * Trim `n` items off of the right of the virtual range.
-     *
-     * NOTE: right trimming requires the use of a buffer the size of the right
-     * trim amount, since virtual ranges are of unknown length.
-     */
-    gen::Stream<T> trim_right(unsigned int n);
+     /**
+      * Trim `n` items off of the right of the virtual range.
+      *
+      * NOTE: right trimming requires the use of a buffer the size of the right
+      * trim amount, since virtual ranges are of unknown length.
+      */
+     gen::Stream<T> trim_right(unsigned int n);
 
-    /**
-     * Trim `left` items off of the left and `right` items off of the right
-     * of the virtual range and stream the rest into a new Stream.
-     *
-     * NOTE: right trimming requires the use of a buffer the size of the right
-     * trim amount, since virtual ranges are of unknown length.
-     */
-    gen::Stream<T> trim(unsigned int left, unsigned int right);
+     /**
+      * Trim `left` items off of the left and `right` items off of the right
+      * of the virtual range and stream the rest into a new Stream.
+      *
+      * NOTE: right trimming requires the use of a buffer the size of the right
+      * trim amount, since virtual ranges are of unknown length.
+      */
+     gen::Stream<T> trim(unsigned int left, unsigned int right);
 
-    /**
-     * Buffer the stream `bufsize` items forward.  The resulting stream elements are all
-     * references into the Buffer, with each step shifting the buffer forward one element.
-     *
-     * @param bufsize The size of the buffer.
-     * @param squash Determines how to behave at the end of the scalar sequence.
-     *      If `true`, items are removed from the beginning of the buffer each step until
-     *      it is empty.  The buffer is allowed to be smaller than `bufsize`.
-     *      If `false` (the default), the buffered sequence ends when the scalar sequence
-     *      ends.  The buffer is not allowed to be smaller than `bufsize`, thus if the
-     *      scalar sequence is smaller than `bufsize`, the stream is empty.
-     */
-    gen::Stream<std::reference_wrapper<Buffer<T>>> buffer(unsigned int bufsize, bool squash = false);
+     /**
+      * Buffer the stream `bufsize` items forward.  The resulting stream elements are all
+      * references into the Buffer, with each step shifting the buffer forward one element.
+      *
+      * @param bufsize The size of the buffer.
+      * @param squash Determines how to behave at the end of the scalar sequence.
+      *      If `true`, items are removed from the beginning of the buffer each step until
+      *      it is empty.  The buffer is allowed to be smaller than `bufsize`.
+      *      If `false` (the default), the buffered sequence ends when the scalar sequence
+      *      ends.  The buffer is not allowed to be smaller than `bufsize`, thus if the
+      *      scalar sequence is smaller than `bufsize`, the stream is empty.
+      */
+     gen::Stream<std::reference_wrapper<Buffer<T>>> buffer(unsigned int bufsize, bool squash = false);
 
-    /**
-     * Scans to the last item of the stream and returns it.
-     * If the stream is empty, nothing is returned.
-     */
-    std::optional<T> last() {
-        std::optional<T> last_item = {};
+     /**
+      * Scans to the last item of the stream and returns it.
+      * If the stream is empty, nothing is returned.
+      */
+     std::optional<T> last() {
+         std::optional<T> last_item = {};
 
-        for (auto value : *this) {
-            last_item = value;
-        }
+         for (auto value : *this) {
+             last_item = value;
+         }
 
-        return last_item;
-    }
+         return last_item;
+     }
 
-    /**
-     * Streams only the first `n` elements of this stream.
-     */
-    gen::Stream<T> limit(int n) {
-        int offset = 0;
-        auto iter = begin();
+     /**
+      * Streams only the first `n` elements of this stream.
+      */
+     gen::Stream<T> limit(int n) {
+         int offset = 0;
+         auto iter = begin();
 
-        return gen::Stream<T>([=]() mutable -> std::optional<T> {
-            if (offset < n && iter != gen::end<T>()) {
-                offset++;
-                return *iter++;
-            }
-            return {};
-        });
-    }
+         return gen::Stream<T>([=]() mutable -> std::optional<T> {
+             if (offset < n && iter != gen::end<T>()) {
+                 offset++;
+                 return *iter++;
+             }
+             return {};
+         });
+     }
 
-    /**
-     * Sort all of the elements in ths stream, then stream from the resulting
-     * sorted collection.
-     */
-    gen::Stream<T> sorted() const {
-        std::optional<std::deque<T>> lazy_sorted = {};
+     /**
+      * Sort all of the elements in ths stream, then stream from the resulting
+      * sorted collection.
+      */
+     gen::Stream<T> sorted() const {
+         std::optional<std::deque<T>> lazy_sorted = {};
 
-        return gen::Stream<T>([=, this]() mutable -> std::optional<T> {
-            if (! lazy_sorted.has_value()) {
-                lazy_sorted = std::deque<T>();
-                std::copy(begin(), end(), std::back_inserter(*lazy_sorted));
-                std::sort(lazy_sorted->begin(), lazy_sorted->end());
-            }
+         return gen::Stream<T>([=, this]() mutable -> std::optional<T> {
+             if (! lazy_sorted.has_value()) {
+                 lazy_sorted = std::deque<T>();
+                 std::copy(begin(), end(), std::back_inserter(*lazy_sorted));
+                 std::sort(lazy_sorted->begin(), lazy_sorted->end());
+             }
 
-            if (! lazy_sorted->empty()) {
-                auto value = lazy_sorted->front();
-                lazy_sorted->pop_front();
-                return value;
-            } else {
-                return {};
-            }
-        });
-    }
+             if (! lazy_sorted->empty()) {
+                 auto value = lazy_sorted->front();
+                 lazy_sorted->pop_front();
+                 return value;
+             } else {
+                 return {};
+             }
+         });
+     }
 
-    /**
-     * Streams a new stream of streams resulting from applying the function `f` to each
-     * element in this stream, where `f` generates a stream of results for each element.
-     */
-    template<class R>
-    gen::Stream<gen::Stream<R>> transform_split(std::function<gen::Stream<R>(const T&)> f) const {
-        Iterator<T> iter = begin();
+     /**
+      * Streams a new stream of streams resulting from applying the function `f` to each
+      * element in this stream, where `f` generates a stream of results for each element.
+      */
+     template<class R>
+     gen::Stream<gen::Stream<R>> transform_split(std::function<gen::Stream<R>(const T&)> f) const {
+         Iterator<T> iter = begin();
 
-        return gen::Stream<gen::Stream<R>>([=, this]() mutable -> std::optional<gen::Stream<R>> {
-            if (iter == end()) {
-                return {};
-            }
-            return f(*iter++);
-        });
-    }
+         return gen::Stream<gen::Stream<R>>([=, this]() mutable -> std::optional<gen::Stream<R>> {
+             if (iter == end()) {
+                 return {};
+             }
+             return f(*iter++);
+         });
+     }
 
-    /**
-     * Streams a new stream of streams resulting from applying the function `f` to each
-     * element in this stream, where `f` generates a stream of results for each element.
-     */
-    gen::Stream<gen::Stream<T>> transform_split(std::function<gen::Stream<T>(const T&)> f) const {
-        return transform_split<T>(f);
-    }
+     /**
+      * Streams a new stream of streams resulting from applying the function `f` to each
+      * element in this stream, where `f` generates a stream of results for each element.
+      */
+     gen::Stream<gen::Stream<T>> transform_split(std::function<gen::Stream<T>(const T&)> f) const {
+         return transform_split<T>(f);
+     }
 
-    /**
-     * Transform each element in the stream using the given function.
-     * Items for which the function returns an empty optional are skipped.
-     */
-    template<class R = T>
-    gen::Stream<R> transform(std::function<std::optional<R>(const T&)> f) const {
-        auto iter = begin();
-        std::optional<R> result;
+     /**
+      * Transform each element in the stream using the given function.
+      * Items for which the function returns an empty optional are skipped.
+      */
+     template<class R = T>
+     gen::Stream<R> transform(std::function<std::optional<R>(const T&)> f) const {
+         auto iter = begin();
+         std::optional<R> result;
 
-        return gen::Stream<R>([=, this]() mutable -> std::optional<R> {
-            while (iter != end()) {
-                result = f(*iter);
-                iter++;
-                if (result.has_value()) {
-                    return result.value();
-                }
-            }
-            return {};
-        });
-    }
+         return gen::Stream<R>([=, this]() mutable -> std::optional<R> {
+             while (iter != end()) {
+                 result = f(*iter);
+                 iter++;
+                 if (result.has_value()) {
+                     return result.value();
+                 }
+             }
+             return {};
+         });
+     }
 
-    /**
-     * Call the given function for each element in the stream, or until
-     * the given function returns `false` to indicate the loop should
-     * be terminated early.
-     */
-    void for_each(std::function<bool (const T&)> f) const {
-        auto iter = begin();
+     /**
+      * Call the given function for each element in the stream, or until
+      * the given function returns `false` to indicate the loop should
+      * be terminated early.
+      */
+     void for_each(std::function<bool(const T&)> f) const {
+         auto iter = begin();
 
-        for (auto iter = begin(); iter != end(); iter++) {
-            if (! f(*iter)) {
-                break;
-            }
-        }
-    }
+         for (auto iter = begin(); iter != end(); iter++) {
+             if (! f(*iter)) {
+                 break;
+             }
+         }
+     }
 
-    /**
-     * Call the given function for each element in the stream.
-     */
-    void for_each(std::function<void (const T&)> f) const {
-        for (auto iter = begin(); iter != end(); iter++) {
-            f(*iter);
-        }
-    }
+     /**
+      * Call the given function for each element in the stream.
+      */
+     void for_each(std::function<void(const T&)> f) const {
+         for (auto iter = begin(); iter != end(); iter++) {
+             f(*iter);
+         }
+     }
 
-    /**
-     * Transform each element in the stream using the given function.
-     */
-    template<class R = T>
-    gen::Stream<R> transform(std::function<R(const T&)> f) const {
-        return transform<R>([=](const T& value) -> std::optional<T> {
-            return f(value);
-        });
-    }
+     /**
+      * Transform each element in the stream using the given function.
+      */
+     template<class R = T>
+     gen::Stream<R> transform(std::function<R(const T&)> f) const {
+         return transform<R>([=](const T& value) -> std::optional<T> {
+             return f(value);
+         });
+     }
 
-    /**
-     * Create a new stream containing only items in this stream which match
-     * the predicate.
-     */
-    gen::Stream<T> filter(std::function<bool(const T&)> predicate) const {
-        return transform<T>([=](const T& value) -> std::optional<T> {
-            if (predicate(value)) {
-                return value;
-            }
-            return {};
-        });
-    }
+     /**
+      * Create a new stream containing only items in this stream which match
+      * the predicate.
+      */
+     gen::Stream<T> filter(std::function<bool(const T&)> predicate) const {
+         return transform<T>([=](const T& value) -> std::optional<T> {
+             if (predicate(value)) {
+                 return value;
+             }
+             return {};
+         });
+     }
 
-    /**
-     * Returns distinct items only once in the stream.
-     */
-    gen::Stream<T> unique() const {
-        std::set<T> sieve = {};
-        Iterator<T> iter = begin();
+     /**
+      * Returns distinct items only once in the stream.
+      */
+     gen::Stream<T> unique() const {
+         std::set<T> sieve = {};
+         Iterator<T> iter = begin();
 
-        return gen::Stream<T>([=, this]() mutable -> std::optional<T> {
-            while(iter != end() && sieve.find(*iter) != sieve.end()) {
-                iter++;
-            }
+         return gen::Stream<T>([=, this]() mutable -> std::optional<T> {
+             while (iter != end() && sieve.find(*iter) != sieve.end()) {
+                 iter++;
+             }
 
-            if (iter == end()) {
-                return {};
-            }
+             if (iter == end()) {
+                 return {};
+             }
 
-            sieve.insert(*iter);
-            return *iter++;
-        });
-    }
+             sieve.insert(*iter);
+             return *iter++;
+         });
+     }
 
-    /**
-     * Collects all of the items in the stream into a new collection (std::vector by default).
-     */
-    template<template<class, class> class C = std::vector, template<class> class A = std::allocator>
-    C<T, A<T>> collect() const {
-        C<T, A<T>> result;
-        result.insert(result.begin(), begin(), end());
-        return result;
-    }
+     /**
+      * Collects all of the items in the stream into a new collection (std::vector by default).
+      */
+     template<template<class, class> class C = std::vector, template<class> class A = std::allocator>
+     C<T, A<T>> collect() const {
+         C<T, A<T>> result;
+         result.insert(result.begin(), begin(), end());
+         return result;
+     }
 
-    /**
-     * Collects all of the pairs from a stream into a mapped collection.
-     */
-    template<class M>
-    M map_collect(std::function<std::pair<typename M::key_type, typename M::mapped_type>(const T& value)> f) const {
-        M map;
-        for (auto iter = begin(); iter != end(); iter++) {
-            map.insert(f(*iter));
-        }
-        return map;
-    }
+     /**
+      * Collects all of the pairs from a stream into a mapped collection.
+      */
+     template<class M>
+     M map_collect(std::function<std::pair<typename M::key_type, typename M::mapped_type>(const T& value)> f) const {
+         M map;
+         for (auto iter = begin(); iter != end(); iter++) {
+             map.insert(f(*iter));
+         }
+         return map;
+     }
 
-    template<class K, class V>
-    std::unordered_map<K, V> map_collect(std::function<std::pair<K, V>(const T&)> f) const {
-        return map_collect<std::unordered_map<K, V>>(f);
-    }
+     template<class K, class V>
+     std::unordered_map<K, V> map_collect(std::function<std::pair<K, V>(const T&)> f) const {
+         return map_collect<std::unordered_map<K, V>>(f);
+     }
 
-    /**
-     * Collects all of the items in the stream into an std::vector.
-     */
-    std::vector<T> collect() const {
-        return collect<std::vector>();
-    }
+     /**
+      * Collects all of the items in the stream into an std::vector.
+      */
+     std::vector<T> collect() const {
+         return collect<std::vector>();
+     }
 
-    /**
-     * Determine if all of the items in the sequence match a predicate.
-     */
-    bool all(std::function<bool(const T&)> f) const {
-        for (auto iter = begin(); iter != end(); iter++) {
-            if (! f(*iter)) {
-                return false;
-            }
-        }
+     /**
+      * Determine if all of the items in the sequence match a predicate.
+      */
+     bool all(std::function<bool(const T&)> f) const {
+         for (auto iter = begin(); iter != end(); iter++) {
+             if (! f(*iter)) {
+                 return false;
+             }
+         }
 
-        return true;
-    }
+         return true;
+     }
 
-    /**
-     * Determine if any of the items in the sequence match a predicate.
-     */
-    bool any(std::function<bool(const T&)> f) const {
-        for (auto iter = begin(); iter != end(); iter++) {
-            if (f(*iter)) {
-                return true;
-            }
-        }
+     /**
+      * Determine if any of the items in the sequence match a predicate.
+      */
+     bool any(std::function<bool(const T&)> f) const {
+         for (auto iter = begin(); iter != end(); iter++) {
+             if (f(*iter)) {
+                 return true;
+             }
+         }
 
-        return false;
-    }
+         return false;
+     }
 
-    /**
-     * Determine if none of the items in the sequence match a predicate.
-     */
-    bool none(std::function<bool(const T&)> f) const {
-        for (auto iter = begin(); iter != end(); iter++) {
-            if (f(*iter)) {
-                return false;
-            }
-        }
+     /**
+      * Determine if none of the items in the sequence match a predicate.
+      */
+     bool none(std::function<bool(const T&)> f) const {
+         for (auto iter = begin(); iter != end(); iter++) {
+             if (f(*iter)) {
+                 return false;
+             }
+         }
 
-        return true;
-    }
+         return true;
+     }
 
-    /**
-     * Reduce the items in the sequence to a single value.
-     */
-    template<class R = T>
-    R reduce(std::function<R(const R& acc, const T& value)> f, const R& init = R()) {
-        R acc = init;
-        for (auto iter = begin(); iter != end(); iter++) {
-            acc = f(acc, *iter);
-        }
-        return acc;
-    }
+     /**
+      * Reduce the items in the sequence to a single value.
+      */
+     template<class R = T>
+     R reduce(std::function<R(const R& acc, const T& value)> f, const R& init = R()) {
+         R acc = init;
+         for (auto iter = begin(); iter != end(); iter++) {
+             acc = f(acc, *iter);
+         }
+         return acc;
+     }
 
-    /**
-     * Produce the sum of all of the items in the sequence.
-     */
-    template<class R = T>
-    R sum() {
-        return reduce<R>([](const R& acc, const T& value) {
-            return acc + value;
-        });
-    }
+     /**
+      * Produce the sum of all of the items in the sequence.
+      */
+     template<class R = T>
+     R sum() {
+         return reduce<R>([](const R& acc, const T& value) {
+             return acc + value;
+         });
+     }
 
-    /**
-     * Joins all of the items in the stream, as strings, with the given separator.
-     */
-    std::string join(const std::string& sep) {
-        std::ostringstream sb;
-        for (auto iter = begin(); iter != end(); iter++) {
-            sb << *iter;
-            if (std::next(iter) != end()) {
-                sb << sep;
-            }
-        }
-        return sb.str();
-    }
+     /**
+      * Joins all of the items in the stream, as strings, with the given separator.
+      */
+     std::string join(const std::string& sep) {
+         std::ostringstream sb;
+         for (auto iter = begin(); iter != end(); iter++) {
+             sb << *iter;
+             if (std::next(iter) != end()) {
+                 sb << sep;
+             }
+         }
+         return sb.str();
+     }
 
-    /**
-     * Determine if the stream is currently empty.
-     */
-    bool is_empty() const {
-        return _begin() == gen::end<T>();
-    }
+     /**
+      * Determine if the stream is currently empty.
+      */
+     bool is_empty() const {
+         return _begin() == gen::end<T>();
+     }
 
-protected:
-    void init(const gen::Iterator<T>& begin) {
-        _begin = begin;
-    }
+ protected:
+     void init(const gen::Iterator<T>& begin) {
+         _begin = begin;
+     }
 
-private:
-    gen::Iterator<T> _begin;
+ private:
+     gen::Iterator<T> _begin;
 };
 
 template<class T>
 class InitListStream : public Stream<T> {
-public:
-    InitListStream(const std::initializer_list<T>& init_list)
-    : Stream<T>(gen::end<T>()), _vec(init_list) {
-        this->init(gen::iterate(_vec.begin(), _vec.end()));
-    }
+ public:
+     InitListStream(const std::initializer_list<T>& init_list)
+     : Stream<T>(gen::end<T>()), _vec(init_list) {
+         this->init(gen::iterate(_vec.begin(), _vec.end()));
+     }
 
-private:
-    std::vector<T> _vec;
+ private:
+     std::vector<T> _vec;
 };
 
 /**
@@ -789,7 +788,8 @@ inline gen::Stream<std::reference_wrapper<Buffer<T>>> gen::Stream<T>::buffer(uns
     auto iter = begin();
     bool initialized = false;
 
-    return gen::stream<std::reference_wrapper<Buffer<T>>>([=]() mutable -> std::optional<std::reference_wrapper<Buffer<T>>> {
+    return gen::stream<std::reference_wrapper<Buffer<T>>>(
+        [=]() mutable -> std::optional<std::reference_wrapper<Buffer<T>>> {
         if (! initialized) {
             while (buffer.size() < bufsize && iter != gen::end<T>()) {
                 buffer.push_back(*iter);
@@ -852,7 +852,7 @@ gen::Stream<T> gen::Stream<T>::trim(unsigned int left, unsigned int right) {
     return trim_left(left).trim_right(right);
 }
 
-}
-}
+}  // namespace gen
+}  // namespace moonlight
 
 #endif /* !__MOONLIGHT_GENERATOR_H */

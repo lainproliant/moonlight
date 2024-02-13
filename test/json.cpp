@@ -1,7 +1,7 @@
+#include <cstdio>
 #include "moonlight/json.h"
 #include "moonlight/test.h"
 
-#include <cstdio>
 
 using namespace std;
 using namespace moonlight;
@@ -131,58 +131,58 @@ int main() {
     })
     .test("Object mappings", []() {
         class Address {
-        public:
-            int number;
-            std::string street;
-            std::string city;
-            std::string state;
-            int zip;
+         public:
+             int number;
+             std::string street;
+             std::string city;
+             std::string state;
+             int zip;
 
-            bool operator==(const Address&) const = default;
+             bool operator==(const Address&) const = default;
 
-            json::Mapper<Address> __json__() {
-                return json::Mapper(this)
-                    .field("number", number)
-                    .field("street", street)
-                    .field("city", city)
-                    .field("state", state)
-                    .field("zip", zip);
-            }
+             json::Mapper<Address> __json__() {
+                 return json::Mapper(this)
+                 .field("number", number)
+                 .field("street", street)
+                 .field("city", city)
+                 .field("state", state)
+                 .field("zip", zip);
+             }
         };
 
         class Person {
-        public:
-            std::string name = "";
-            Address address;
-            std::vector<Address> work_addresses;
-            std::map<std::string, std::string> alternate_names;
+         public:
+             std::string name = "";
+             Address address;
+             std::vector<Address> work_addresses;
+             std::map<std::string, std::string> alternate_names;
 
-            bool operator==(const Person&) const = default;
+             bool operator==(const Person&) const = default;
 
-            Person& set_address(const Address& addr) {
-                address = addr;
-                return *this;
-            }
+             Person& set_address(const Address& addr) {
+                 address = addr;
+                 return *this;
+             }
 
-            const Address& get_address() const {
-                return address;
-            }
+             const Address& get_address() const {
+                 return address;
+             }
 
-            const std::map<std::string, std::string>& get_altnames() const {
-                return alternate_names;
-            }
+             const std::map<std::string, std::string>& get_altnames() const {
+                 return alternate_names;
+             }
 
-            const void set_altnames(const std::map<std::string, std::string>& names) {
-                alternate_names = names;
-            }
+             const void set_altnames(const std::map<std::string, std::string>& names) {
+                 alternate_names = names;
+             }
 
-            json::Mapper<Person> __json__() {
-                return json::Mapper(this)
-                    .field("name", name)
-                    .field("work_addresses", work_addresses)
-                    .property("other_names", &Person::get_altnames, &Person::set_altnames)
-                    .property("address", &Person::get_address, &Person::set_address);
-            }
+             json::Mapper<Person> __json__() {
+                 return json::Mapper(this)
+                 .field("name", name)
+                 .field("work_addresses", work_addresses)
+                 .property("other_names", &Person::get_altnames, &Person::set_altnames)
+                 .property("address", &Person::get_address, &Person::set_address);
+             }
         };
 
         auto person = json::read_file<Person>("test/data/test-json-mapping.json");

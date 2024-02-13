@@ -12,6 +12,9 @@
 
 #include <functional>
 #include <type_traits>
+#include <string>
+#include <utility>
+#include <vector>
 #include "moonlight/traits.h"
 #include "moonlight/json/array.h"
 #include "moonlight/json/object.h"
@@ -21,188 +24,190 @@ namespace json {
 
 //-------------------------------------------------------------------
 class Mapping {
-public:
-    typedef std::unique_ptr<Mapping> Pointer;
+ public:
+     typedef std::unique_ptr<Mapping> Pointer;
 
-    Mapping(const char* name, bool required)
-    : _name(name), _required(required) { }
+     Mapping(const char* name, bool required)
+     : _name(name), _required(required) { }
 
-    virtual ~Mapping() { }
+     virtual ~Mapping() { }
 
-    virtual Value::Pointer get() const = 0;
-    virtual void set(Value::Pointer value) const = 0;
+     virtual Value::Pointer get() const = 0;
+     virtual void set(Value::Pointer value) const = 0;
 
-    std::string name() const {
-        return _name;
-    }
+     std::string name() const {
+         return _name;
+     }
 
-    bool required() const {
-        return _required;
-    }
+     bool required() const {
+         return _required;
+     }
 
-private:
-    const char* _name;
-    bool _required;
+ private:
+     const char* _name;
+     bool _required;
 };
 
 //-------------------------------------------------------------------
 template<typename T>
 class PropertyMapping : public Mapping {
-public:
-    typedef typename std::remove_const<T>::type Type;
-    typedef std::function<const Type()> Getter;
-    typedef std::function<void(const Type&)> Setter;
+ public:
+     typedef typename std::remove_const<T>::type Type;
+     typedef std::function<const Type()> Getter;
+     typedef std::function<void(const Type&)> Setter;
 
-    PropertyMapping(const char* name,
-                    Getter getter,
-                    Setter setter,
-                    bool required)
-    : Mapping(name, required), _getter(getter), _setter(setter) { }
+     PropertyMapping(const char* name,
+                     Getter getter,
+                     Setter setter,
+                     bool required)
+     : Mapping(name, required), _getter(getter), _setter(setter) { }
 
-    Value::Pointer get() const override {
-        return Value::of(_getter());
-    }
+     Value::Pointer get() const override {
+         return Value::of(_getter());
+     }
 
-    void set(Value::Pointer value) const override {
-        if (! value->is<Type>()) {
-            THROW(core::TypeError, "Can't save value of type " + value->type_name() + "to the \"" + name() + "\" property mapping.");
-        }
+     void set(Value::Pointer value) const override {
+         if (! value->is<Type>()) {
+             THROW(core::TypeError,
+                   "Can't save value of type " + value->type_name() + "to the \"" + name() + "\" property mapping.");
+         }
 
-        _setter(value->get<Type>());
-    }
+         _setter(value->get<Type>());
+     }
 
-private:
-    Getter _getter;
-    Setter _setter;
+ private:
+     Getter _getter;
+     Setter _setter;
 };
 
 //-------------------------------------------------------------------
 template<typename T>
 class FieldMapping : public Mapping {
-public:
-    typedef typename std::remove_const<T>::type Type;
+ public:
+     typedef typename std::remove_const<T>::type Type;
 
-    FieldMapping(const char* name, T& field, bool required)
-    : Mapping(name, required), _field(field) { }
+     FieldMapping(const char* name, T& field, bool required)
+     : Mapping(name, required), _field(field) { }
 
-    Value::Pointer get() const override {
-        return Value::of(_field);
-    }
+     Value::Pointer get() const override {
+         return Value::of(_field);
+     }
 
-    void set(Value::Pointer value) const override {
-        if (! value->is<Type>()) {
-            THROW(core::TypeError, "Can't save value of type " + value->type_name() + "to the \"" + name() + "\" field mapping.");
-        }
+     void set(Value::Pointer value) const override {
+         if (! value->is<Type>()) {
+             THROW(core::TypeError,
+                   "Can't save value of type " + value->type_name() + "to the \"" + name() + "\" field mapping.");
+         }
 
-        _field = value->get<Type>();
-    }
+         _field = value->get<Type>();
+     }
 
-private:
-    T& _field;
+ private:
+     T& _field;
 };
 
 //-------------------------------------------------------------------
 template<typename T>
 class ObjectMapping : public Mapping {
-public:
-    typedef typename std::remove_const<T>::type Type;
+ public:
+     typedef typename std::remove_const<T>::type Type;
 
-    ObjectMapping(const char* name, Type& obj_ref, bool required)
-    : Mapping(name, required), _obj_ref(obj_ref) { }
+     ObjectMapping(const char* name, Type& obj_ref, bool required)
+     : Mapping(name, required), _obj_ref(obj_ref) { }
 
-    Value::Pointer get() const override {
-        auto obj = std::make_shared<Object>();
+     Value::Pointer get() const override {
+         auto obj = std::make_shared<Object>();
 
-        for (auto mapping : _obj_ref.json_mapper()) {
-            obj->set(mapping->name(), Value::of(mapping->get()));
-        }
+         for (auto mapping : _obj_ref.json_mapper()) {
+             obj->set(mapping->name(), Value::of(mapping->get()));
+         }
 
-        return obj;
-    }
+         return obj;
+     }
 
-    void set(Value::Pointer value) const override {
-        if (! value->is<Object>()) {
-            THROW(core::TypeError, "Can't apply non-object mapping to \"" + name() + "\" object.");
-        }
-    }
+     void set(Value::Pointer value) const override {
+         if (! value->is<Object>()) {
+             THROW(core::TypeError, "Can't apply non-object mapping to \"" + name() + "\" object.");
+         }
+     }
 
-private:
-    Type& _obj_ref;
+ private:
+     Type& _obj_ref;
 };
 
 //-------------------------------------------------------------------
 template<class C>
 class Mapper {
-public:
-    Mapper(C* instance) : _instance(instance) { }
-    Mapper(Mapper& other)
-    : _instance(other._instance), _mappings(std::move(other._mappings)) { }
+ public:
+     explicit Mapper(C* instance) : _instance(instance) { }
+     Mapper(Mapper& other)
+     : _mappings(std::move(other._mappings)), _instance(other._instance) { }
 
-    template<class UnboundGetter, class UnboundSetter>
-    Mapper& property(const char* name,
-                     const UnboundGetter& getter,
-                     const UnboundSetter& setter,
-                     bool required = false) {
-        using namespace std::placeholders;
+     template<class UnboundGetter, class UnboundSetter>
+     Mapper& property(const char* name,
+                      const UnboundGetter& getter,
+                      const UnboundSetter& setter,
+                      bool required = false) {
+         using namespace std::placeholders;
 
-        typedef typename std::remove_reference<typename std::result_of<decltype(std::bind(getter, _instance))()>::type>::type Type;
+         typedef typename std::remove_reference<
+            typename std::result_of<
+                decltype(std::bind(getter, _instance))()>::type>::type Type;
 
-        C* instance = _instance;
-        std::function<const Type()> getter_proxy = [=]() {
-            const auto bound_getter = std::bind(getter, instance);
-            return bound_getter();
-        };
+         C* instance = _instance;
+         std::function<const Type()> getter_proxy = [=]() {
+             const auto bound_getter = std::bind(getter, instance);
+             return bound_getter();
+         };
 
-        std::function<void(Type)> setter_proxy = [=](const Type& p) {
-            const auto bound_setter = std::bind(setter, instance, _1);
-            bound_setter(p);
-        };
+         std::function<void(Type)> setter_proxy = [=](const Type& p) {
+             const auto bound_setter = std::bind(setter, instance, _1);
+             bound_setter(p);
+         };
 
-        _mappings.push_back(std::make_unique<PropertyMapping<Type>>(
-            name,
-            getter_proxy,
-            setter_proxy,
-            required
-        ));
-        return *this;
-    }
+         _mappings.push_back(std::make_unique<PropertyMapping<Type>>(
+                 name,
+                 getter_proxy,
+                 setter_proxy,
+                 required));
+         return *this;
+     }
 
-    template<class T>
-    Mapper& field(const char* name, T& ref, bool required = false) {
-        _mappings.push_back(std::make_unique<FieldMapping<T>>(
-            name, ref, required
-        ));
-        return *this;
-    }
+     template<class T>
+     Mapper& field(const char* name, T& ref, bool required = false) {
+         _mappings.push_back(std::make_unique<FieldMapping<T>>(
+                 name, ref, required));
+         return *this;
+     }
 
-    json::Object map_to_json() const {
-        json::Object obj;
-        for (auto& mapping : _mappings) {
-            obj.set(mapping->name(), mapping->get());
-        }
-        return obj;
-    }
+     json::Object map_to_json() const {
+         json::Object obj;
+         for (auto& mapping : _mappings) {
+             obj.set(mapping->name(), mapping->get());
+         }
+         return obj;
+     }
 
-    C& map_from_json(const json::Object& obj) const {
-        for (auto& mapping : _mappings) {
-            if (mapping->required() && !obj.contains(mapping->name())) {
-                THROW(core::TypeError, "Missing required field \"" + mapping->name() + "\" on JSON object.");
-            }
+     C& map_from_json(const json::Object& obj) const {
+         for (auto& mapping : _mappings) {
+             if (mapping->required() && !obj.contains(mapping->name())) {
+                 THROW(core::TypeError, "Missing required field \"" + mapping->name() + "\" on JSON object.");
+             }
 
-            auto value = obj.get<Value::Pointer>(mapping->name());
-            if (value != nullptr) {
-                mapping->set(obj.get<Value::Pointer>(mapping->name()));
-            }
-        }
-        return *_instance;
-    }
+             auto value = obj.get<Value::Pointer>(mapping->name());
+             if (value != nullptr) {
+                 mapping->set(obj.get<Value::Pointer>(mapping->name()));
+             }
+         }
+         return *_instance;
+     }
 
-private:
-    std::vector<Mapping::Pointer> _mappings;
-    C* _instance;
+ private:
+     std::vector<Mapping::Pointer> _mappings;
+     C* _instance;
 };
 
-}
-}
+}  // namespace json
+}  // namespace moonlight
 
 #endif /* !__MOONLIGHT_JSON_MAPPING_H */

@@ -22,14 +22,14 @@ namespace sys {
 
 //-------------------------------------------------------------------
 inline std::optional<std::string> getenv(const std::string& name) {
-   const char* value = std::getenv(name.c_str());
-   if (value != nullptr) {
-      return value;
-   } else {
-      return {};
-   }
+    const char* value = std::getenv(name.c_str());
+    if (value != nullptr) {
+        return value;
+    } else {
+        return {};
+    }
 }
-}
+}  // namespace sys
 
 //-------------------------------------------------------------------
 // Check the output of a command and return it as a string.
@@ -62,6 +62,6 @@ inline std::string check(const std::string& command) {
     return output;
 }
 
-}
+}  // namespace moonlight
 
 #endif /* !__MOONLIGHT_SYSTEM_H */

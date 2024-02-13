@@ -43,20 +43,20 @@ inline std::string coerce(const std::string& value) {
 }
 
 inline void _cat(std::ostringstream& sb) {
-   (void) sb;
+    (void) sb;
 }
 
 template<typename T, typename... TD>
 inline void _cat(std::ostringstream& sb, const T& element, const TD&... elements) {
-   sb << element;
-   _cat(sb, elements...);
+    sb << element;
+    _cat(sb, elements...);
 }
 
 template<typename T, typename... TD>
 inline std::string cat(const T element, const TD&... elements) {
-   std::ostringstream sb;
-   _cat(sb, element, elements...);
-   return sb.str();
+    std::ostringstream sb;
+    _cat(sb, element, elements...);
+    return sb.str();
 }
 
 /**------------------------------------------------------------------
@@ -64,7 +64,7 @@ inline std::string cat(const T element, const TD&... elements) {
  */
 inline bool startswith(const std::string& str,
                        const std::string& prefix) {
-   return ! str.compare(0, prefix.size(), prefix);
+    return ! str.compare(0, prefix.size(), prefix);
 }
 
 /**------------------------------------------------------------------
@@ -72,9 +72,9 @@ inline bool startswith(const std::string& str,
  */
 inline bool endswith(const std::string& str,
                      const std::string& suffix) {
-   return suffix.length() <= str.length() &&
-   ! str.compare(str.length() - suffix.length(),
-                 suffix.length(), suffix);
+    return suffix.length() <= str.length() &&
+    ! str.compare(str.length() - suffix.length(),
+                  suffix.length(), suffix);
 }
 
 /**------------------------------------------------------------------
@@ -82,15 +82,15 @@ inline bool endswith(const std::string& str,
  */
 template<typename T>
 inline std::string join(const T& coll, const std::string& token = "") {
-   std::ostringstream sb;
+    std::ostringstream sb;
 
-   for (typename T::const_iterator i = coll.begin(); i != coll.end();
-        i++) {
-      if (i != coll.begin()) sb << std::string(token);
-      sb << *i;
-   }
+    for (typename T::const_iterator i = coll.begin(); i != coll.end();
+         i++) {
+        if (i != coll.begin()) sb << std::string(token);
+        sb << *i;
+    }
 
-   return sb.str();
+    return sb.str();
 }
 
 /**------------------------------------------------------------------
@@ -103,20 +103,20 @@ inline std::string join(const T& coll, const std::string& token = "") {
  */
 template <typename T>
 inline void split(T& tokens, const std::string& s, const std::string& delimiter) {
-   std::string::size_type from = 0;
-   std::string::size_type to = 0;
+    std::string::size_type from = 0;
+    std::string::size_type to = 0;
 
-   while (to != std::string::npos) {
-      to = s.find(delimiter, from);
+    while (to != std::string::npos) {
+        to = s.find(delimiter, from);
 
-      if (from != to) {
-         tokens.push_back(s.substr(from, to - from));
-      } else if (from == to) {
-         tokens.push_back("");
-      }
+        if (from != to) {
+            tokens.push_back(s.substr(from, to - from));
+        } else if (from == to) {
+            tokens.push_back("");
+        }
 
-      from = to + delimiter.size();
-   }
+        from = to + delimiter.size();
+    }
 }
 
 /**------------------------------------------------------------------
@@ -128,9 +128,9 @@ inline void split(T& tokens, const std::string& s, const std::string& delimiter)
  */
 inline std::vector<std::string> split(const std::string& s,
                                       const std::string& delimiter) {
-   std::vector<std::string> tokens;
-   split(tokens, s, delimiter);
-   return tokens;
+    std::vector<std::string> tokens;
+    split(tokens, s, delimiter);
+    return tokens;
 }
 
 /**
@@ -162,43 +162,42 @@ inline std::vector<std::string> split(const std::string& s, int delim, int escap
  * Create a string consisting of a single character.
  */
 inline std::string chr(char c) {
-   std::string str;
-   str.push_back(c);
-   return str;
+    std::string str;
+    str.push_back(c);
+    return str;
 }
 
 /**------------------------------------------------------------------
  * Trim all whitespace from the left.
  */
 inline std::string trim_left(const std::string& s) {
-   std::string copy = s;
-   copy.erase(copy.begin(),
-              std::find_if(copy.begin(),
-                           copy.end(),
-                           [](int c) { return !isspace(c); }));
-   return copy;
+    std::string copy = s;
+    copy.erase(copy.begin(),
+               std::find_if(copy.begin(),
+                            copy.end(),
+                            [](int c) { return !isspace(c); }));
+    return copy;
 }
 
 /**------------------------------------------------------------------
  * Trim all whitespace from the right.
  */
 inline std::string trim_right(const std::string& s) {
-   std::string copy = s;
-   copy.erase(
-       std::find_if(
-           copy.rbegin(),
-           copy.rend(),
-           [](int c) { return !isspace(c); }
-       ).base(),
-       copy.end());
-   return copy;
+    std::string copy = s;
+    copy.erase(
+        std::find_if(
+            copy.rbegin(),
+            copy.rend(),
+            [](int c) { return !isspace(c); }).base(),
+        copy.end());
+    return copy;
 }
 
 /**------------------------------------------------------------------
  * Trim all whitespace from the left or right.
  */
 inline std::string trim(const std::string& s) {
-   return trim_left(trim_right(s));
+    return trim_left(trim_right(s));
 }
 
 /**------------------------------------------------------------------
@@ -218,23 +217,23 @@ inline std::string trim_prefix(const std::string& prefix, const std::string& s) 
  * Apply a function to each character in the string.
  */
 inline std::string map(const std::string& s, std::function<char(char)> transformer) {
-   std::string result;
-   std::transform(s.begin(), s.end(), std::back_inserter(result), transformer);
-   return result;
+    std::string result;
+    std::transform(s.begin(), s.end(), std::back_inserter(result), transformer);
+    return result;
 }
 
 /**------------------------------------------------------------------
  * Apply `toupper` to each character in the string.
  */
 inline std::string to_upper(const std::string& s) {
-   return map(s, [](char c) { return toupper(c); });
+    return map(s, [](char c) { return toupper(c); });
 }
 
 /**------------------------------------------------------------------
  * Apply `tolower` to each character in the string.
  */
 inline std::string to_lower(const std::string& s) {
-   return map(s, [](char c) { return tolower(c); });
+    return map(s, [](char c) { return tolower(c); });
 }
 
 // ------------------------------------------------------------------
@@ -280,7 +279,7 @@ inline std::string literal(const std::string& str) {
     return sb.str();
 }
 
-}
-}
+}  // namespace str
+}  // namespace moonlight
 
 #endif /* !__MOONLIGHT_STRING_H */

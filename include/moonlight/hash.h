@@ -20,12 +20,12 @@ namespace hash {
  */
 template<class T>
 inline void combine(std::size_t& seed, const T& value) {
-  std::hash<T> hash_function;
-  seed ^= hash_function(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    std::hash<T> hash_function;
+    seed ^= hash_function(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
-}
-}
+}  // namespace hash
+}  // namespace moonlight
 
 
 #endif /* !__MOONLIGHT_HASH_H */

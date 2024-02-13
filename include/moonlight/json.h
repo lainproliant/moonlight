@@ -10,6 +10,9 @@
 #ifndef __MOONLIGHT_JSON_H
 #define __MOONLIGHT_JSON_H
 
+#include <memory>
+#include <string>
+
 #include "moonlight/json/parser.h"
 #include "moonlight/json/serializer.h"
 #include "moonlight/json/mapping.h"
@@ -187,7 +190,7 @@ T map(const Object& json_obj) {
     return T().__json__().map_from_json(json_obj);
 }
 
-}
-}
+}  // namespace json
+}  // namespace moonlight
 
 #endif /* !__MOONLIGHT_JSON_H */

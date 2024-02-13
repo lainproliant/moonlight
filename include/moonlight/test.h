@@ -8,10 +8,6 @@
 #ifndef __MOONLIGHT_TEST_H
 #define __MOONLIGHT_TEST_H
 
-#include "moonlight/exceptions.h"
-#include "moonlight/system.h"
-#include "moonlight/traits.h"
-
 #include <csignal>
 #include <cstdlib>
 #include <cstring>
@@ -20,136 +16,142 @@
 #include <iostream>
 #include <algorithm>
 #include <random>
+#include <vector>
+#include <string>
+
+#include "moonlight/exceptions.h"
+#include "moonlight/system.h"
+#include "moonlight/traits.h"
 
 namespace moonlight {
 namespace test {
 //-------------------------------------------------------------------
 class UnitTest {
-public:
-    UnitTest(const std::string& name, std::function<void()> test_fn) :
-    test_fn(test_fn), name(name) {}
-    virtual ~UnitTest() {}
+ public:
+     UnitTest(const std::string& name, std::function<void()> test_fn) :
+     test_fn(test_fn), name(name) {}
+     virtual ~UnitTest() {}
 
-    void run(std::ostream& out = std::cout) const {
-        int cycles = 1;
-        std::optional<std::string> cycles_str = sys::getenv("MOONLIGHT_TEST_CYCLES");
-        if (cycles_str.has_value()) {
-            cycles = std::stoi(cycles_str.value());
-        }
+     void run(std::ostream& out = std::cout) const {
+         int cycles = 1;
+         std::optional<std::string> cycles_str = sys::getenv("MOONLIGHT_TEST_CYCLES");
+         if (cycles_str.has_value()) {
+             cycles = std::stoi(cycles_str.value());
+         }
 
-        for (int x = 0; x < cycles; x++) {
-            test_fn();
-            if (cycles > 1) {
-                out << "   [ " << x+1 << " / " << cycles << " ]" << std::endl;
-            }
-        }
-    }
+         for (int x = 0; x < cycles; x++) {
+             test_fn();
+             if (cycles > 1) {
+                 out << "   [ " << x+1 << " / " << cycles << " ]" << std::endl;
+             }
+         }
+     }
 
-    std::string get_name() const {
-        return name;
-    }
+     std::string get_name() const {
+         return name;
+     }
 
-private:
-    std::function<void()> test_fn;
-    std::string name;
+ private:
+     std::function<void()> test_fn;
+     std::string name;
 };
 
 //-------------------------------------------------------------------
 class TestSuite {
-public:
-    TestSuite(const std::string& name) : name(name) {}
-    virtual ~TestSuite() {}
+ public:
+     explicit TestSuite(const std::string& name) : name(name) {}
+     virtual ~TestSuite() {}
 
-    TestSuite& test(const std::string& name, std::function<void()> test_fn) {
-        return test(UnitTest(name, test_fn));
-    }
+     TestSuite& test(const std::string& name, std::function<void()> test_fn) {
+         return test(UnitTest(name, test_fn));
+     }
 
-    TestSuite& test(const UnitTest& test) {
-        tests.push_back(test);
-        return *this;
-    }
+     TestSuite& test(const UnitTest& test) {
+         tests.push_back(test);
+         return *this;
+     }
 
-    TestSuite& die_on_signal(int signalId) {
-        signal(signalId, signal_callback);
-        return *this;
-    }
+     TestSuite& die_on_signal(int signalId) {
+         signal(signalId, signal_callback);
+         return *this;
+     }
 
-    int run(std::ostream& out = std::cout) {
-        int tests_failed = 0;
+     int run(std::ostream& out = std::cout) {
+         int tests_failed = 0;
 
-        std::random_device random_device;
-        std::mt19937 rng(random_device());
+         std::random_device random_device;
+         std::mt19937 rng(random_device());
 
-        std::shuffle(tests.begin(), tests.end(), rng);
+         std::shuffle(tests.begin(), tests.end(), rng);
 
-        out << "===== " << name << " =====" << std::endl;
+         out << "===== " << name << " =====" << std::endl;
 
-        for (const UnitTest& test : tests) {
-            if (sys::getenv("MOONLIGHT_TEST_UNGUARDED")) {
-                test.run();
-                out << "    PASSED" << std::endl;
-                continue;
-            }
+         for (const UnitTest& test : tests) {
+             if (sys::getenv("MOONLIGHT_TEST_UNGUARDED")) {
+                 test.run();
+                 out << "    PASSED" << std::endl;
+                 continue;
+             }
 
-            try {
-                out << "Running test: '" << test.get_name() << "'..." << std::endl;
-                test.run();
-                out << "    PASSED" << std::endl;
+             try {
+                 out << "Running test: '" << test.get_name() << "'..." << std::endl;
+                 test.run();
+                 out << "    PASSED" << std::endl;
 
-            } catch (...) {
-                std::exception_ptr eptr = std::current_exception();
+             } catch (...) {
+                 std::exception_ptr eptr = std::current_exception();
 
-                try {
-                    std::rethrow_exception(eptr);
+                 try {
+                     std::rethrow_exception(eptr);
 
-                } catch (const std::exception& e) {
-                    out << "    FAILED " << e.what() << std::endl;
-                    if (sys::getenv("MOONLIGHT_TEST_RETHROW")) {
-                        throw e;
-                    }
+                 } catch (const std::exception& e) {
+                     out << "    FAILED " << e.what() << std::endl;
+                     if (sys::getenv("MOONLIGHT_TEST_RETHROW")) {
+                         throw e;
+                     }
 
-                } catch (...) {
-                    out << "    FAILED (exotic type thrown)" <<  std::endl;
+                 } catch (...) {
+                     out << "    FAILED (exotic type thrown)" <<  std::endl;
 #ifdef MOONLIGHT_ENABLE_STACKTRACE
-                    auto trace = debug::StackTrace::generate();
-                    trace.format(out, "        at ");
+                     auto trace = debug::StackTrace::generate();
+                     trace.format(out, "        at ");
 #endif
-                }
+                 }
 
-                tests_failed ++;
-            }
-        }
+                 tests_failed ++;
+             }
+         }
 
-        out << std::endl;
+         out << std::endl;
 
-        return tests_failed;
-    }
+         return tests_failed;
+     }
 
-    int size() const {
-        return tests.size();
-    }
+     int size() const {
+         return tests.size();
+     }
 
-private:
-    static void signal_callback(int signal) {
-        std::cout << std::endl << "FATAL: Caught signal " << signal
-        << " (" << strsignal(signal) << ")"
-        << std::endl;
+ private:
+     static void signal_callback(int signal) {
+         std::cout << std::endl << "FATAL: Caught signal " << signal
+         << " (" << strsignal(signal) << ")"
+         << std::endl;
 
 #ifdef MOONLIGHT_ENABLE_STACKTRACE
-        std::cout << debug::StackTrace::generate({}, 3) << std::endl;
+         std::cout << debug::StackTrace::generate({}, 3) << std::endl;
 #endif
-        exit(1);
-    }
+         exit(1);
+     }
 
-    std::vector<UnitTest> tests;
-    std::string name;
+     std::vector<UnitTest> tests;
+     std::string name;
 };
 
 //-------------------------------------------------------------------
 #define _ASSERT(expr, msg, repr) \
-    if (! (expr)) { \
-        THROW(moonlight::core::AssertionFailure, msg ": " repr); \
-    }
+if (! (expr)) { \
+    THROW(moonlight::core::AssertionFailure, msg ": " repr); \
+}
 
 #define ASSERT_TRUE(expr) _ASSERT(expr, "Assertion failed", #expr)
 #define ASSERT ASSERT_TRUE
@@ -238,7 +240,7 @@ inline bool test_equal(float a, float b) {
 #define ASSERT_NOT_EQUAL(...) _ASSERT(!test_equal(__VA_ARGS__), "Value inequivalence assertion failed", #__VA_ARGS__)
 #define ASSERT_EP_EQUAL(...) _ASSERT(ep_test_equal(__VA_ARGS__), "Value equivalence assertion failed", #__VA_ARGS__)
 
-}
-}
+}  // namespace test
+}  // namespace moonlight
 
 #endif /* __MOONLIGHT_TEST_H */

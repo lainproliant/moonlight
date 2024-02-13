@@ -12,6 +12,7 @@
 
 #include <vector>
 #include <map>
+#include <utility>
 
 namespace moonlight {
 namespace mmap {
@@ -21,8 +22,8 @@ namespace mmap {
  */
 template<typename K, typename T>
 struct mapping {
-   K key;
-   std::vector<T> values;
+    K key;
+    std::vector<T> values;
 };
 
 /**
@@ -38,14 +39,14 @@ struct mapping {
  */
 template<typename K, typename T>
 inline std::multimap<K, T> build(const std::vector<mapping<K, T>>& mappings) {
-   std::multimap<K, T> mmap;
-   for (auto mapping : mappings) {
-      for (auto value : mapping.values) {
-         mmap.insert(std::make_pair(mapping.key, value));
-      }
-   }
+    std::multimap<K, T> mmap;
+    for (auto mapping : mappings) {
+        for (auto value : mapping.values) {
+            mmap.insert(std::make_pair(mapping.key, value));
+        }
+    }
 
-   return mmap;
+    return mmap;
 }
 
 /**
@@ -60,18 +61,18 @@ inline std::multimap<K, T> build(const std::vector<mapping<K, T>>& mappings) {
  */
 template<typename K, typename T, typename... KTV>
 inline std::multimap<K, T> build(const K& key, const T& value, const KTV&... mappings) {
-   std::multimap<K, T> mmap;
-   build(mmap, key, value, mappings...);
-   return mmap;
+    std::multimap<K, T> mmap;
+    build(mmap, key, value, mappings...);
+    return mmap;
 }
 
 /**
- */
+*/
 template<typename K, typename T, typename... KTV>
 inline void build(std::multimap<K, T>& mmap, const K& key, const T& value,
                   const KTV&... mappings) {
-   mmap.insert({key, value});
-   build(mmap, mappings...);
+    mmap.insert({key, value});
+    build(mmap, mappings...);
 }
 
 template<typename K, typename T>
@@ -84,18 +85,18 @@ inline void build(std::multimap<K, T>& mmap) { (void) mmap; }
 template<typename M>
 inline std::vector<typename M::mapped_type> collect(const M& mmap,
                                                     const typename M::key_type& key) {
-   std::vector<typename M::mapped_type> values;
-   auto range = mmap.equal_range(key);
+    std::vector<typename M::mapped_type> values;
+    auto range = mmap.equal_range(key);
 
-   for (auto iter = range.first; iter != range.second; iter++) {
-      values.insert(values.end(), iter->second);
-   }
+    for (auto iter = range.first; iter != range.second; iter++) {
+        values.insert(values.end(), iter->second);
+    }
 
-   return values;
+    return values;
 }
 
-}
-}
+}  // namespace mmap
+}  // namespace moonlight
 
 
 #endif /* !__MOONLIGHT_MMAP_H */

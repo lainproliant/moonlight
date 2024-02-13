@@ -8,8 +8,8 @@
 #ifndef __MOONLIGHT_SDL2_H
 #define __MOONLIGHT_SDL2_H
 
-#include "moonlight/time.h"
 #include <SDL2/SDL.h>
+#include "moonlight/time.h"
 
 namespace moonlight {
 namespace time {
@@ -19,15 +19,15 @@ typedef Timer<Uint32> Timer;
 typedef FrameCalculator<Uint32> FrameCalculator;
 
 inline Timer create_timer(Uint32 interval, bool accumulate = false) {
-   return Timer(SDL_GetTicks, interval, accumulate);
+    return Timer(SDL_GetTicks, interval, accumulate);
 }
 
 inline FrameCalculator create_frame_calculator(Timer& timer) {
-   return FrameCalculator(create_timer(1000), timer);
+    return FrameCalculator(create_timer(1000), timer);
 }
 
-}
-}
-}
+}  // namespace sdl2
+}  // namespace time
+}  // namespace moonlight
 
 #endif /* __MOONLIGHT_SDL2_H */

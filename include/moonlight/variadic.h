@@ -38,32 +38,32 @@ namespace variadic {
 // }
 // ```
 struct pass {
-   template<typename... T> pass(T...) { }
+    template<typename... T> pass(T...) { }
 };
 
 // ------------------------------------------------------------------
 template<typename T, typename... TD>
 inline void _to_vector(std::vector<T>& vec) {
-   (void)vec;
+    (void)vec;
 }
 
 // ------------------------------------------------------------------
 template<typename T, typename... TD>
 inline void _to_vector(std::vector<T>& vec, const T& item, const TD&... items) {
-   vec.push_back(item);
-   _to_vector(vec, items...);
+    vec.push_back(item);
+    _to_vector(vec, items...);
 }
 
 // ------------------------------------------------------------------
 template<typename T, typename... TD>
 inline std::vector<T> to_vector(const T& item, const TD&... items) {
-   std::vector<T> vec;
-   _to_vector(vec, item, items...);
-   return vec;
-}
+    std::vector<T> vec;
+    _to_vector(vec, item, items...);
+    return vec;
 }
 
-}
+}  // namespace variadic
+}  // namespace moonlight
 
 
 #endif /* !__MOONLIGHT_VARIADIC_H */

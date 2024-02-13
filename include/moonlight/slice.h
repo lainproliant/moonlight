@@ -10,8 +10,9 @@
 #ifndef __MOONLIGHT_SLICE_H
 #define __MOONLIGHT_SLICE_H
 
-#include "moonlight/exceptions.h"
 #include <optional>
+
+#include "moonlight/exceptions.h"
 
 namespace moonlight {
 
@@ -61,7 +62,7 @@ inline C slice(const C& coll, std::optional<int> int_offset_start, std::optional
     return result;
 }
 
-}
+}  // namespace moonlight
 
 
 #endif /* !__MOONLIGHT_SLICE_H */

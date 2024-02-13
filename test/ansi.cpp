@@ -1,6 +1,6 @@
+#include <iostream>
 #include "moonlight/ansi.h"
 #include "tinyformat/tinyformat.h"
-#include <iostream>
 
 using namespace moonlight;
 

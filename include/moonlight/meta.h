@@ -24,5 +24,5 @@ struct always_false {
     enum { value = false };
 };
 
-}
+}  // namespace moonlight
 #endif /* !__MOONLIGHT_META_H */

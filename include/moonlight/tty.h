@@ -13,16 +13,17 @@
 #ifndef __MOONLIGHT_TTY_H
 #define __MOONLIGHT_TTY_H
 
+#include <unistd.h>
+
 #include <iosfwd>
 #include <cstdio>  // declaration of ::fileno
 #include <fstream>  // for basic_filebuf template
 #include <cerrno>
-#include <unistd.h>
 
 #if defined(__GLIBCXX__) || (defined(__GLIBCPP__) && __GLIBCPP__>=20020514)  // GCC >= 3.1.0
 # include <ext/stdio_filebuf.h>
 #endif
-#if defined(__GLIBCXX__) // GCC >= 3.4.0
+#if defined(__GLIBCXX__)  // GCC >= 3.4.0
 # include <ext/stdio_sync_filebuf.h>
 #endif
 
@@ -44,8 +45,7 @@ int fileno(const std::basic_ios<charT, traits>& stream);
 //!   detailed information.
 template <typename charT, typename traits>
 inline int
-fileno_hack(const std::basic_ios<charT, traits>& stream)
-{
+fileno_hack(const std::basic_ios<charT, traits>& stream) {
     // Some C++ runtime libraries shipped with ancient GCC, Sun Pro,
     // Sun WS/Forte 5/6, Compaq C++ supported non-standard file descriptor
     // access basic_filebuf<>::fd().  Alas, starting from GCC 3.1, the GNU C++
@@ -58,7 +58,7 @@ fileno_hack(const std::basic_ios<charT, traits>& stream)
 #if defined(__GLIBCXX__) || defined(__GLIBCPP__)
     // OK, stop reading here, because it's getting obscene.  Cross fingers!
 # if defined(__GLIBCXX__)  // >= GCC 3.4.0
-    // This applies to cin, cout and cerr when not synced with stdio:
+                           // This applies to cin, cout and cerr when not synced with stdio:
     typedef __gnu_cxx::stdio_filebuf<charT, traits> unix_filebuf_t;
     unix_filebuf_t* fbuf = dynamic_cast<unix_filebuf_t*>(stream.rdbuf());
     if (fbuf != NULL) {
@@ -80,14 +80,14 @@ fileno_hack(const std::basic_ios<charT, traits>& stream)
     typedef __gnu_cxx::stdio_sync_filebuf<charT, traits> sync_filebuf_t;
     sync_filebuf_t* sbuf = dynamic_cast<sync_filebuf_t*>(stream.rdbuf());
     if (sbuf != NULL) {
-#  if (__GLIBCXX__<20040906) // GCC < 3.4.2
-        // This subclass is only there for accessing the FILE*.
-        // See GCC PR#14600 and PR#16411.
+#  if (__GLIBCXX__<20040906)  // GCC < 3.4.2
+                              // This subclass is only there for accessing the FILE*.
+                              // See GCC PR#14600 and PR#16411.
         struct my_filebuf : public sync_filebuf_t {
             my_filebuf();  // Dummy ctor keeps the compiler happy.
-            // Note: stdio_sync_filebuf has a FILE* as its first (but private)
-            // member variable.  However, it is derived from basic_streambuf<>
-            // and the FILE* is the first non-inherited member variable.
+                           // Note: stdio_sync_filebuf has a FILE* as its first (but private)
+                           // member variable.  However, it is derived from basic_streambuf<>
+                           // and the FILE* is the first non-inherited member variable.
             FILE* c_file() {
                 return *(FILE**)((char*)this + sizeof(std::basic_streambuf<charT, traits>));
             }
@@ -99,7 +99,7 @@ fileno_hack(const std::basic_ios<charT, traits>& stream)
     }
 # else  // GCC < 3.4.0 used __GLIBCPP__
 #  if (__GLIBCPP__>=20020514)  // GCC >= 3.1.0
-    // This applies to cin, cout and cerr:
+                               // This applies to cin, cout and cerr:
     typedef __gnu_cxx::stdio_filebuf<charT, traits> unix_filebuf_t;
     unix_filebuf_t* buf = dynamic_cast<unix_filebuf_t*>(stream.rdbuf());
     if (buf != NULL) {
@@ -132,7 +132,8 @@ fileno_hack(const std::basic_ios<charT, traits>& stream)
             // __basic_file<charT> in turn has a FILE* as its first (but
             // private) member variable.  Get it by brute force.  Oh, geez!
             FILE* c_file() {
-                std::__basic_file<charT>* ptr_M_file = *(std::__basic_file<charT>**)((char*)this + sizeof(std::basic_streambuf<charT, traits>));
+                std::__basic_file<charT>* ptr_M_file = *(
+                    std::__basic_file<charT>**)((char*)this + sizeof(std::basic_streambuf<charT, traits>));
 #  if _GLIBCPP_BASIC_FILE_INHERITANCE
                 // __basic_file<charT> inherits from __basic_file_base<charT>
                 return *(FILE**)((char*)ptr_M_file + sizeof(std::__basic_file_base<charT>));
@@ -155,28 +156,26 @@ fileno_hack(const std::basic_ios<charT, traits>& stream)
 }
 
 //! 8-Bit character instantiation: fileno(ios).
-template <> int
-inline fileno<char>(const std::ios& stream)
-{
+    template <> int
+inline fileno<char>(const std::ios& stream) {
     return fileno_hack(stream);
 }
 
 #if !(defined(__GLIBCXX__) || defined(__GLIBCPP__)) || (defined(_GLIBCPP_USE_WCHAR_T) || defined(_GLIBCXX_USE_WCHAR_T))
 //! Wide character instantiation: fileno(wios).
-template <> int
-inline fileno<wchar_t>(const std::wios& stream)
-{
+    template <> int
+inline fileno<wchar_t>(const std::wios& stream) {
     return fileno_hack(stream);
 }
 #endif
 
-}
+}  // namespace tty
 
 template<typename charT, typename traits>
 bool is_tty(const std::basic_ios<charT, traits>& stream) {
     return ::isatty(tty::fileno(stream));
 }
 
-}
+}  // namespace moonlight
 
 #endif /* !__MOONLIGHT_TTY_H */

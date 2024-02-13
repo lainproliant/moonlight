@@ -25,8 +25,8 @@ struct is_streamable : std::false_type {};
 //-------------------------------------------------------------------
 template<class T>
 struct is_streamable<T, std::void_t<
-    decltype(operator<<(std::declval<std::ostream&>, std::declval<const T&>))>>
-    : public std::true_type {
+decltype(operator<<(std::declval<std::ostream&>, std::declval<const T&>))>>
+: public std::true_type {
 
     typedef T type;
 };
@@ -41,8 +41,8 @@ struct is_iterable_type : public std::false_type {
 //-------------------------------------------------------------------
 template<class T>
 struct is_iterable_type<T, std::void_t<
-    decltype(std::begin(std::declval<T>())),
-    decltype(std::end(std::declval<T>()))>> : public std::true_type {
+decltype(std::begin(std::declval<T>())),
+decltype(std::end(std::declval<T>()))>> : public std::true_type {
 
     typedef T type;
 };
@@ -56,11 +56,11 @@ struct is_map_type : public std::false_type {
 //-------------------------------------------------------------------
 template<class T>
 struct is_map_type<T, std::void_t<
-    typename T::key_type,
-    typename T::mapped_type,
-    decltype(std::declval<T&>()[std::declval<const typename T::key_type&>()])>> : public std::true_type {
-    typedef T type;
-};
+typename T::key_type,
+         typename T::mapped_type,
+         decltype(std::declval<T&>()[std::declval<const typename T::key_type&>()])>> : public std::true_type {
+             typedef T type;
+         };
 
 //-------------------------------------------------------------------
 template<class T>
@@ -98,9 +98,8 @@ constexpr std::string_view type_name_view<void>()
 
 using type_name_prober = void;
 
-template<class T>
-constexpr std::string_view wrapped_type_name()
-{
+    template<class T>
+constexpr std::string_view wrapped_type_name() {
 #ifdef __clang__
     return __PRETTY_FUNCTION__;
 #elif defined(__GNUC__)
@@ -118,11 +117,11 @@ constexpr std::size_t wrapped_type_name_prefix_length() {
 
 constexpr std::size_t wrapped_type_name_suffix_length() {
     return wrapped_type_name<type_name_prober>().length()
-        - wrapped_type_name_prefix_length()
-        - type_name_view<type_name_prober>().length();
+    - wrapped_type_name_prefix_length()
+    - type_name_view<type_name_prober>().length();
 }
 
-} // namespace _type_name
+}  // namespace _type_name
 
 //-------------------------------------------------------------------
 template<class T>
@@ -145,6 +144,6 @@ std::string type_name() {
     return std::string(type_name_view<T>());
 }
 
-}
+}  // namespace moonlight
 
 #endif /* !__MOONLIGHT_TRAITS_H */

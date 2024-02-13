@@ -11,6 +11,8 @@
 #define __MOONLIGHT_RX_H
 
 #include <regex>
+#include <vector>
+#include <string>
 
 namespace moonlight {
 namespace rx {
@@ -25,36 +27,36 @@ inline bool match(const std::regex& rx, const std::string& str) {
 
 // ------------------------------------------------------------------
 class Capture {
-public:
-    Capture(const std::smatch& smatch)
-    : _length(smatch.length()), _groups(smatch.begin(), smatch.end()) { }
+ public:
+     explicit Capture(const std::smatch& smatch)
+     : _length(smatch.length()), _groups(smatch.begin(), smatch.end()) { }
 
-    Capture()
-    : _length(0) { }
+     Capture()
+     : _length(0) { }
 
-    unsigned int length() const {
-        return _length;
-    }
+     unsigned int length() const {
+         return _length;
+     }
 
-    const std::string& group(size_t offset = 0) const {
-        return _groups[offset];
-    }
+     const std::string& group(size_t offset = 0) const {
+         return _groups[offset];
+     }
 
-    const std::string str() const {
-        return group();
-    }
+     const std::string str() const {
+         return group();
+     }
 
-    const std::vector<std::string>& groups() const {
-        return _groups;
-    }
+     const std::vector<std::string>& groups() const {
+         return _groups;
+     }
 
-    operator bool() const {
-        return _groups.size() > 0;
-    }
+     operator bool() const {
+         return _groups.size() > 0;
+     }
 
-private:
-    unsigned int _length;
-    const std::vector<std::string> _groups;
+ private:
+     unsigned int _length;
+     const std::vector<std::string> _groups;
 };
 
 inline Capture capture(const std::regex& rx, const std::string& str) {
@@ -65,7 +67,7 @@ inline Capture capture(const std::regex& rx, const std::string& str) {
     return Capture();
 }
 
-}
-}
+}  // namespace rx
+}  // namespace moonlight
 
 #endif /* !__MOONLIGHT_RX_H */

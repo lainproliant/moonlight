@@ -11,6 +11,9 @@
 #define __MOONLIGHT_MAPS_H
 
 #include <map>
+#include <utility>
+#include <algorithm>
+
 #include "moonlight/exceptions.h"
 #include "moonlight/generator.h"
 
@@ -41,8 +44,7 @@ gen::Stream <std::pair<typename M::key_type, typename M::mapped_type>> items(con
             } else {
                 return {};
             }
-        }
-    );
+        });
 }
 
 //-------------------------------------------------------------------
@@ -61,7 +63,7 @@ gen::Stream<typename M::mapped_type> values(const M& map) {
     });
 }
 
-}
-}
+}  // namespace maps
+}  // namespace moonlight
 
 #endif /* !__MOONLIGHT_MAPS_H */

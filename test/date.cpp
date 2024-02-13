@@ -1,7 +1,7 @@
-#include "moonlight/test.h"
-#include "moonlight/date.h"
 #include <csignal>
 #include <iostream>
+#include "moonlight/test.h"
+#include "moonlight/date.h"
 
 using namespace moonlight;
 using namespace moonlight::test;

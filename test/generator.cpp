@@ -7,14 +7,14 @@
  * Distributed under terms of the MIT license.
  */
 
-#include "moonlight/generator.h"
-#include "moonlight/linked_map.h"
-#include "moonlight/test.h"
-
 #include <thread>
 #include <chrono>
 #include <optional>
 #include <functional>
+
+#include "moonlight/generator.h"
+#include "moonlight/linked_map.h"
+#include "moonlight/test.h"
 
 using namespace moonlight;
 using namespace moonlight::test;
@@ -201,11 +201,10 @@ int main() {
 
     })
     .test("stream join str and filter", []() {
-        int x = 0;
         auto stream = gen::stream(range(0, 1000000))
-            .filter([](auto& i) {
-                return i % 65537 == 0;
-            });
+        .filter([](auto& i) {
+            return i % 65537 == 0;
+        });
         auto s = stream.join(",");
         std::cout << s << std::endl;
         ASSERT_EQUAL(s, "0,65537,131074,196611,262148,327685,393222,458759,524296,589833,655370,720907,786444,851981,917518,983055");

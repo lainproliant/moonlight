@@ -51,8 +51,8 @@ inline std::string generate(size_t size = DEFAULT_SIZE, const std::string& alpha
     return id;
 }
 
-}
-}
+}  // namespace nanoid
+}  // namespace moonlight
 
 
 #endif /* !__MOONLIGHT_NANOID_H */

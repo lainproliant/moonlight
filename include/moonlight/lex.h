@@ -169,16 +169,17 @@ class Match {
 };
 
 // ------------------------------------------------------------------
+template<class T>
 class Token {
  public:
-     Token(const std::string& type, const Match& smatch)
+     Token(const T& type, const Match& smatch)
      : _type(type), _match(smatch) { }
 
      static Token nothing() {
          return Token("NOTHING", Match(Location::nowhere()));
      }
 
-     const std::string& type() const {
+     const T& type() const {
          return _type;
      }
 
@@ -186,34 +187,48 @@ class Token {
          return _match;
      }
 
-     friend std::ostream& operator<<(std::ostream& out, const Token& tk) {
+     friend std::ostream& operator<<(std::ostream& out, const Token<T>& tk) {
          out << "<" << tk.type() << " " << tk.match() << ">";
          return out;
      }
 
  private:
-     const std::string _type;
+     const T _type;
      const Match _match;
 };
 
 // ------------------------------------------------------------------
 class Rule;
-typedef std::shared_ptr<std::vector<Rule>> RuleContainer;
+
+template<class T>
+class QualifiedRule;
+
+template<class T>
+using RuleContainer = std::shared_ptr<std::vector<QualifiedRule<T>>>;
+
+template<class T>
+class Lexer;
 
 // ------------------------------------------------------------------
-class Grammar : public std::enable_shared_from_this<Grammar> {
+template<class T>
+class Grammar : public std::enable_shared_from_this<Grammar<T>> {
  public:
-     typedef std::shared_ptr<Grammar> Pointer;
+     typedef std::shared_ptr<Grammar<T>> Pointer;
+     typedef Lexer<T> Lexer;
 
      struct ScanResult {
-         const Rule& rule;
-         std::optional<Token> token;
+         const QualifiedRule<T> rule;
+         std::optional<Token<T>> token;
          const Location loc;
 
          static ScanResult default_pop(const Location& loc);
          static ScanResult default_push(const Location& loc, Grammar::Pointer target);
 
-         friend std::ostream& operator<<(std::ostream& out, const ScanResult& s);
+         friend std::ostream& operator<<(std::ostream& out, const Grammar<T>::ScanResult& s) {
+             out << "ScanResult<" << s.rule << ", "
+             << s.token.value_or(Token<T>::nothing()) << ", " << s.loc << ">";
+             return out;
+         }
      };
 
      static Pointer create() {
@@ -246,8 +261,8 @@ class Grammar : public std::enable_shared_from_this<Grammar> {
          return result;
      }
 
-     Pointer def(const Rule& rule);
-     Pointer def(const Rule& rule, const std::string& type);
+     Pointer def(const QualifiedRule<T>& rule);
+     Pointer def(const Rule& rule, const T& type);
      Pointer named(const std::string& name);
      Pointer else_pop();
      Pointer else_push(Pointer target);
@@ -268,10 +283,10 @@ class Grammar : public std::enable_shared_from_this<Grammar> {
          return _sub_grammar;
      }
 
-     void add_rule(const Rule& rule);
+     void add_rule(const QualifiedRule<T>& rule);
 
      std::vector<Pointer> _parents;
-     RuleContainer _rules = nullptr;
+     RuleContainer<T> _rules = nullptr;
      Pointer _default_push_target = nullptr;
      std::vector<Pointer> _sub_grammars;
      const bool _sub_grammar;
@@ -286,8 +301,8 @@ class Rule {
 
      explicit Rule(Action action) : _action(action) { }
 
-     static const Rule& default_pop();
-     static const Rule& default_push(Grammar::Pointer target);
+     static Rule default_pop();
+     static Rule default_push(std::shared_ptr<void> target);
 
      Action action() const {
          return _action;
@@ -317,15 +332,6 @@ class Rule {
          return *this;
      }
 
-     const std::string& type() const {
-         return _type;
-     }
-
-     Rule& type(const std::string& type) {
-         _type = type;
-         return *this;
-     }
-
      bool advance() const {
          return _advance;
      }
@@ -338,23 +344,27 @@ class Rule {
          return *this;
      }
 
-     Grammar::Pointer target() const {
+     template<class T>
+     Grammar<T>::Pointer target() const {
          if (_target == nullptr) {
              std::ostringstream sb;
-             sb << "Rule type " << type() << " has no subgrammar target.";
+             sb << "Rule type has no subgrammar target.";
              THROW(core::UsageError, sb.str());
          }
          return _target;
      }
 
-     Rule& target(Grammar::Pointer target) {
+     std::shared_ptr<void> raw_target() const {
+         return _target;
+     }
+
+     Rule& target(std::shared_ptr<void> target) {
          _target = target;
          return *this;
      }
 
      friend std::ostream& operator<<(std::ostream& out, const Rule& r) {
          out << "Rule<";
-         out << (r.type() == "" ? "(no name)" : r.type()) << " ";
          out << r.action_name() << " ";
          out << str::literal(r.rx_str());
          if (r._icase) {
@@ -378,16 +388,46 @@ class Rule {
      bool _advance = true;
      std::regex _rx;
      std::string _rx_str;
-     std::string _type;
-     Grammar::Pointer _target = nullptr;
+     std::shared_ptr<void> _target = nullptr;
 };
 
 // ------------------------------------------------------------------
-inline std::ostream& operator<<(std::ostream& out, const Grammar::ScanResult& s) {
-    out << "ScanResult<" << s.rule << ", "
-    << s.token.value_or(Token::nothing()) << ", " << s.loc << ">";
-    return out;
-}
+template<class T>
+class QualifiedRule : public Rule {
+ public:
+     QualifiedRule(const Rule& rule)
+     : Rule(rule), _type() { }
+
+     QualifiedRule(const Rule& rule, const T& type)
+     : Rule(rule), _type(type) { }
+
+     const T& type() const {
+         return _type.value();
+     }
+
+     bool is_typeless() const {
+         return ! _type.has_value();
+     }
+
+     QualifiedRule& type(const T& type) {
+         _type = type;
+         return *this;
+     }
+
+     friend std::ostream& operator<<(std::ostream& out, const QualifiedRule<T>& r) {
+         out << "QualifiedRule<";
+         out << r.type() << " ";
+         out << r.action_name() << " ";
+         out << str::literal(r.rx_str());
+         if (r._icase) {
+             out << "i";
+         }
+         out << ">";
+         return out;
+     }
+ private:
+     const std::optional<T> _type;
+};
 
 // ------------------------------------------------------------------
 inline Rule ignore(const std::string& rx) {
@@ -398,7 +438,7 @@ inline Rule match(const std::string& rx) {
     return Rule(Action::MATCH).rx(rx);
 }
 
-inline Rule push(const std::string& rx, Grammar::Pointer target) {
+inline Rule push(const std::string& rx, std::shared_ptr<void> target) {
     return Rule(Action::PUSH).rx(rx).target(target);
 }
 
@@ -407,56 +447,62 @@ inline Rule pop(const std::string& rx) {
 }
 
 inline Rule copy_rule(const Rule& rule) {
-    return Rule(rule.action()).rx(rule.rx_str()).target(rule.target());
+    return Rule(rule.action()).rx(rule.rx_str()).target(rule.raw_target());
 }
 
 // ------------------------------------------------------------------
-inline void Grammar::add_rule(const Rule& rule) {
+template<class T>
+inline void Grammar<T>::add_rule(const QualifiedRule<T>& rule) {
     if (_rules == nullptr) {
-        _rules = std::make_shared<std::vector<Rule>>();
+        _rules = std::make_shared<std::vector<QualifiedRule<T>>>();
     }
     _rules->emplace_back(rule);
 }
 
 // ------------------------------------------------------------------
-inline Grammar::Pointer Grammar::def(const Rule& rule) {
+template<class T>
+inline Grammar<T>::Pointer Grammar<T>::def(const QualifiedRule<T>& rule) {
     add_rule(rule);
-    return shared_from_this();
+    return this->shared_from_this();
 }
 
 // ------------------------------------------------------------------
-inline Grammar::Pointer Grammar::def(const Rule& rule, const std::string& type) {
-    Rule rule_copy = rule;
-    rule_copy.type(type);
-    return def(rule_copy);
+template<class T>
+inline Grammar<T>::Pointer Grammar<T>::def(const Rule& rule, const T& type) {
+    return def(QualifiedRule<T>(rule, type));
 }
 
 // ------------------------------------------------------------------
-inline Grammar::Pointer Grammar::named(const std::string& name) {
+template<class T>
+inline Grammar<T>::Pointer Grammar<T>::named(const std::string& name) {
     _name = name;
-    return shared_from_this();
+    return this->shared_from_this();
 }
 
 // ------------------------------------------------------------------
-inline Grammar::Pointer Grammar::else_pop() {
+template<class T>
+inline Grammar<T>::Pointer Grammar<T>::else_pop() {
     _default_pop = true;
-    return shared_from_this();
+    return this->shared_from_this();
 }
 
 // ------------------------------------------------------------------
-inline Grammar::Pointer Grammar::else_push(Grammar::Pointer target) {
+template<class T>
+inline Grammar<T>::Pointer Grammar<T>::else_push(Grammar<T>::Pointer target) {
     _default_push_target = target;
-    return shared_from_this();
+    return this->shared_from_this();
 }
 
 // ------------------------------------------------------------------
-inline Grammar::Pointer Grammar::inherit(Grammar::Pointer super) {
+template<class T>
+inline Grammar<T>::Pointer Grammar<T>::inherit(Grammar<T>::Pointer super) {
     _parents.push_back(super);
-    return shared_from_this();
+    return this->shared_from_this();
 }
 
 // ------------------------------------------------------------------
-inline std::optional<Grammar::ScanResult> Grammar::scan(Location loc, const std::string& content) const {
+template<class T>
+inline std::optional<typename Grammar<T>::ScanResult> Grammar<T>::scan(Location loc, const std::string& content) const {
     for (const auto& rule : *_rules) {
         std::smatch smatch = {};
         if (std::regex_search(content.begin() + loc.offset, content.end(), smatch, rule.rx())) {
@@ -472,7 +518,7 @@ inline std::optional<Grammar::ScanResult> Grammar::scan(Location loc, const std:
                 }
             }
 
-            if (! rule.type().empty()) {
+            if (! rule.is_typeless()) {
                 return ScanResult{rule, Token(rule.type(), match), loc};
             } else {
                 return ScanResult{rule, {}, loc};
@@ -499,33 +545,20 @@ inline std::optional<Grammar::ScanResult> Grammar::scan(Location loc, const std:
 }
 
 // ------------------------------------------------------------------
-inline Rule define_default_pop() {
-    static Rule pop = Rule(Action::POP);
-    pop.type("default-pop");
+inline Rule Rule::default_pop() {
+    Rule pop = Rule(Action::POP);
     pop.stay();
     return pop;
 }
 
 // ------------------------------------------------------------------
-inline const Rule& Rule::default_pop() {
-    static Rule pop = []() {
-        Rule pop = Rule(Action::POP);
-        pop.type("default-pop");
-        pop.stay();
-        return pop;
-    }();
-    return pop;
-}
-
-// ------------------------------------------------------------------
-inline const Rule& Rule::default_push(Grammar::Pointer target) {
-    static std::map<Grammar::Pointer, Rule> push_rules_map;
+inline Rule Rule::default_push(std::shared_ptr<void> target) {
+    static std::map<std::shared_ptr<void>, Rule> push_rules_map;
 
     if (! push_rules_map.contains(target)) {
         push_rules_map.insert({target, [&]() {
             Rule push = Rule(Action::PUSH);
             push.target(target);
-            push.type("default-push");
             push.stay();
             return push;
         }()});
@@ -535,32 +568,35 @@ inline const Rule& Rule::default_push(Grammar::Pointer target) {
 }
 
 // ------------------------------------------------------------------
-inline Grammar::ScanResult Grammar::ScanResult::default_pop(const Location& loc) {
+template<class T>
+inline Grammar<T>::ScanResult Grammar<T>::ScanResult::default_pop(const Location& loc) {
     return {
-        Rule::default_pop(),
+        QualifiedRule<T>::default_pop(),
         {},
         loc
     };
 }
 
 // ------------------------------------------------------------------
-inline Grammar::ScanResult Grammar::ScanResult::default_push(const Location& loc, Grammar::Pointer target) {
+template<class T>
+inline Grammar<T>::ScanResult Grammar<T>::ScanResult::default_push(const Location& loc, Grammar::Pointer target) {
     return {
-        Rule::default_push(target),
+        QualifiedRule<T>::default_push(target),
         {},
         loc
     };
 }
 
 // ------------------------------------------------------------------
+template<class T>
 class Lexer {
  public:
-     std::vector<Token> lex(Grammar::Pointer grammar,
-                            std::istream& infile) const {
+     std::vector<Token<T>> lex(Grammar<T>::Pointer grammar,
+                               std::istream& infile) const {
          return lex(grammar, file::to_string(infile));
      }
 
-     void debug_print_tokens(Grammar::Pointer grammar,
+     void debug_print_tokens(Grammar<T>::Pointer grammar,
                              std::istream& infile = std::cin) {
          _debug_print = true;
 
@@ -572,14 +608,14 @@ class Lexer {
          }
      }
 
-     std::vector<Token> lex(Grammar::Pointer grammar,
+     std::vector<Token<T>> lex(Grammar<T>::Pointer grammar,
                             const std::string& content) const {
-         std::vector<Token> tokens;
-         std::stack<Grammar::Pointer> gstack;
+         std::vector<Token<T>> tokens;
+         std::stack<typename Grammar<T>::Pointer> gstack;
          gstack.push(grammar);
          Location loc;
 
-         auto append_token = [&](const Token& tk) {
+         auto append_token = [&](const Token<T>& tk) {
              tokens.push_back(tk);
              if (_debug_print) {
                  std::cout << tk << std::endl;
@@ -587,12 +623,12 @@ class Lexer {
          };
 
          while (loc.offset < content.size() && !gstack.empty()) {
-             const Grammar::Pointer g = gstack.top();
+             const typename Grammar<T>::Pointer g = gstack.top();
              auto result_opt = g->scan(loc, content);
 
              if (! result_opt.has_value()) {
                  if (_throw_on_error) {
-                     THROW(NoMatchError, loc, content[loc.offset], Grammar::gstack_to_strv(gstack));
+                     THROW(NoMatchError, loc, content[loc.offset], Grammar<T>::gstack_to_strv(gstack));
                  } else {
                      break;
                  }
@@ -605,13 +641,14 @@ class Lexer {
                  break;
 
              case Action::MATCH:
-                 if (! result.token.has_value()) {
+                 if (result.token.has_value()) {
+                     append_token(result.token.value());
+                 } else if (! result.rule.is_typeless()) {
                      std::ostringstream sb;
                      sb << "Match rule " << result.rule.type()
                      << " didn't yield a token (at " << loc << ").";
                      THROW(core::UsageError, sb.str());
                  }
-                 append_token(result.token.value());
                  break;
 
              case Action::POP:
@@ -625,7 +662,7 @@ class Lexer {
                  if (result.token.has_value()) {
                      append_token(result.token.value());
                  }
-                 gstack.push(result.rule.target());
+                 gstack.push(std::static_pointer_cast<Grammar<T>>(result.rule.raw_target()));
                  break;
              }
 

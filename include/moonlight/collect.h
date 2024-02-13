@@ -10,6 +10,7 @@
 #ifndef __MOONLIGHT_COLLECT_H
 #define __MOONLIGHT_COLLECT_H
 
+#include <algorithm>
 #include <vector>
 #include <set>
 #include <map>
@@ -78,8 +79,8 @@ inline C1 sorted(const C1& src) {
 }
 
 template<typename C1>
-inline C1 sorted(const C1& src, std::function<bool (const typename C1::value_type& a,
-                                                    const typename C1::value_type& b)> comp) {
+inline C1 sorted(const C1& src, std::function<bool(const typename C1::value_type& a,
+                                                   const typename C1::value_type& b)> comp) {
     C1 result;
     std::copy(src.begin(), src.end(), std::back_inserter(result));
     std::sort(result.begin(), result.end(), comp);
@@ -87,7 +88,7 @@ inline C1 sorted(const C1& src, std::function<bool (const typename C1::value_typ
 }
 
 template<typename T, typename C1>
-inline std::vector<T> map(const C1& src, std::function<T (const typename C1::value_type&)> f) {
+inline std::vector<T> map(const C1& src, std::function<T(const typename C1::value_type&)> f) {
     std::vector<T> result;
     for (auto v : src) {
         result.push_back(f(v));
@@ -121,8 +122,7 @@ inline std::vector<R> zip(const C1& srcA, const C2& srcB) {
 }
 
 
-}
-}
-
+}  // namespace collect
+}  // namespace moonlight
 
 #endif /* !__MOONLIGHT_COLLECT_H */

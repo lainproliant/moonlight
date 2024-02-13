@@ -12,24 +12,25 @@
 #ifndef __MOONLIGHT_COLOR_H
 #define __MOONLIGHT_COLOR_H
 
+#include <inttypes.h>
+#include <string>
 #include <cmath>
 #include <ostream>
 #include <regex>
-#include <inttypes.h>
 #include "moonlight/exceptions.h"
 
 namespace moonlight {
 namespace color {
 
 /**
- */
+*/
 template<class T>
 bool in_range(T start, T end, T value) {
     return value >= start && value <= end;
 }
 
 /**
- */
+*/
 struct fRGB;
 struct uRGB;
 
@@ -45,7 +46,7 @@ struct fHSV {
         std::ios out_state(nullptr);
         out_state.copyfmt(out);
         out << "fHSV<" << std::fixed << std::setprecision(2) <<
-            hsv.h << ", " << hsv.s << ", " << hsv.v << ">";
+        hsv.h << ", " << hsv.s << ", " << hsv.v << ">";
         out.copyfmt(out_state);
         return out;
     }
@@ -65,7 +66,7 @@ struct fHSV {
 };
 
 /**
- */
+*/
 struct uRGB {
     unsigned char r;
     unsigned char g;
@@ -129,7 +130,7 @@ struct uRGB {
 };
 
 /**
- */
+*/
 struct fRGB {
     float r;
     float g;
@@ -142,7 +143,7 @@ struct fRGB {
         std::ios out_state(nullptr);
         out_state.copyfmt(out);
         out << "fRGB<" << std::fixed << std::setprecision(2) <<
-            rgb.r << ", " << rgb.g << ", " << rgb.b << ">";
+        rgb.r << ", " << rgb.g << ", " << rgb.b << ">";
         out.copyfmt(out_state);
         return out;
     }
@@ -157,13 +158,13 @@ struct fRGB {
 };
 
 /**
- */
+*/
 inline fHSV::operator uRGB() const {
     return static_cast<uRGB>(static_cast<fRGB>(*this));
 }
 
 /**
- */
+*/
 inline fHSV::operator fRGB() const {
     fRGB rgb = { 0.0f, 0.0f, 0.0f };
     float c = 0.0f, m = 0.0f, x = 0.0f;
@@ -191,7 +192,7 @@ inline fHSV::operator fRGB() const {
 }
 
 /**
- */
+*/
 inline uRGB::operator fRGB() const {
     return {
         .r = r / 255.0f,
@@ -201,13 +202,13 @@ inline uRGB::operator fRGB() const {
 }
 
 /**
- */
+*/
 inline uRGB::operator fHSV() const {
     return static_cast<fHSV>(static_cast<fRGB>(*this));
 }
 
 /**
- */
+*/
 inline fRGB::operator uRGB() const {
     return {
         .r = static_cast<unsigned char>(::floor(r * 255.0f)),
@@ -217,7 +218,7 @@ inline fRGB::operator uRGB() const {
 }
 
 /**
- */
+*/
 inline fRGB::operator fHSV() const {
     fHSV hsv = { 0.0f, 0.0f, 0.0f };
     float M = ::fmaxf(r, ::fmaxf(g, b));
@@ -243,7 +244,7 @@ inline fRGB::operator fHSV() const {
     return hsv;
 }
 
-}
-}
+}  // namespace color
+}  // namespace moonlight
 
 #endif /* !__MOONLIGHT_COLOR_H */
