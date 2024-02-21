@@ -215,10 +215,11 @@ class Grammar : public std::enable_shared_from_this<Grammar<T>> {
  public:
      typedef std::shared_ptr<Grammar<T>> Pointer;
      typedef Lexer<T> Lexer;
+     typedef Token<T> Token;
 
      struct ScanResult {
          const QualifiedRule<T> rule;
-         std::optional<Token<T>> token;
+         std::optional<Token> token;
          const Location loc;
 
          static ScanResult default_pop(const Location& loc);
@@ -226,7 +227,7 @@ class Grammar : public std::enable_shared_from_this<Grammar<T>> {
 
          friend std::ostream& operator<<(std::ostream& out, const Grammar<T>::ScanResult& s) {
              out << "ScanResult<" << s.rule << ", "
-             << s.token.value_or(Token<T>::nothing()) << ", " << s.loc << ">";
+             << s.token.value_or(Token::nothing()) << ", " << s.loc << ">";
              return out;
          }
      };
