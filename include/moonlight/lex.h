@@ -7,8 +7,8 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef __LEX_H
-#define __LEX_H
+#ifndef __MOONLIGHT_LEX_H
+#define __MOONLIGHT_LEX_H
 
 #include <regex>
 #include <optional>
@@ -262,6 +262,7 @@ class Grammar : public std::enable_shared_from_this<Grammar<T>> {
      }
 
      Pointer def(const QualifiedRule<T>& rule);
+     Pointer def(const Rule& rule);
      Pointer def(const Rule& rule, const T& type);
      Pointer named(const std::string& name);
      Pointer else_pop();
@@ -464,6 +465,12 @@ template<class T>
 inline Grammar<T>::Pointer Grammar<T>::def(const QualifiedRule<T>& rule) {
     add_rule(rule);
     return this->shared_from_this();
+}
+
+// ------------------------------------------------------------------
+template<class T>
+inline Grammar<T>::Pointer Grammar<T>::def(const Rule& rule) {
+    return def(QualifiedRule<T>(rule));
 }
 
 // ------------------------------------------------------------------
@@ -691,4 +698,4 @@ class Lexer {
 }  // namespace lex
 }  // namespace moonlight
 
-#endif /* !__LEX_H */
+#endif /* !__MOONLIGHT_LEX_H */
