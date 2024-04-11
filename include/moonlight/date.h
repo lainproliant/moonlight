@@ -671,7 +671,7 @@ class Date {
          out << "Date<" << std::setfill('0')
          << std::setw(4) << date.year() << "-"
          << std::setw(2) << date.nmonth() << "-"
-         << date.day() << ">";
+         << std::setw(2) << date.day() << ">";
          out.copyfmt(out_state);
          return out;
      }
