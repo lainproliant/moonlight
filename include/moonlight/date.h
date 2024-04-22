@@ -345,14 +345,23 @@ class Duration {
          }
          std::ios out_state(nullptr);
          out_state.copyfmt(out);
-         out << d.days() << "d"
-         << std::setfill('0') << std::setw(2)
+
+         if (d.days() > 0) {
+             out << d.days() << "d ";
+         }
+
+         out << std::setfill('0') << std::setw(2)
          << d.hours() << ":"
+         << std::setfill('0') << std::setw(2)
          << d.minutes() << ":"
-         << d.seconds() << " "
-         << std::setw(3)
-         << d.millis()
-         << ">";
+         << std::setfill('0') << std::setw(2)
+         << d.seconds();
+
+         if (d.millis() > 0) {
+             out << " " << std::setfill('0') << std::setw(3) << d.millis();
+         }
+
+         out << ">";
          out.copyfmt(out_state);
          return out;
      }
