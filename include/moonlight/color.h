@@ -39,8 +39,8 @@ struct fHSV {
     float s;
     float v;
 
-    explicit operator fRGB() const;
-    explicit operator uRGB() const;
+    operator fRGB() const;
+    operator uRGB() const;
 
     friend std::ostream& operator<<(std::ostream& out, const fHSV& hsv) {
         std::ios out_state(nullptr);
@@ -103,10 +103,10 @@ struct uRGB {
         return of(s);
     }
 
-    explicit operator fRGB() const;
-    explicit operator fHSV() const;
+    operator fRGB() const;
+    operator fHSV() const;
 
-    explicit operator unsigned int() const {
+    operator unsigned int() const {
         return (r << 16) | (g << 8) | b;
     }
 
@@ -136,8 +136,8 @@ struct fRGB {
     float g;
     float b;
 
-    explicit operator uRGB() const;
-    explicit operator fHSV() const;
+    operator uRGB() const;
+    operator fHSV() const;
 
     friend std::ostream& operator<<(std::ostream& out, const fRGB& rgb) {
         std::ios out_state(nullptr);

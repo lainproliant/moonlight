@@ -185,7 +185,7 @@ class StateMachine {
      }
 
  protected:
-     explicit StateMachine(typename S::Context& context) :
+     StateMachine(typename S::Context& context) :
      context_(context) { }
 
 #ifdef MOONLIGHT_AUTOMATA_DEBUG
@@ -341,7 +341,7 @@ class Lambda : public State<C> {
           using StateMachine<State<C>>::transition;
           using StateMachine<State<C>>::reset;
 
-          explicit Machine(C& context) :
+          Machine(C& context) :
           StateMachine<State<C>>(context) { }
 
           template<class T, class... TD>
@@ -421,7 +421,7 @@ class Lambda : public State<C> {
       public:
           friend class Lambda<C, K>;
 
-          explicit Builder(C& context)
+          Builder(C& context)
           : context(context) { }
 
           Machine build() {

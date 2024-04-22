@@ -57,7 +57,7 @@ class Value {
          ARRAY
      };
 
-     explicit Value(Type type) : _type(type) { }
+     Value(Type type) : _type(type) { }
      virtual ~Value() { }
 
      Type type() const {
@@ -184,7 +184,7 @@ VALUE_REF(Null);
 //-------------------------------------------------------------------
 class Boolean : public Value {
  public:
-     explicit Boolean(bool value) : Value(Type::BOOLEAN), _value(value) { }
+     Boolean(bool value) : Value(Type::BOOLEAN), _value(value) { }
      Boolean() : Boolean(false) { }
 
      template<class T>
@@ -215,7 +215,7 @@ VALUE_REF(Boolean);
 //-------------------------------------------------------------------
 class Number : public Value {
  public:
-     explicit Number(double value) : Value(Type::NUMBER), _value(value) { }
+     Number(double value) : Value(Type::NUMBER), _value(value) { }
      Number() : Number(0.0) { }
 
      template<class T>
@@ -256,8 +256,8 @@ VALUE_REF(Number);
 //-------------------------------------------------------------------
 class String : public Value {
  public:
-     explicit String(const std::string& str) : Value(Type::STRING), _str(str) { }
-     explicit String(const char* str) : String(std::string(str)) { }
+     String(const std::string& str) : Value(Type::STRING), _str(str) { }
+     String(const char* str) : String(std::string(str)) { }
      String() : String("") { }
 
      template<class T>

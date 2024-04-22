@@ -22,7 +22,7 @@ namespace json {
 class Array : public Value {
  public:
      Array() : Value(Type::ARRAY) { }
-     explicit Array(const std::vector<Value::Pointer>& vec) : Value(Type::ARRAY), _vec(vec) { }
+     Array(const std::vector<Value::Pointer>& vec) : Value(Type::ARRAY), _vec(vec) { }
      virtual ~Array() { }
 
      template<class T>
@@ -31,7 +31,7 @@ class Array : public Value {
      }
 
      template<class T>
-     explicit Array(const std::vector<T>& vec) : Array() {
+     Array(const std::vector<T>& vec) : Array() {
          std::transform(
              vec.begin(),
              vec.end(),

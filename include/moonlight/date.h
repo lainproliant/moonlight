@@ -238,7 +238,7 @@ class Zone {
 class Duration {
  public:
      Duration() : _ms(0), _bk(breakdown()) { }
-     explicit Duration(const Millis& ms) : _ms(ms), _bk(breakdown()) { }
+     Duration(const Millis& ms) : _ms(ms), _bk(breakdown()) { }
      Duration(const Duration& d) : _ms(d._ms), _bk(breakdown()) { }
 
      Duration& operator=(const Duration& other) {
@@ -434,7 +434,7 @@ class Date {
      Date(int year, int month, int day)
      : Date(year, static_cast<Month>(month - 1), day) { }
 
-     explicit Date(const struct tm& tm_dt)
+     Date(const struct tm& tm_dt)
      : Date(tm_dt.tm_year + 1900, tm_dt.tm_mon + 1, tm_dt.tm_mday) { }
 
      static Date strptime(const std::string& date_str,
@@ -721,7 +721,7 @@ class Time {
          validate();
      }
 
-     explicit Time(const struct tm& tm_dt)
+     Time(const struct tm& tm_dt)
      : Time(tm_dt.tm_hour, tm_dt.tm_min) { }
 
      static const Time& end_of_day() {
@@ -806,12 +806,12 @@ class Time {
 class Datetime {
  public:
      Datetime() : _ms(0) { }
-     explicit Datetime(const Duration& d) : _ms(d.to_chrono_duration()) { }
-     explicit Datetime(const Millis& ms) : _ms(ms) { }
+     Datetime(const Duration& d) : _ms(d.to_chrono_duration()) { }
+     Datetime(const Millis& ms) : _ms(ms) { }
      Datetime(const Zone& tz, const Millis& ms) : _ms(ms), _tz(tz) { }
      Datetime(const std::string& tz_name, const Millis& ms) : Datetime(Zone(tz_name), ms) { }
 
-     explicit Datetime(const Date& date, const Time& time = Time::start_of_day())
+     Datetime(const Date& date, const Time& time = Time::start_of_day())
      : Datetime(Zone::utc(), date, time) { }
 
      Datetime(const Zone& tz, const Date& date, const Time& time = Time::start_of_day()) {
