@@ -17,23 +17,23 @@ using namespace moonlight::test;
 
 using Grammar = lex::Grammar<std::string>;
 
-Grammar::Pointer make_scheme_grammar() {
-    auto root = Grammar::create();
-    auto sexpr = root->sub();
+Grammar make_scheme_grammar() {
+    auto root = Grammar();
+    auto sexpr = root.sub();
     auto ignore_whitespace = lex::ignore("\\s");
 
     sexpr
-    ->def(ignore_whitespace)
-    ->def(lex::match("`"), "quote")
-    ->def(lex::match("[0-9]*.?[0-9]+"), "number")
-    ->def(lex::match("[-!?+*/A-Za-z_!][-!?+*/A-za-z_0-9!]*"), "word")
-    ->def(lex::match("[\\+-/=]"), "operator")
-    ->def(lex::push("\\(", sexpr), "open-paren")
-    ->def(lex::pop("\\)"), "close-paren");
+    .def(ignore_whitespace)
+    .def(lex::match("`"), "quote")
+    .def(lex::match("[0-9]*.?[0-9]+"), "number")
+    .def(lex::match("[-!?+*/A-Za-z_!][-!?+*/A-za-z_0-9!]*"), "word")
+    .def(lex::match("[\\+-/=]"), "operator")
+    .def(lex::push("\\(", sexpr), "open-paren")
+    .def(lex::pop("\\)"), "close-paren");
 
     root
-    ->def(ignore_whitespace)
-    ->def(lex::push("\\(", sexpr), "open-paren");
+    .def(ignore_whitespace)
+    .def(lex::push("\\(", sexpr), "open-paren");
 
     return root;
 }
@@ -45,20 +45,16 @@ enum Abba {
 
 using AbbaGrammar = lex::Grammar<Abba>;
 
-AbbaGrammar::Pointer make_enum_abba_grammar() {
-    auto root = AbbaGrammar::create();
-    root
-    ->def(lex::match("a"), Abba::A)
-    ->def(lex::pop("b"), Abba::B);
-    return root;
+AbbaGrammar make_enum_abba_grammar() {
+    return AbbaGrammar()
+    .def(lex::match("a"), Abba::A)
+    .def(lex::pop("b"), Abba::B);
 }
 
-Grammar::Pointer make_abba_grammar() {
-    auto root = Grammar::create();
-    root
-    ->def(lex::match("a"), "a")
-    ->def(lex::pop("b"), "b");
-    return root;
+Grammar make_abba_grammar() {
+    return Grammar()
+    .def(lex::match("a"), "a")
+    .def(lex::pop("b"), "b");
 }
 
 int main() {
@@ -66,7 +62,7 @@ int main() {
     .die_on_signal(SIGSEGV)
     .test("a simple scheme lexer", []() {
         auto g = make_scheme_grammar();
-        auto lex = g->lexer();
+        auto lex = g.lexer();
 
         auto tokens = lex.lex(file::slurp("test/data/test_scheme"));
         for (auto tk : tokens) {
@@ -75,7 +71,7 @@ int main() {
     })
     .test("popping from root state ends parsing", []() {
         auto abba = make_abba_grammar();
-        auto lex = abba->lexer().throw_on_error(false);
+        auto lex = abba.lexer().throw_on_error(false);
 
         auto tokens = lex.lex("aaabaaa");
         for (auto token : tokens) {
@@ -85,7 +81,7 @@ int main() {
     })
     .test("unexpected characters", []() {
         auto abba = make_abba_grammar();
-        auto lex = abba->lexer();
+        auto lex = abba.lexer();
 
         try {
             auto tokens = lex.lex("acab");
@@ -101,12 +97,11 @@ int main() {
     })
     .test("inheriting grammars", []() {
         auto abba = make_abba_grammar();
-        auto abra = Grammar::create();
-        abra
-        ->inherit(abba)
-        ->def(lex::match("abra"), "abra");
+        auto abra = Grammar()
+        .inherit(abba)
+        .def(lex::match("abra"), "abra");
 
-        auto lex = abra->lexer();
+        auto lex = abra.lexer();
         auto tokens = lex.lex("aaaabraabraab");
         for (auto tk : tokens) {
             std::cout << tk << std::endl;
@@ -116,7 +111,7 @@ int main() {
     })
     .test("grammar with enum-named states", []() {
         auto abba = make_enum_abba_grammar();
-        auto lex = abba->lexer().throw_on_error(false);
+        auto lex = abba.lexer().throw_on_error(false);
         auto tokens = lex.lex("abaaa");
         std::cout << "LRS-DEBUG: tokens.size() = " << tokens.size() << std::endl;
         ASSERT_EQUAL(tokens.size(), 2ul);
