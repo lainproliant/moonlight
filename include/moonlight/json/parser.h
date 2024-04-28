@@ -29,48 +29,32 @@ namespace json {
 namespace parser {
 
 //-------------------------------------------------------------------
-struct Location {
-    std::string name;
-    int line;
-    int col;
-
-    friend std::ostream& operator<<(std::ostream& out, const Location& loc) {
-        out << loc.name
-        << ", line " << loc.line
-        << ", col " << loc.col;
-        return out;
-    }
-};
-
-//-------------------------------------------------------------------
 class ParseError : public moonlight::core::RuntimeError {
  public:
-     ParseError(const std::string& msg, const Location& loc, debug::Source where = {}) :
+     ParseError(const std::string& msg, const file::Location& loc, debug::Source where = {}) :
      moonlight::core::RuntimeError(format_message(msg, loc), where, type_name<ParseError>()), _loc(loc) { }
 
      static std::string format_message(const std::string& msg,
-                                       const Location& loc) {
+                                       const file::Location& loc) {
          std::ostringstream sb;
          sb << msg << " (" << loc << ")";
          return sb.str();
      }
 
-     const Location& loc() const {
+     const file::Location& loc() const {
          return _loc;
      }
 
  private:
-     Location _loc;
+     file::Location _loc;
 };
 
 //-------------------------------------------------------------------
 struct Context {
     file::BufferedInput input;
 
-    Location loc() const {
-        return {
-            input.name(), input.line(), input.col()
-        };
+    file::Location loc() const {
+        return input.location();
     }
 
     std::string dbg_cursor() {
