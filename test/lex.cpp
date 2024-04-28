@@ -66,28 +66,29 @@ int main() {
     .die_on_signal(SIGSEGV)
     .test("a simple scheme lexer", []() {
         auto g = make_scheme_grammar();
-        Grammar::Lexer lex;
-        auto tokens = lex.lex(g, file::slurp("test/data/test_scheme"));
+        auto lex = g->lexer();
+
+        auto tokens = lex.lex(file::slurp("test/data/test_scheme"));
         for (auto tk : tokens) {
             std::cout << tk << std::endl;
         }
     })
     .test("popping from root state ends parsing", []() {
-        Grammar::Lexer lex = Grammar::Lexer().throw_on_error(false);
         auto abba = make_abba_grammar();
+        auto lex = abba->lexer().throw_on_error(false);
 
-        auto tokens = lex.lex(abba, "aaabaaa");
+        auto tokens = lex.lex("aaabaaa");
         for (auto token : tokens) {
             std::cout << token << std::endl;
         }
         ASSERT_EQUAL(tokens.size(), 4ul);
     })
     .test("unexpected characters", []() {
-        Grammar::Lexer lex;
         auto abba = make_abba_grammar();
+        auto lex = abba->lexer();
 
         try {
-            auto tokens = lex.lex(abba, "acab");
+            auto tokens = lex.lex("acab");
             for (auto tk : tokens) {
                 std::cout << tk << std::endl;
             }
@@ -99,15 +100,14 @@ int main() {
         }
     })
     .test("inheriting grammars", []() {
-        Grammar::Lexer lex;
         auto abba = make_abba_grammar();
-
         auto abra = Grammar::create();
         abra
         ->inherit(abba)
         ->def(lex::match("abra"), "abra");
 
-        auto tokens = lex.lex(abra, "aaaabraabraab");
+        auto lex = abra->lexer();
+        auto tokens = lex.lex("aaaabraabraab");
         for (auto tk : tokens) {
             std::cout << tk << std::endl;
         }
@@ -115,10 +115,9 @@ int main() {
         ASSERT_EQUAL(tokens.size(), 7ul);
     })
     .test("grammar with enum-named states", []() {
-        AbbaGrammar::Lexer lex = AbbaGrammar::Lexer().throw_on_error(false);
         auto abba = make_enum_abba_grammar();
-
-        auto tokens = lex.lex(abba, "abaaa");
+        auto lex = abba->lexer().throw_on_error(false);
+        auto tokens = lex.lex("abaaa");
         std::cout << "LRS-DEBUG: tokens.size() = " << tokens.size() << std::endl;
         ASSERT_EQUAL(tokens.size(), 2ul);
         ASSERT_EQUAL(tokens[0].type(), Abba::A);

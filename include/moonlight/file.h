@@ -19,6 +19,29 @@
 namespace moonlight {
 namespace file {
 
+// ------------------------------------------------------------------
+struct Location {
+    unsigned int line = 1;
+    unsigned int col = 1;
+    unsigned int offset = 0;
+    std::string name = "";
+
+    static Location nowhere() {
+        return {
+            0, 0
+        };
+    }
+
+    friend std::ostream& operator<<(std::ostream& out, const Location& loc) {
+        out << "<";
+        if (loc.name != "") {
+            out << "\'" << loc.name << "\' ";
+        }
+        out << "L" << loc.line << ":" << loc.col << " +" << loc.offset << ">";
+        return out;
+    }
+};
+
 //-------------------------------------------------------------------
 inline std::ifstream open_r(const std::string& filename,
                             std::ios::openmode mode = std::ios::in) {
@@ -99,8 +122,10 @@ inline void dump(const std::string& filename, const std::string& str) {
 // ------------------------------------------------------------------
 class BufferedInput {
  public:
-     explicit BufferedInput(std::istream& input, const std::string& name = "<input>")
-     : _input(input), _name(name) { }
+     explicit BufferedInput(std::istream& input, const std::string& name = "")
+     : _input(input) {
+         _loc.name = name;
+     }
 
      int getc() {
          int c;
@@ -116,15 +141,19 @@ class BufferedInput {
              c = _input.get();
          }
 
-         if (c == '\n') {
-             _line ++;
-             _col = 1;
-
-         } else if (c == EOF) {
+         if (c == EOF) {
              _exhausted = true;
 
          } else {
-             _col ++;
+             _loc.offset ++;
+
+             if (c == '\n') {
+                 _loc.line ++;
+                 _loc.col = 1;
+
+             } else {
+                 _loc.col ++;
+             }
          }
 
          return c;
@@ -210,21 +239,24 @@ class BufferedInput {
      }
 
      const std::string& name() const {
-         return _name;
+         return _loc.name;
      }
 
      int line() const {
-         return _line;
+         return _loc.line;
      }
 
      int col() const {
-         return _col;
+         return _loc.col;
+     }
+
+     const Location& location() const {
+         return _loc;
      }
 
  private:
      std::istream& _input;
-     const std::string _name;
-     int _line = 1, _col = 1;
+     Location _loc;
      bool _exhausted = false;
      std::string _buffer;
 };

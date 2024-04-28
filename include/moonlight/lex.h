@@ -28,24 +28,6 @@ namespace moonlight {
 namespace lex {
 
 // ------------------------------------------------------------------
-struct Location {
-    unsigned int line = 1;
-    unsigned int col = 1;
-    unsigned int offset = 0;
-
-    static Location nowhere() {
-        return {
-            0, 0, 0
-        };
-    }
-
-    friend std::ostream& operator<<(std::ostream& out, const Location& loc) {
-        out << "<line " << loc.line << ", col " << loc.col << ", offset " << loc.offset << ">";
-        return out;
-    }
-};
-
-// ------------------------------------------------------------------
 class LexParseError : public core::ValueError {
     using ValueError::ValueError;
 };
@@ -53,11 +35,11 @@ class LexParseError : public core::ValueError {
 // ------------------------------------------------------------------
 class NoMatchError : public LexParseError {
  public:
-     NoMatchError(const Location& loc, char c, const std::vector<std::string>& gstack,
+     NoMatchError(const file::Location& loc, char c, const std::vector<std::string>& gstack,
                   const debug::Source& srcloc)
      : LexParseError(format_message(loc, c), srcloc), _loc(loc), _gstack(gstack), _chr(c) { }
 
-     const Location& loc() const {
+     const file::Location& loc() const {
          return _loc;
      }
 
@@ -70,13 +52,13 @@ class NoMatchError : public LexParseError {
      }
 
  private:
-     static std::string format_message(const Location& loc, const char chr) {
+     static std::string format_message(const file::Location& loc, const char chr) {
          std::ostringstream sb;
          sb << "No lexical rules matched content starting at " << loc << " [" << str::literal(str::chr(chr)) << "].";
          return sb.str();
      }
 
-     const Location& _loc;
+     const file::Location& _loc;
      const std::vector<std::string> _gstack;
      const char _chr;
 };
@@ -84,21 +66,21 @@ class NoMatchError : public LexParseError {
 // ------------------------------------------------------------------
 class UnexpectedEndOfContentError : public LexParseError {
  public:
-     UnexpectedEndOfContentError(const Location& loc, const debug::Source& srcloc)
+     UnexpectedEndOfContentError(const file::Location& loc, const debug::Source& srcloc)
      : LexParseError(format_message(loc), srcloc), _loc(loc) { }
 
-     const Location& loc() const {
+     const file::Location& loc() const {
          return _loc;
      }
 
  private:
-     static std::string format_message(const Location& loc) {
+     static std::string format_message(const file::Location& loc) {
          std::ostringstream sb;
          sb << "Parsing terminated early (at " << loc << ").";
          return sb.str();
      }
 
-     const Location& _loc;
+     const file::Location& _loc;
 };
 
 // ------------------------------------------------------------------
@@ -123,13 +105,13 @@ inline const std::string& _action_name(Action action) {
 // ------------------------------------------------------------------
 class Match {
  public:
-     Match(const Location& location, const std::smatch& smatch)
+     Match(const file::Location& location, const std::smatch& smatch)
      : _location(location), _length(smatch.length()), _groups(smatch.begin(), smatch.end()) { }
 
-     explicit Match(const Location& location)
+     explicit Match(const file::Location& location)
      : _location(location), _length(0) { }
 
-     const Location& location() const {
+     const file::Location& location() const {
          return _location;
      }
 
@@ -163,7 +145,7 @@ class Match {
          return sb.str();
      }
 
-     const Location _location;
+     const file::Location _location;
      unsigned int _length;
      const std::vector<std::string> _groups;
 };
@@ -176,7 +158,7 @@ class Token {
      : _type(type), _match(smatch) { }
 
      static Token nothing() {
-         return Token("NOTHING", Match(Location::nowhere()));
+         return Token("NOTHING", Match(file::Location::nowhere()));
      }
 
      const T& type() const {
@@ -214,16 +196,16 @@ template<class T>
 class Grammar : public std::enable_shared_from_this<Grammar<T>> {
  public:
      typedef std::shared_ptr<Grammar<T>> Pointer;
-     typedef Lexer<T> Lexer;
+     typedef std::shared_ptr<const Grammar<T>> ConstPointer;
      typedef Token<T> Token;
 
      struct ScanResult {
          const QualifiedRule<T> rule;
          std::optional<Token> token;
-         const Location loc;
+         const file::Location loc;
 
-         static ScanResult default_pop(const Location& loc);
-         static ScanResult default_push(const Location& loc, Grammar::Pointer target);
+         static ScanResult default_pop(const file::Location& loc);
+         static ScanResult default_push(const file::Location& loc, Grammar::Pointer target);
 
          friend std::ostream& operator<<(std::ostream& out, const Grammar<T>::ScanResult& s) {
              out << "ScanResult<" << s.rule << ", "
@@ -245,10 +227,10 @@ class Grammar : public std::enable_shared_from_this<Grammar<T>> {
          return _name;
      }
 
-     static std::vector<std::string> gstack_to_strv(const std::stack<Grammar::Pointer>& gstack) {
+     static std::vector<std::string> gstack_to_strv(const std::stack<Grammar::ConstPointer>& gstack) {
          std::vector<std::string> result;
-         std::vector<Grammar::Pointer> gvec;
-         std::stack<Grammar::Pointer> stack_copy = gstack;
+         std::vector<Grammar::ConstPointer> gvec;
+         std::stack<Grammar::ConstPointer> stack_copy = gstack;
 
          while (! stack_copy.empty()) {
              gvec.push_back(stack_copy.top());
@@ -270,8 +252,9 @@ class Grammar : public std::enable_shared_from_this<Grammar<T>> {
      Pointer else_push(Pointer target);
 
      Pointer inherit(Pointer super);
+     Lexer<T> lexer() const;
 
-     std::optional<ScanResult> scan(Location loc, const std::string& content) const;
+     std::optional<ScanResult> scan(file::Location loc, const std::string& content) const;
 
  private:
      explicit Grammar(bool sub_grammar) : _sub_grammar(sub_grammar) { }
@@ -347,7 +330,7 @@ class Rule {
      }
 
      template<class T>
-     Grammar<T>::Pointer target() const {
+     Grammar<T>::ConstPointer target() const {
          if (_target == nullptr) {
              std::ostringstream sb;
              sb << "Rule type has no subgrammar target.";
@@ -510,7 +493,7 @@ inline Grammar<T>::Pointer Grammar<T>::inherit(Grammar<T>::Pointer super) {
 
 // ------------------------------------------------------------------
 template<class T>
-inline std::optional<typename Grammar<T>::ScanResult> Grammar<T>::scan(Location loc, const std::string& content) const {
+inline std::optional<typename Grammar<T>::ScanResult> Grammar<T>::scan(file::Location loc, const std::string& content) const {
     for (const auto& rule : *_rules) {
         std::smatch smatch = {};
         if (std::regex_search(content.begin() + loc.offset, content.end(), smatch, rule.rx())) {
@@ -553,6 +536,12 @@ inline std::optional<typename Grammar<T>::ScanResult> Grammar<T>::scan(Location 
 }
 
 // ------------------------------------------------------------------
+template<class T>
+inline Lexer<T> Grammar<T>::lexer() const {
+    return Lexer<T>(this->shared_from_this());
+}
+
+// ------------------------------------------------------------------
 inline Rule Rule::default_pop() {
     Rule pop = Rule(Action::POP);
     pop.stay();
@@ -577,7 +566,7 @@ inline Rule Rule::default_push(std::shared_ptr<void> target) {
 
 // ------------------------------------------------------------------
 template<class T>
-inline Grammar<T>::ScanResult Grammar<T>::ScanResult::default_pop(const Location& loc) {
+inline Grammar<T>::ScanResult Grammar<T>::ScanResult::default_pop(const file::Location& loc) {
     return {
         QualifiedRule<T>::default_pop(),
         {},
@@ -587,7 +576,7 @@ inline Grammar<T>::ScanResult Grammar<T>::ScanResult::default_pop(const Location
 
 // ------------------------------------------------------------------
 template<class T>
-inline Grammar<T>::ScanResult Grammar<T>::ScanResult::default_push(const Location& loc, Grammar::Pointer target) {
+inline Grammar<T>::ScanResult Grammar<T>::ScanResult::default_push(const file::Location& loc, Grammar::Pointer target) {
     return {
         QualifiedRule<T>::default_push(target),
         {},
@@ -599,29 +588,29 @@ inline Grammar<T>::ScanResult Grammar<T>::ScanResult::default_push(const Locatio
 template<class T>
 class Lexer {
  public:
-     std::vector<Token<T>> lex(Grammar<T>::Pointer grammar,
-                               std::istream& infile) const {
-         return lex(grammar, file::to_string(infile));
+     explicit Lexer(Grammar<T>::ConstPointer grammar)
+     : _grammar(grammar) { }
+
+     std::vector<Token<T>> lex(std::istream& infile) const {
+         return lex(file::to_string(infile));
      }
 
-     void debug_print_tokens(Grammar<T>::Pointer grammar,
-                             std::istream& infile = std::cin) {
+     void debug_print_tokens(std::istream& infile = std::cin) {
          _debug_print = true;
 
          try {
-             auto tokens = lex(grammar, infile);
+             auto tokens = lex(infile);
          } catch (const NoMatchError& e) {
              std::cout << "gstack --> " << str::join(e.gstack(), ",") << std::endl;
              throw e;
          }
      }
 
-     std::vector<Token<T>> lex(Grammar<T>::Pointer grammar,
-                            const std::string& content) const {
+     std::vector<Token<T>> lex(const std::string& content) const {
          std::vector<Token<T>> tokens;
-         std::stack<typename Grammar<T>::Pointer> gstack;
-         gstack.push(grammar);
-         Location loc;
+         std::stack<typename Grammar<T>::ConstPointer> gstack;
+         gstack.push(_grammar);
+         file::Location loc;
 
          auto append_token = [&](const Token<T>& tk) {
              tokens.push_back(tk);
@@ -631,7 +620,7 @@ class Lexer {
          };
 
          while (loc.offset < content.size() && !gstack.empty()) {
-             const typename Grammar<T>::Pointer g = gstack.top();
+             const typename Grammar<T>::ConstPointer g = gstack.top();
              auto result_opt = g->scan(loc, content);
 
              if (! result_opt.has_value()) {
@@ -692,6 +681,7 @@ class Lexer {
      }
 
  private:
+     Grammar<T>::ConstPointer _grammar;
      bool _debug_print = false;
      bool _throw_on_error = true;
 };
