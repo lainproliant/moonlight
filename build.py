@@ -42,7 +42,7 @@ ENV.update(
         *INCLUDES,
         "-DMOONLIGHT_ENABLE_STACKTRACE",
         "-DMOONLIGHT_STACKTRACE_IN_DESCRIPTION",
-        "--std=c++2a",
+        "--std=c++23",
     ],
     LDFLAGS=["-g", "-lpthread", "-lutil"],
     PREFIX=os.environ.get("PREFIX", "/usr/local"),
