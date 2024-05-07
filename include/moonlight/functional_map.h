@@ -8,13 +8,12 @@
 #ifndef __FUNCTIONAL_MAP_H
 #define __FUNCTIONAL_MAP_H
 
-#include <stdexcept>
 #include <functional>
-#include <optional>
-#include "moonlight/string.h"
 #include "moonlight/exceptions.h"
 
 namespace moonlight {
+
+EXCEPTION_SUBTYPE(core::ValueError, UnmappedValueError);
 
 template<class T, class M = T>
 class FunctionalMap {
@@ -26,7 +25,9 @@ class FunctionalMap {
 
      struct Mapping {
          std::vector<predicate_f> predicates = {};
-         function_f func = [](auto& v) -> int { THROW(core::ValueError, "Undefined mapping."); };
+         function_f func = [](auto& v) -> int {
+             THROW(UnmappedValueError, "Undefined mapping.");
+         };
 
          Mapping() { }
 
@@ -55,13 +56,7 @@ class FunctionalMap {
      };
 
      function_f operator[](const T& value) const {
-         for (auto& mapping : _mappings) {
-             if (mapping.check(value)) {
-                 return mapping.func;
-             }
-         }
-
-         return _otherwise.func;
+         return _of(value).value_or(_otherwise.func);
      }
 
      template<class... VL>
@@ -75,6 +70,11 @@ class FunctionalMap {
          return _otherwise;
      }
 
+     bool contains(const T& value) const {
+         auto func = _of(value);
+         return func.has_value();
+     }
+
      function_f of(const T& value) const {
          return (*this)[value];
      }
@@ -83,8 +83,17 @@ class FunctionalMap {
          return of(value)(value);
      }
 
-
  private:
+     std::optional<function_f> _of(const T& value) const {
+         for (auto& mapping : _mappings) {
+             if (mapping.check(value)) {
+                 return mapping.func;
+             }
+         }
+
+         return {};
+     }
+
      template<class V, class... VL>
      std::vector<predicate_f> _build_predicates(const V& value, VL... args) {
          std::vector<predicate_f> predicates;
