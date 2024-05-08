@@ -143,6 +143,7 @@ class Mapper {
      Mapper(Mapper& other)
      : _mappings(std::move(other._mappings)), _instance(other._instance) { }
 
+
      template<class UnboundGetter, class UnboundSetter>
      Mapper& property(const char* name,
                       const UnboundGetter& getter,
@@ -150,18 +151,16 @@ class Mapper {
                       bool required = false) {
          using namespace std::placeholders;
 
-         typedef typename std::remove_reference<
-            typename std::result_of<
-                decltype(std::bind(getter, _instance))()>::type>::type Type;
+         typedef std::remove_reference_t<decltype(std::invoke(getter, _instance))> Type;
 
          C* instance = _instance;
-         std::function<const Type()> getter_proxy = [=]() {
-             const auto bound_getter = std::bind(getter, instance);
+         auto getter_proxy = [=]() -> Type {
+             const auto bound_getter = [=]() { return std::invoke(getter, instance); };
              return bound_getter();
          };
 
-         std::function<void(Type)> setter_proxy = [=](const Type& p) {
-             const auto bound_setter = std::bind(setter, instance, _1);
+         auto setter_proxy = [=](const Type& p) {
+             const auto bound_setter = [=](const Type& t) { std::invoke(setter, instance, t); };
              bound_setter(p);
          };
 

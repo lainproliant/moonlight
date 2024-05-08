@@ -98,6 +98,7 @@ class Array : public Value {
      template<class T>
      Array& set(unsigned int offset, const T& value) {
          _get(offset) = Value::of(value);
+         return *this;
      }
 
      template<class T>
