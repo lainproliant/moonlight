@@ -51,7 +51,7 @@ ENV.update(
 
 
 # --------------------------------------------------------------------
-@task
+@task(keep=True)
 def deps():
     """Fetch third-party repos."""
     return [checkout(repo) for repo in DEPS]

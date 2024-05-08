@@ -10,21 +10,15 @@
 #ifndef __MOONLIGHT_DATE_H
 #define __MOONLIGHT_DATE_H
 
-#include <map>
 #include <ctime>
 #include <cstdlib>
 #include <cstring>
 #include <cstdint>
-#include <memory>
 #include <chrono>
-#include <regex>
 #include <algorithm>
 #include <string>
 
-#include "moonlight/generator.h"
 #include "moonlight/exceptions.h"
-#include "moonlight/maps.h"
-#include "moonlight/slice.h"
 #include "date/date.h"
 
 #ifndef MOONLIGHT_TZ_UNSAFE
@@ -239,7 +233,7 @@ class Duration {
  public:
      Duration() : _ms(0), _bk(breakdown()) { }
      Duration(const Millis& ms) : _ms(ms), _bk(breakdown()) { }
-     Duration(const Duration& d) : _ms(d._ms), _bk(breakdown()) { }
+     Duration(const Duration& d) : _ms(d._ms), _bk(d._bk) { }
 
      Duration& operator=(const Duration& other) {
          _ms = other._ms;
@@ -312,6 +306,18 @@ class Duration {
 
      Duration operator-(const Duration& d) const {
          return Duration(_ms - d._ms);
+     }
+
+     Duration& operator+=(const Duration& d) {
+         _ms += d._ms;
+         _bk = breakdown();
+         return *this;
+     }
+
+     Duration& operator-=(const Duration& d) {
+         _ms -= d._ms;
+         _bk = breakdown();
+         return *this;
      }
 
      bool operator==(const Duration& d) const {

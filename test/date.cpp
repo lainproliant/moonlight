@@ -52,6 +52,19 @@ int main() {
         ASSERT_EQUAL(dF.days(), 15);
         ASSERT_EQUAL(dF.hours(), 21);
         ASSERT_EQUAL(dF.minutes(), 53);
+
+        Duration dG = Duration::of_hours(13);
+        dG += Duration::of_minutes(30);
+        std::cout << "dG(13h) += 30m -> " << dG << std::endl;
+        ASSERT_EQUAL(dG.hours(), 13);
+        ASSERT_EQUAL(dG.minutes(), 30);
+
+        Duration dH = Duration::of_days(1);
+        dH -= Duration::of_minutes(59);
+        std::cout << "dH(1d) -= 59m -> " << dH << std::endl;
+        ASSERT_EQUAL(dH.days(), 0);
+        ASSERT_EQUAL(dH.hours(), 23);
+        ASSERT_EQUAL(dH.minutes(), 1);
     })
     .test("class Date", [&]() {
         Date dateA;
