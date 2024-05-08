@@ -1,11 +1,15 @@
 #include <cstdio>
+#include <filesystem>
 #include "moonlight/json.h"
 #include "moonlight/test.h"
-
+#include "moonlight/date.h"
 
 using namespace std;
 using namespace moonlight;
 using namespace moonlight::test;
+using namespace moonlight::date;
+
+const Duration PERF_TEST_DURATION = Duration::of_seconds(5);
 
 int main() {
     return TestSuite("moonlight json tests")
@@ -128,6 +132,33 @@ int main() {
         }
 
         ASSERT_EQUAL(vector, vec_copy);
+    })
+    .test("Test large file read performance", []() {
+        Datetime start = Datetime::now();
+        int count = 0;
+
+        while (Datetime::now() < start + PERF_TEST_DURATION) {
+            json::Array large_array = json::read_file<json::Array>("./test/data/test-json-large.json");
+            count++;
+        }
+
+        std::cout << std::endl;
+        std::cout << "Loaded large JSON file " << count << " times in " << PERF_TEST_DURATION << std::endl;
+    })
+    .test("Test large file write performance", []() {
+        Datetime start = Datetime::now();
+        int count = 0;
+
+        json::Array large_array = json::read_file<json::Array>("./test/data/test-json-large.json");
+
+        while (Datetime::now() < start + PERF_TEST_DURATION) {
+            file::TemporaryFile tempfile("json-out-");
+            json::write(tempfile.output(), large_array);
+            count++;
+        }
+
+        std::cout << std::endl;
+        std::cout << "Wrote a large JSON file " << count << " times in " << PERF_TEST_DURATION << std::endl;
     })
     .test("Object mappings", []() {
         class Address {

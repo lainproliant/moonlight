@@ -126,7 +126,7 @@ class Serializer {
      }
 
      void serialize_string(const String& value) {
-         _out << "\"" << str::literal(value.get<std::string>()) << "\"";
+         _out << "\"" << str::literal(value.get<std::string>(), false) << "\"";
      }
 
      void serialize_null(const Null& null) {

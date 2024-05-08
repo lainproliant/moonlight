@@ -43,8 +43,9 @@ ENV.update(
         "-DMOONLIGHT_ENABLE_STACKTRACE",
         "-DMOONLIGHT_STACKTRACE_IN_DESCRIPTION",
         "--std=c++23",
+        "-O3"
     ],
-    LDFLAGS=["-g", "-lpthread", "-lutil"],
+    LDFLAGS=["-O3", "-lpthread", "-lutil"],
     PREFIX=os.environ.get("PREFIX", "/usr/local"),
     DESTDIR=os.environ.get("DESTDIR", ""),
 )

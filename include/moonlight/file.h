@@ -97,6 +97,58 @@ inline std::fstream open_rw(const std::string& filename,
 }
 
 //-------------------------------------------------------------------
+inline std::string tempfile_name(const std::string& prefix = "") {
+    char* name_c = ::tempnam(std::filesystem::temp_directory_path().c_str(), prefix.c_str());
+    std::string name(name_c);
+    ::free(name_c);
+    return name;
+}
+
+//-------------------------------------------------------------------
+class TemporaryFile {
+public:
+    TemporaryFile(const std::string& prefix, std::ios::openmode mode = std::ios::in | std::ios::out)
+    : _filename(tempfile_name(prefix)) {
+        open_w(_filename).close();
+        _stream = open_rw(_filename, mode);
+    }
+
+    ~TemporaryFile() {
+        _stream.close();
+
+        if (_cleanup) {
+            std::filesystem::remove(_filename);
+        }
+    }
+
+    TemporaryFile& keep() {
+        _cleanup = false;
+        return *this;
+    }
+
+    const std::filesystem::path& name() const {
+        return _filename;
+    }
+
+    std::fstream& stream() {
+        return _stream;
+    }
+
+    std::istream& input() {
+        return _stream;
+    }
+
+    std::ostream& output() {
+        return _stream;
+    }
+
+private:
+    std::fstream _stream;
+    std::filesystem::path _filename;
+    bool _cleanup = true;
+};
+
+//-------------------------------------------------------------------
 inline std::string to_string(std::istream& infile) {
     return std::string(std::istreambuf_iterator<char>(infile), {});
 }

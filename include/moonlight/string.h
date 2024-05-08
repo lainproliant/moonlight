@@ -237,7 +237,7 @@ inline std::string to_lower(const std::string& s) {
 }
 
 // ------------------------------------------------------------------
-inline std::string literal(const std::string& str) {
+inline std::string literal(const std::string& str, bool xsieve = true) {
     static const std::map<char, std::string> ESCAPE_SEQUENCES = {
         {'\a', "\\a"},
         {'\b', "\\b"},
@@ -262,7 +262,7 @@ inline std::string literal(const std::string& str) {
             repr = iter->second;
         }
 
-        if (repr == "" && !isprint(c)) {
+        if (repr == "" && !isprint(c) && xsieve) {
             std::ios sb_state(nullptr);
             sb_state.copyfmt(sb);
             sb << std::hex << std::setfill('0') << std::setw(2);
