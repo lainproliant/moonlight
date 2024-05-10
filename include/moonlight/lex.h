@@ -10,7 +10,6 @@
 #ifndef __MOONLIGHT_LEX_H
 #define __MOONLIGHT_LEX_H
 
-#include <regex>
 #include <optional>
 #include <algorithm>
 #include <memory>
@@ -23,6 +22,7 @@
 #include "moonlight/exceptions.h"
 #include "moonlight/string.h"
 #include "moonlight/collect.h"
+#include "moonlight/rx.h"
 
 namespace moonlight {
 namespace lex {
@@ -103,80 +103,37 @@ inline const std::string& _action_name(Action action) {
 }
 
 // ------------------------------------------------------------------
-class Match {
- public:
-     Match(const file::Location& location, const std::smatch& smatch)
-     : _location(location), _length(smatch.length()), _groups(smatch.begin(), smatch.end()) { }
-
-     explicit Match(const file::Location& location)
-     : _location(location), _length(0) { }
-
-     const file::Location& location() const {
-         return _location;
-     }
-
-     unsigned int length() const {
-         return _length;
-     }
-
-     const std::string& group(size_t offset = 0) const {
-         return _groups[offset];
-     }
-
-     const std::string str() const {
-         return group();
-     }
-
-     const std::vector<std::string>& groups() const {
-         return _groups;
-     }
-
-     friend std::ostream& operator<<(std::ostream& out, const Match& match) {
-         auto literal_matches = collect::map<std::string>(match.groups(), _literalize);
-         out << "Match<[" << str::join(literal_matches, ",") << "], "
-         << match.length() << "c @ " << match.location() << ">";
-         return out;
-     }
-
- private:
-     static std::string _literalize(const std::string& s) {
-         std::ostringstream sb;
-         sb << "\"" << str::literal(s) << "\"";
-         return sb.str();
-     }
-
-     const file::Location _location;
-     unsigned int _length;
-     const std::vector<std::string> _groups;
-};
-
-// ------------------------------------------------------------------
 template<class T>
 class Token {
  public:
-     Token(const T& type, const Match& smatch)
-     : _type(type), _match(smatch) { }
+     Token(const T& type, const rx::Capture& capture, const file::Location loc = file::Location::nowhere())
+     : _type(type), _capture(capture), _loc(loc) { }
 
      static Token nothing() {
-         return Token("NOTHING", Match(file::Location::nowhere()));
+         return Token("NOTHING", rx::Capture());
      }
 
      const T& type() const {
          return _type;
      }
 
-     const Match& match() const {
-         return _match;
+     const rx::Capture& capture() const {
+         return _capture;
+     }
+
+     const file::Location& loc() const {
+         return _loc;
      }
 
      friend std::ostream& operator<<(std::ostream& out, const Token<T>& tk) {
-         out << "<" << tk.type() << " " << tk.match() << ">";
+         out << "<" << tk.type() << " " << tk.capture() << ">";
          return out;
      }
 
  private:
      const T _type;
-     const Match _match;
+     const rx::Capture _capture;
+     const file::Location _loc;
 };
 
 // ------------------------------------------------------------------
@@ -205,14 +162,14 @@ class GrammarImpl : public std::enable_shared_from_this<GrammarImpl<T>> {
      struct ScanResult {
          const QualifiedRule<T> rule;
          std::optional<Token> token;
-         const file::Location loc;
+         file::Location loc;
 
          static ScanResult default_pop(const Location& loc);
          static ScanResult default_push(const Location& loc, GrammarImpl::Pointer target);
 
          friend std::ostream& operator<<(std::ostream& out, const GrammarImpl<T>::ScanResult& s) {
              out << "ScanResult<" << s.rule << ", "
-             << s.token.value_or(Token::nothing()) << ", " << s.loc << ">";
+             << s.token.value_or(Token::nothing()) << ">";
              return out;
          }
      };
@@ -286,7 +243,10 @@ class Rule {
  public:
      typedef std::shared_ptr<Rule> Pointer;
 
-     explicit Rule(Action action) : _action(action) { }
+     Rule() : _action(Action::IGNORE) { }
+     Rule(Action action) : _action(action) { }
+     Rule(const Rule& rule)
+     : _action(rule._action), _icase(rule._icase), _advance(rule._advance), _rx(rule._rx), _target(rule._target) { }
 
      static Rule default_pop();
      static Rule default_push(std::shared_ptr<void> target);
@@ -299,7 +259,7 @@ class Rule {
          return _action_name(action());
      }
 
-     const std::regex& rx() const {
+     const rx::Expression& rx() const {
          return _rx;
      }
 
@@ -364,16 +324,16 @@ class Rule {
  private:
      void compile_regex() {
          if (_icase) {
-             _rx = std::regex("^" + _rx_str, std::regex_constants::ECMAScript | std::regex_constants::icase);
+             _rx = rx::idef("^" + _rx_str);
          } else {
-             _rx = std::regex("^" + _rx_str, std::regex_constants::ECMAScript);
+             _rx = rx::def("^" + _rx_str);
          }
      }
 
-     const Action _action;
+     Action _action;
      bool _icase = false;
      bool _advance = true;
-     std::regex _rx;
+     rx::Expression _rx;
      std::string _rx_str;
      std::shared_ptr<const void> _target = nullptr;
 };
@@ -497,11 +457,10 @@ inline GrammarImpl<T>::Pointer GrammarImpl<T>::inherit(GrammarImpl<T>::Pointer s
 template<class T>
 inline std::optional<typename GrammarImpl<T>::ScanResult> GrammarImpl<T>::scan(Location loc, const std::string& content) const {
     for (const auto& rule : *_rules) {
-        std::smatch smatch = {};
-        if (std::regex_search(content.begin() + loc.offset, content.end(), smatch, rule.rx())) {
-            Match match(loc, smatch);
+        auto capture = rx::capture(rule.rx(), content.begin() + loc.offset, content.end());
 
-            for (unsigned int x = 0; x < smatch.length(); x++) {
+        if (capture) {
+            for (unsigned int x = 0; x < capture.length(); x++) {
                 loc.offset++;
                 if (*(content.begin() + loc.offset) == '\n') {
                     loc.line++;
@@ -512,7 +471,7 @@ inline std::optional<typename GrammarImpl<T>::ScanResult> GrammarImpl<T>::scan(L
             }
 
             if (! rule.is_typeless()) {
-                return ScanResult{rule, Token(rule.type(), match), loc};
+                return ScanResult{rule, Token(rule.type(), capture, loc), loc};
             } else {
                 return ScanResult{rule, {}, loc};
             }
@@ -546,18 +505,10 @@ inline Rule Rule::default_pop() {
 
 // ------------------------------------------------------------------
 inline Rule Rule::default_push(std::shared_ptr<void> target) {
-    static std::map<std::shared_ptr<void>, Rule> push_rules_map;
-
-    if (! push_rules_map.contains(target)) {
-        push_rules_map.insert({target, [&]() {
-            Rule push = Rule(Action::PUSH);
-            push.target(target);
-            push.stay();
-            return push;
-        }()});
-    }
-
-    return push_rules_map.at(target);
+    Rule rule = Rule(Action::PUSH);
+    rule.target(target);
+    rule.stay();
+    return rule;
 }
 
 // ------------------------------------------------------------------

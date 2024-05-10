@@ -32,7 +32,7 @@ inline bool contains(const std::set<T>& set, const T& v) {
 
 template<typename K, typename V>
 inline bool contains(const std::map<K, V>& map, const K& v) {
-    return map.find(v) != map.end();
+    return map.contains(v);
 }
 
 template<typename T, typename... TV>

@@ -10,25 +10,33 @@
 #ifndef __MOONLIGHT_RX_H
 #define __MOONLIGHT_RX_H
 
-#include <regex>
 #include <vector>
 #include <string>
+#include "moonlight/string.h"
+#include "moonlight/collect.h"
+#include "SRELL/srell.hpp"
 
 namespace moonlight {
 namespace rx {
 
-inline std::regex def(const std::string& rx_str) {
-    return std::regex(rx_str, std::regex_constants::ECMAScript);
+typedef srell::regex Expression;
+
+inline Expression def(const std::string& rx_str) {
+    return Expression(rx_str, srell::regex_constants::ECMAScript);
 }
 
-inline bool match(const std::regex& rx, const std::string& str) {
-    return std::regex_search(str.begin(), str.end(), rx);
+inline Expression idef(const std::string& rx_str) {
+    return Expression(rx_str, srell::regex_constants::ECMAScript | srell::regex_constants::icase);
+}
+
+inline bool match(const Expression& rx, const std::string& str) {
+    return srell::regex_search(str.begin(), str.end(), rx);
 }
 
 // ------------------------------------------------------------------
 class Capture {
  public:
-     explicit Capture(const std::smatch& smatch)
+     explicit Capture(const srell::smatch& smatch)
      : _length(smatch.length()), _groups(smatch.begin(), smatch.end()) { }
 
      Capture()
@@ -54,17 +62,34 @@ class Capture {
          return _groups.size() > 0;
      }
 
+     friend std::ostream& operator<<(std::ostream& out, const Capture& capture) {
+         auto literal_matches = collect::map<std::string>(capture.groups(), str::literalize);
+         out << "Capture<" << str::join(literal_matches, ",") << ">";
+         return out;
+     }
+
  private:
      unsigned int _length;
      const std::vector<std::string> _groups;
 };
 
-inline Capture capture(const std::regex& rx, const std::string& str) {
-    std::smatch smatch = {};
-    if (std::regex_search(str.begin(), str.end(), smatch, rx)) {
+template<class BiIter>
+Capture capture(const Expression& rx, const BiIter begin, const BiIter end) {
+    srell::smatch smatch;
+    if (srell::regex_search(begin, end, smatch, rx)) {
         return Capture(smatch);
     }
     return Capture();
+}
+
+inline Capture capture(const Expression& rx, const std::string& str) {
+    return capture(rx, str.begin(), str.end());
+}
+
+inline std::string replace(const Expression& rx, const std::string& src, const std::string& format) {
+    std::string result;
+    srell::regex_replace(std::back_inserter(result), src.begin(), src.end(), rx, format);
+    return result;
 }
 
 }  // namespace rx

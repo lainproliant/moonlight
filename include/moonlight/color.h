@@ -16,7 +16,7 @@
 #include <string>
 #include <cmath>
 #include <ostream>
-#include <regex>
+#include "moonlight/rx.h"
 #include "moonlight/exceptions.h"
 
 namespace moonlight {
@@ -92,8 +92,8 @@ struct uRGB {
     }
 
     static bool is_valid(const std::string& s) {
-        static const std::regex rx("#?[0-9a-fA-F]{6}");
-        return std::regex_match(s, rx);
+        static const auto rx = rx::def("#?[0-9a-fA-F]{6}");
+        return rx::match(rx, s);
     }
 
     static uRGB validate(const std::string& s) {

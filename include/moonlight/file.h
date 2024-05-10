@@ -15,6 +15,7 @@
 #include <string>
 
 #include "moonlight/exceptions.h"
+#include "moonlight/nanoid.h"
 
 namespace moonlight {
 namespace file {
@@ -97,18 +98,15 @@ inline std::fstream open_rw(const std::string& filename,
 }
 
 //-------------------------------------------------------------------
-inline std::string tempfile_name(const std::string& prefix = "") {
-    char* name_c = ::tempnam(std::filesystem::temp_directory_path().c_str(), prefix.c_str());
-    std::string name(name_c);
-    ::free(name_c);
-    return name;
+inline std::string tempfile_name(const std::string& prefix = "", const std::string& suffix = "", int length = 10) {
+    return std::filesystem::temp_directory_path() / (prefix + nanoid::generate(length) + suffix);
 }
 
 //-------------------------------------------------------------------
 class TemporaryFile {
 public:
-    TemporaryFile(const std::string& prefix, std::ios::openmode mode = std::ios::in | std::ios::out)
-    : _filename(tempfile_name(prefix)) {
+    TemporaryFile(const std::string& prefix, const std::string& suffix, std::ios::openmode mode = std::ios::in | std::ios::out)
+    : _filename(tempfile_name(prefix, suffix)) {
         open_w(_filename).close();
         _stream = open_rw(_filename, mode);
     }

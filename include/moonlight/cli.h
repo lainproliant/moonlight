@@ -15,7 +15,6 @@
 #include "moonlight/exceptions.h"
 #include "moonlight/collect.h"
 #include "moonlight/variadic.h"
-#include "moonlight/maps.h"
 #include "moonlight/slice.h"
 
 #ifdef _WIN32
@@ -64,7 +63,7 @@ class CommandLine {
      }
 
      bool _check(const std::string& flag) const {
-         return collect::contains(flags, flag);
+         return flags.contains(flag);
      }
 
      template<typename F, typename... FV>
@@ -81,7 +80,7 @@ class CommandLine {
      }
 
      std::optional<const std::string> _get(const std::string& opt) const {
-         if (collect::contains(opts, opt)) {
+         if (opts.contains(opt)) {
              return opts.at(opt);
          } else {
              return {};
@@ -144,7 +143,7 @@ class CommandLine {
 
                      if (collect::contains(opt_names, opt)) {
                          results.opts[opt] = value;
-                         results.multi_opts.insert({opt, value});
+                         results.multi_opts.insert(std::pair<std::string, std::string>(opt, value));
 
                      } else {
                          THROW(core::UsageError, str::cat(
@@ -160,7 +159,7 @@ class CommandLine {
                      if (x + 1 < argv.size()) {
                          auto value = argv[++x];
                          results.opts[longopt] = value;
-                         results.multi_opts.insert({longopt, value});
+                         results.multi_opts.insert(std::pair<std::string, std::string>(longopt, value));
 
                      } else {
                          THROW(core::UsageError, str::cat(
@@ -184,12 +183,12 @@ class CommandLine {
                          if (y + 1 < shortopts.size()) {
                              // The rest of shortopts is the opt value.
                              results.opts.insert(
-                                 {shortopt, slice(shortopts, y + 1, {})});
+                                 std::pair<std::string, std::string>{shortopt, slice(shortopts, y + 1, {})});
                              y = shortopts.size();
 
                          } else if (x + 1 < argv.size()) {
                              // The next arg is the opt value.
-                             results.opts.insert({shortopt, argv[++x]});
+                             results.opts.insert(std::pair<std::string, std::string>{shortopt, argv[++x]});
 
                          } else {
                              THROW(core::UsageError, str::cat(

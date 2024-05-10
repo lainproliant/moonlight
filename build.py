@@ -22,6 +22,7 @@ DEPS = [
     "https://github.com/c42f/tinyformat",
     "https://github.com/mariusbancila/stduuid",
     "https://github.com/tplgy/cppcodec",
+    "https://github.com/ZimProjects/SRELL",
 ]
 
 INTERACTIVE_TESTS = {"ansi"}
@@ -42,8 +43,8 @@ ENV.update(
         *INCLUDES,
         "-DMOONLIGHT_ENABLE_STACKTRACE",
         "-DMOONLIGHT_STACKTRACE_IN_DESCRIPTION",
-        "--std=c++23",
-        "-O3"
+        "--std=c++2a",
+        "-O3",
     ],
     LDFLAGS=["-O3", "-lpthread", "-lutil"],
     PREFIX=os.environ.get("PREFIX", "/usr/local"),
@@ -90,8 +91,17 @@ def labs(lab_sources, headers, deps):
 
 
 # -------------------------------------------------------------------
-@task(dep="deps")
-def tests(test_sources, headers, deps):
+@task(keep=True)
+def large_json_file():
+    return sh(
+        "wget -O {target} https://raw.githubusercontent.com/json-iterator/test-data/master/large-file.json",
+        target="./test/data/large-file.json",
+    )
+
+
+# -------------------------------------------------------------------
+@task(dep="deps,large_json_file")
+def tests(test_sources, headers, deps, large_json_file):
     """Compile and shuffle the unit tests."""
     tests = [compile(src, headers=headers) for src in test_sources]
     return [*random.sample(tests, len(tests))]

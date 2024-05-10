@@ -13,18 +13,16 @@
 #ifndef __MOONLIGHT_SHLEX_H
 #define __MOONLIGHT_SHLEX_H
 
-#include <istream>
 #include <sstream>
 #include <string>
-#include <memory>
 #include <set>
-#include <regex>
 #include <map>
 #include <vector>
 
 #include "moonlight/generator.h"
 #include "moonlight/collect.h"
 #include "moonlight/file.h"
+#include "moonlight/rx.h"
 
 namespace moonlight {
 namespace shlex {
@@ -37,11 +35,9 @@ class ShellLexer {
              return "''";
          }
 
-         if (std::regex_search(str, rx_unsafe())) {
+         if (rx::match(rx_unsafe(), str)) {
              std::ostringstream sb;
-             std::string result;
-             std::regex_replace(std::back_inserter(result), str.begin(),
-                                str.end(), rx_quotes(), "\'\"$1\"\'");
+             auto result = rx::replace(rx_quotes(), str, "\'\"$1\"\'");
              sb << '\'' << result << '\'';
              return sb.str();
 
@@ -51,7 +47,7 @@ class ShellLexer {
      }
 
      gen::Iterator<std::string> begin() {
-         return gen::begin<std::string>(std::bind(&ShellLexer::read_token, this));
+         return gen::begin<std::string>([this]() { return std::invoke(&ShellLexer::read_token, this); });
      }
 
      gen::Iterator<std::string> end() {
@@ -206,14 +202,14 @@ class ShellLexer {
          return escape_sequences;
      }
 
-     static const std::regex& rx_unsafe() {
-         static const std::regex unsafe = std::regex("[^\\w@%\\-+=:,./]", std::regex::ECMAScript);
-         return unsafe;
+     static const rx::Expression& rx_unsafe() {
+         static const auto regex = rx::def("[^\\w@%\\-+=:,./]");
+         return regex;
      }
 
-     static const std::regex& rx_quotes() {
-         static const std::regex quotes = std::regex("(\'+)", std::regex::ECMAScript);
-         return quotes;
+     static const rx::Expression& rx_quotes() {
+         static const auto regex = rx::def("(\'+)");
+         return regex;
      }
 
      std::set<char> _punctuation = {};

@@ -279,6 +279,12 @@ inline std::string literal(const std::string& str, bool xsieve = true) {
     return sb.str();
 }
 
+inline std::string literalize(const std::string& s) {
+    std::ostringstream sb;
+    sb << "\"" << str::literal(s) << "\"";
+    return sb.str();
+}
+
 }  // namespace str
 }  // namespace moonlight
 

@@ -10,6 +10,7 @@ using namespace moonlight::test;
 using namespace moonlight::date;
 
 const Duration PERF_TEST_DURATION = Duration::of_seconds(5);
+const std::filesystem::path LARGE_JSON = "./test/data/large-file.json";
 
 int main() {
     return TestSuite("moonlight json tests")
@@ -138,7 +139,7 @@ int main() {
         int count = 0;
 
         while (Datetime::now() < start + PERF_TEST_DURATION) {
-            json::Array large_array = json::read_file<json::Array>("./test/data/test-json-large.json");
+            json::Array large_array = json::read_file<json::Array>(LARGE_JSON);
             count++;
         }
 
@@ -149,10 +150,11 @@ int main() {
         Datetime start = Datetime::now();
         int count = 0;
 
-        json::Array large_array = json::read_file<json::Array>("./test/data/test-json-large.json");
+        json::Array large_array = json::read_file<json::Array>(LARGE_JSON);
 
         while (Datetime::now() < start + PERF_TEST_DURATION) {
-            file::TemporaryFile tempfile("json-out-");
+            file::TemporaryFile tempfile("", ".json");
+            std::cout << "Writing to " << tempfile.name() << std::endl;
             json::write(tempfile.output(), large_array);
             count++;
         }

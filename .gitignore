@@ -3,3 +3,4 @@
 compile_commands.json
 deps
 .ccls-cache
+test/data/large-file.json

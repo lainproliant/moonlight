@@ -13,7 +13,6 @@
 #include <functional>
 
 #include "moonlight/generator.h"
-#include "moonlight/linked_map.h"
 #include "moonlight/test.h"
 
 using namespace moonlight;
@@ -136,11 +135,11 @@ int main() {
         ASSERT_EQUAL(new_values, {1, 2, 3});
     })
     .test("map collect", []() {
-        std::map<std::string, int> map = {
+        std::map<std::string, int> map({
             {"Apples", 1},
             {"Oranges", 2},
             {"BANANAS", 3}
-        };
+        });
 
         auto remap = gen::stream(map).map_collect<std::string, int>([](const auto& pair) {
             return std::pair(str::to_lower(pair.first), pair.second);

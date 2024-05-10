@@ -24,7 +24,6 @@
 #include <algorithm>
 
 #include "moonlight/exceptions.h"
-#include "moonlight/variadic.h"
 
 namespace moonlight {
 namespace gen {
@@ -181,7 +180,7 @@ class Queue {
 
      // Wraps the above `process()` behavior in an async future.
      std::future<void> process_async(Handler handler) {
-         return std::async(std::launch::async, [&] {
+         return std::async(std::launch::async, [=,this] {
              std::optional<T> value;
              while (value = this->next(), value) {
                  handler(*value);
@@ -230,13 +229,14 @@ Iterator<T> end() {
 template<class T, class... TD>
 std::shared_ptr<Queue<T>> async(std::function<std::optional<T>(TD...)> factory, TD... params) {
     std::shared_ptr<Queue<T>> queue = std::make_shared<Queue<T>>();
-    auto thread = std::async(std::launch::async, [&] {
+    auto thread = std::async(std::launch::async, [queue, factory, params...] {
         for (auto iter = begin(factory, std::forward(params)...);
              iter != end<T>();
              iter++) {
             queue->yield(*iter);
         }
         queue->complete();
+        return 0;
     });
     return queue;
 }
