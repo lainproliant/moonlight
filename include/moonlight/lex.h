@@ -663,8 +663,7 @@ class Lexer {
                      append_token(result.token.value());
                  } else if (! result.rule.is_typeless()) {
                      std::ostringstream sb;
-                     sb << "Match rule " << result.rule.type()
-                     << " didn't yield a token (at " << loc << ").";
+                     sb << "Match rule didn't yield a token (at " << loc << ").";
                      THROW(core::UsageError, sb.str());
                  }
                  break;
