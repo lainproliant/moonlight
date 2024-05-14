@@ -67,7 +67,7 @@ class CommandLine {
      }
 
      template<typename F, typename... FV>
-     bool check(const F& flag, const FV&... flags) {
+     bool check(const F& flag, const FV&... flags) const {
          if (_check(flag)) {
              return true;
          } else {

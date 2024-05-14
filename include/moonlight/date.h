@@ -91,6 +91,11 @@ enum class Weekday {
 };
 
 // --------------------------------------------------------
+inline int is_leap_year(int year) {
+    return (!(year % 4) && year % 100) || !(year % 400);
+}
+
+// --------------------------------------------------------
 inline int last_day_of_month(int year, Month month) {
     switch (month) {
     case Month::April:
@@ -109,7 +114,7 @@ inline int last_day_of_month(int year, Month month) {
         return 31;
 
     case Month::February:
-        return ((!(year % 4) && year % 100) || !(year % 400)) ? 29 : 28;
+        return is_leap_year(year) ? 29 : 28;
     }
 }
 
