@@ -784,12 +784,16 @@ class Time {
          return ::date::floor<Millis>(std::chrono::minutes{_minutes});
      }
 
+     std::string isoformat() const {
+         std::ostringstream sb;
+         sb << std::setfill('0')
+            << std::setw(2) << hour() << ":"
+            << std::setw(2) << minute();
+         return sb.str();
+     }
+
      friend std::ostream& operator<<(std::ostream& out, const Time& time) {
-         std::ios out_state(nullptr);
-         out_state.copyfmt(out);
-         out << "Time<" << std::setw(2) << std::setfill('0')
-         << time.hour() << ":" << std::setw(2) << time.minute() << ">";
-         out.copyfmt(out_state);
+         out << "Time<" << time.isoformat() << ">";
          return out;
      }
 

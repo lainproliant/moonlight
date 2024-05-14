@@ -21,7 +21,6 @@
 #include "moonlight/file.h"
 #include "moonlight/exceptions.h"
 #include "moonlight/string.h"
-#include "moonlight/collect.h"
 #include "moonlight/rx.h"
 
 namespace moonlight {
