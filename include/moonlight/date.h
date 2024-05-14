@@ -788,7 +788,7 @@ class Time {
          std::ios out_state(nullptr);
          out_state.copyfmt(out);
          out << "Time<" << std::setw(2) << std::setfill('0')
-         << time.hour() << ":" << time.minute() << ">";
+         << time.hour() << ":" << std::setw(2) << time.minute() << ">";
          out.copyfmt(out_state);
          return out;
      }
