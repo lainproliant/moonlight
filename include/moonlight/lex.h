@@ -246,7 +246,7 @@ class Rule {
      Rule() : _action(Action::IGNORE) { }
      Rule(Action action) : _action(action) { }
      Rule(const Rule& rule)
-     : _action(rule._action), _icase(rule._icase), _advance(rule._advance), _rx(rule._rx), _target(rule._target) { }
+     : _action(rule._action), _icase(rule._icase), _advance(rule._advance), _rx(rule._rx), _rx_str(rule._rx_str), _target(rule._target) { }
 
      static Rule default_pop();
      static Rule default_push(std::shared_ptr<void> target);
