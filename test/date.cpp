@@ -210,6 +210,28 @@ int main() {
         std::cout << dtB << std::endl;
         ASSERT_EQUAL(dtA, dtB);
     })
+    .test("datetime and time zones", []() {
+        Datetime dtA = Datetime("America/Los_Angeles", 2024, Month::May, 16, 12, 00);
+        Datetime dtB = Datetime("America/New_York", dtA.date(), dtA.time());
+        auto diff = dtA - dtB;
+        std::cout << "dtA = " << dtA << std::endl;
+        std::cout << "dtB = " << dtB << std::endl;
+        std::cout << "diff = " << diff << std::endl;
+        ASSERT_EQUAL(diff, Duration::of_hours(3));
+
+        Datetime dtC = Datetime(dtA.zone(), dtA.date().advance_days(1));
+        std::cout << "dtC = " << dtC << std::endl;
+        ASSERT_EQUAL(dtC, Datetime("America/Los_Angeles", 2024, Month::May, 17));
+
+        Datetime dtD = Datetime(2020, Month::January, 1);
+        Datetime dtE = dtD.zone("America/Los_Angeles");
+        std::cout << "dtD = " << dtD << std::endl;
+        std::cout << "dtE = " << dtE << std::endl;
+
+        ASSERT_EQUAL(dtD, dtE);
+        ASSERT_EQUAL(dtE.date(), Date(2019, Month::December, 31));
+        ASSERT_EQUAL(dtE.time(), Time(16, 00));
+    })
     .die_on_signal(SIGSEGV)
     .run();
 }

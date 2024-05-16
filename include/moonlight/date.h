@@ -32,6 +32,7 @@ const char DATETIME_FORMAT[] = "%Y-%m-%d %H:%M:%S %Z";
 const char DATETIME_8601_UTC[] = "%FT%TZ";
 const char DATE_FORMAT[] = "%Y-%m-%d";
 typedef std::chrono::duration<int64_t, std::milli> Millis;
+typedef ::date::sys_time<Millis> SysTime;
 
 // --------------------------------------------------------
 inline std::ostream& operator<<(std::ostream& out, const struct tm& tm_dt) {
@@ -820,14 +821,40 @@ class Time {
 // --------------------------------------------------------
 class Datetime {
  public:
-     Datetime() : _ms(0) { }
-     Datetime(const Duration& d) : _ms(d.to_chrono_duration()) { }
-     Datetime(const Millis& ms) : _ms(ms) { }
-     Datetime(const Zone& tz, const Millis& ms) : _ms(ms), _tz(tz) { }
-     Datetime(const std::string& tz_name, const Millis& ms) : Datetime(Zone(tz_name), ms) { }
+     Datetime() : _ms(0) {
+#ifdef MOONLIGHT_DATETIME_DEBUG
+         _setup_debug_repr();
+#endif
+     }
+     Datetime(const Duration& d) : _ms(d.to_chrono_duration()) {
+#ifdef MOONLIGHT_DATETIME_DEBUG
+         _setup_debug_repr();
+#endif
+
+     }
+     Datetime(const Millis& ms) : _ms(ms) {
+#ifdef MOONLIGHT_DATETIME_DEBUG
+         _setup_debug_repr();
+#endif
+
+     }
+     Datetime(const Zone& tz, const Millis& ms) : _ms(ms), _tz(tz) {
+#ifdef MOONLIGHT_DATETIME_DEBUG
+         _setup_debug_repr();
+#endif
+     }
+     Datetime(const std::string& tz_name, const Millis& ms) : Datetime(Zone(tz_name), ms) {
+#ifdef MOONLIGHT_DATETIME_DEBUG
+         _setup_debug_repr();
+#endif
+     }
 
      Datetime(const Date& date, const Time& time = Time::start_of_day())
-     : Datetime(Zone::utc(), date, time) { }
+     : Datetime(Zone::utc(), date, time) {
+#ifdef MOONLIGHT_DATETIME_DEBUG
+         _setup_debug_repr();
+#endif
+     }
 
      Datetime(const Zone& tz, const Date& date, const Time& time = Time::start_of_day()) {
          struct tm tm_localtime;
@@ -835,19 +862,38 @@ class Datetime {
          time.load_struct_tm(tm_localtime);
          _tz = tz;
          _ms = ::date::floor<Millis>(std::chrono::seconds{tz.mk_timestamp(tm_localtime)});
+#ifdef MOONLIGHT_DATETIME_DEBUG
+         _setup_debug_repr();
+#endif
      }
 
      Datetime(const std::string& tz_name, const Date& date, const Time& time = Time::start_of_day())
-     : Datetime(Zone(tz_name), date, time) { }
+     : Datetime(Zone(tz_name), date, time) {
+#ifdef MOONLIGHT_DATETIME_DEBUG
+         _setup_debug_repr();
+#endif
+     }
 
      Datetime(const Zone& tz, int year, Month month, int day = 1, int hour = 0, int minute = 0)
-     : Datetime(tz, Date(year, month, day), Time(hour, minute)) { }
+     : Datetime(tz, Date(year, month, day), Time(hour, minute)) {
+#ifdef MOONLIGHT_DATETIME_DEBUG
+         _setup_debug_repr();
+#endif
+     }
 
      Datetime(const std::string& tz_name, int year, Month month, int day = 1, int hour = 0, int minute = 0)
-     : Datetime(Zone(tz_name), year, month, day, hour, minute) { }
+     : Datetime(Zone(tz_name), year, month, day, hour, minute) {
+#ifdef MOONLIGHT_DATETIME_DEBUG
+         _setup_debug_repr();
+#endif
+     }
 
      Datetime(int year, Month month, int day = 1, int hour = 0, int minute = 0)
-     : Datetime(Zone::utc(), year, month, day, hour, minute) { }
+     : Datetime(Zone::utc(), year, month, day, hour, minute) {
+#ifdef MOONLIGHT_DATETIME_DEBUG
+         _setup_debug_repr();
+#endif
+     }
 
      static Datetime min() {
          return Datetime(Millis::min());
@@ -971,9 +1017,19 @@ class Datetime {
          return _ms;
      }
 
+
  private:
+#ifdef MOONLIGHT_DATETIME_DEBUG
+     void _setup_debug_repr() {
+         _debug_repr = ::date::format("%FT%T%z", SysTime{_ms});
+     }
+#endif
+
      Millis _ms;
      Zone _tz = Zone::utc();
+#ifdef MOONLIGHT_DATETIME_DEBUG
+     std::string _debug_repr;
+#endif
 };
 
 // --------------------------------------------------------
