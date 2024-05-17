@@ -243,6 +243,7 @@ class Duration {
 
      Duration& operator=(const Duration& other) {
          _ms = other._ms;
+         _bk = other._bk;
          return *this;
      }
 
