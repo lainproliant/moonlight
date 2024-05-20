@@ -70,7 +70,7 @@ class Capture {
 
  private:
      unsigned int _length;
-     const std::vector<std::string> _groups;
+     std::vector<std::string> _groups;
 };
 
 template<class BiIter>

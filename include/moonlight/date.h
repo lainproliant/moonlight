@@ -1054,6 +1054,10 @@ class Range {
          return Range(Datetime(date), Datetime(date.advance_days(days)));
      }
 
+     static Range eternity() {
+         return Range(Datetime::min(), Datetime::max());
+     }
+
      const Datetime& start() const {
          return _start;
      }
@@ -1075,12 +1079,13 @@ class Range {
      }
 
      bool intersects(const Range& other) const {
-         return contains(other)
-         || (other.start() >= start() && other.start() < end())
-         || (other.end() > start() && other.end() < end());
+         return (
+             (this->contains(other) && other.contains(*this)) ||
+             (other.end() > this->start() && other.end() <= this->end()) ||
+             (other.start() < this->end() && other.end() >= this->end()));
      }
 
-     std::optional<Range> clip_to(const Range& clipping_range) {
+     std::optional<Range> clip_to(const Range& clipping_range) const {
          if (! intersects(clipping_range)) {
              return {};
          }

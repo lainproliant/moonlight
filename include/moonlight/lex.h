@@ -108,10 +108,6 @@ class Token {
      Token(const T& type, const rx::Capture& capture, const file::Location loc = file::Location::nowhere())
      : _type(type), _capture(capture), _loc(loc) { }
 
-     static Token nothing() {
-         return Token("NOTHING", rx::Capture());
-     }
-
      const T& type() const {
          return _type;
      }
@@ -124,15 +120,21 @@ class Token {
          return _loc;
      }
 
+     std::string repr() const {
+         std::ostringstream sb;
+         sb << *this;
+         return sb.str();
+     }
+
      friend std::ostream& operator<<(std::ostream& out, const Token<T>& tk) {
          out << "<" << tk.type() << " " << tk.capture() << ">";
          return out;
      }
 
  private:
-     const T _type;
-     const rx::Capture _capture;
-     const file::Location _loc;
+     T _type;
+     rx::Capture _capture;
+     file::Location _loc;
 };
 
 // ------------------------------------------------------------------
