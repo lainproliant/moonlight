@@ -275,6 +275,10 @@ class Duration {
          return Duration(::date::floor<Millis>(std::chrono::seconds{seconds}));
      }
 
+     static Duration of_millis(int millis) {
+         return Duration(::date::floor<Millis>(std::chrono::milliseconds{millis}));
+     }
+
      int factor() const {
          return _ms < Millis::zero() ? -1 : 1;
      }
