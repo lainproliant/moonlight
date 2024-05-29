@@ -18,9 +18,10 @@ from xeno.recipes.cxx import ENV, compile
 
 # -------------------------------------------------------------------
 DEPS = [
-    "https://github.com/HowardHinnant/date",
     "https://github.com/c42f/tinyformat",
+    "https://github.com/HowardHinnant/date",
     "https://github.com/mariusbancila/stduuid",
+    "https://github.com/nemtrif/utfcpp",
     "https://github.com/tplgy/cppcodec",
     "https://github.com/ZimProjects/SRELL",
 ]

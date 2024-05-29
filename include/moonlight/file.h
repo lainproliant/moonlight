@@ -13,6 +13,7 @@
 #include <fstream>
 #include <cstring>
 #include <string>
+#include <deque>
 
 #include "moonlight/exceptions.h"
 #include "moonlight/nanoid.h"
@@ -181,11 +182,8 @@ class BufferedInput {
          int c;
 
          if (_buffer.size() > 0) {
-             c = _buffer[0];
-             for (size_t x = 1; x < _buffer.size(); x++) {
-                 _buffer[x-1] = _buffer[x];
-             }
-             _buffer.pop_back();
+             c = _buffer.front();
+             _buffer.pop_front();
 
          } else {
              c = _input.get();
@@ -308,7 +306,7 @@ class BufferedInput {
      std::istream& _input;
      Location _loc;
      bool _exhausted = false;
-     std::string _buffer;
+     std::deque<int> _buffer;
 };
 
 }  // namespace file
