@@ -9,7 +9,6 @@
 #define __MOONLIGHT_TIME_H
 
 #include <memory>
-#include <algorithm>
 #include <functional>
 
 namespace moonlight {
@@ -19,7 +18,7 @@ template<class T>
 class RelativeTimer;
 
 template <class T>
-class Timer {
+class Timer : public std::enable_shared_from_this<Timer<T>> {
  public:
      typedef std::function<T(void)> TimeFunction;
 
