@@ -164,9 +164,9 @@ class RelativeTimer : public Timer<T> {
      reference(reference) { }
      virtual ~RelativeTimer() { }
 
-     RelativeTimer<T> copy() const override {
-         return RelativeTimer<T>(reference, this->interval,
-                                 this->accumulate);
+     std::shared_ptr<RelativeTimer<T>> copy() const override {
+         return std::shared_ptr<RelativeTimer<T>>(reference, this->interval,
+                                                  this->accumulate);
      }
 
  private:
