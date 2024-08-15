@@ -157,7 +157,7 @@ class Timer : public std::enable_shared_from_this<Timer<T>> {
 template<class T>
 class RelativeTimer : public Timer<T> {
  public:
-     RelativeTimer(const Timer<T>& reference, T interval, bool accumulate = false) :
+     RelativeTimer(std::shared_ptr<const Timer<T>> reference, T interval, bool accumulate = false) :
      Timer<T>([reference]() -> T {
          return reference->frames();
      }, interval, accumulate),
@@ -170,7 +170,7 @@ class RelativeTimer : public Timer<T> {
      }
 
  private:
-     const Timer<T>& reference;
+     const std::shared_ptr<Timer<T>> reference;
 };
 
 /**
@@ -189,16 +189,16 @@ class RelativeTimer : public Timer<T> {
 template<class T>
 class FrameCalculator {
  public:
-     FrameCalculator(const Timer<T>& monitor_timer,
-                     const Timer<T>& monitoring_timer) :
+     FrameCalculator(std::shared_ptr<Timer<T>> monitor_timer,
+                     std::shared_ptr<const Timer<T>> monitoring_timer) :
      monitor_timer(monitor_timer),
      monitoring_timer(monitoring_timer) {
-         this->monitor_timer.start();
+         this->monitor_timer->start();
      }
 
      void update() {
-         if (monitor_timer.update()) {
-             T frames = monitoring_timer.frames();
+         if (monitor_timer->update()) {
+             T frames = monitoring_timer->frames();
              fps = frames - prev_frames;
              prev_frames = frames;
          }
@@ -206,7 +206,7 @@ class FrameCalculator {
 
      T get_fps() const {
          if (fps == 0) {
-             return monitoring_timer.frames();
+             return monitoring_timer->frames();
 
          } else {
              return fps;
@@ -214,8 +214,8 @@ class FrameCalculator {
      }
 
  private:
-     Timer<T> monitor_timer;
-     const Timer<T>& monitoring_timer;
+     std::shared_ptr<Timer<T>> monitor_timer;
+     std::shared_ptr<const Timer<T>> monitoring_timer;
 
      T fps = 0;
      T prev_frames = 0;

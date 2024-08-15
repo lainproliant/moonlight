@@ -7,7 +7,6 @@
 #ifndef __MOONLIGHT_POSIX_H
 #define __MOONLIGHT_POSIX_H
 
-#include <cinttypes>
 #include "moonlight/time.h"
 
 namespace moonlight {
@@ -23,12 +22,12 @@ inline uint64_t get_ticks() {
 typedef Timer<uint64_t> Timer;
 typedef FrameCalculator<uint64_t> FrameCalculator;
 
-inline Timer create_timer(uint64_t interval, bool accumulate = false) {
-    return Timer(get_ticks, interval, accumulate);
+inline std::shared_ptr<Timer> create_timer(uint64_t interval, bool accumulate = false) {
+    return std::make_shared<Timer>(get_ticks, interval, accumulate);
 }
 
-inline FrameCalculator create_frame_calculator(Timer& timer) {
-    return FrameCalculator(create_timer(1000), timer);
+inline std::shared_ptr<FrameCalculator> create_frame_calculator(std::shared_ptr<const Timer> timer) {
+    return std::make_shared<FrameCalculator>(create_timer(1000), timer);
 }
 
 }  // namespace posix

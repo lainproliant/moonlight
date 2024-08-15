@@ -18,12 +18,12 @@ namespace sdl2 {
 typedef Timer<Uint32> Timer;
 typedef FrameCalculator<Uint32> FrameCalculator;
 
-inline Timer create_timer(Uint32 interval, bool accumulate = false) {
-    return Timer(SDL_GetTicks, interval, accumulate);
+inline std::shared_ptr<Timer> create_timer(Uint32 interval, bool accumulate = false) {
+    return std::make_shared<Timer>(SDL_GetTicks, interval, accumulate);
 }
 
-inline FrameCalculator create_frame_calculator(Timer& timer) {
-    return FrameCalculator(create_timer(1000), timer);
+inline std::shared_ptr<FrameCalculator> create_frame_calculator(std::shared_ptr<const Timer> timer) {
+    return std::make_shared<FrameCalculator>(create_timer(1000), timer);
 }
 
 }  // namespace sdl2
