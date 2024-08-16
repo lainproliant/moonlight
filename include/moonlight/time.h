@@ -19,13 +19,10 @@ class RelativeTimer;
 
 template <class T>
 class Timer : public std::enable_shared_from_this<Timer<T>> {
- private:
-     struct Private { explicit Private() = default; };
-
  public:
      typedef std::function<T(void)> TimeFunction;
 
-     Timer(Private pvt, TimeFunction getTime, T interval, bool accumulate = false) :
+     Timer(TimeFunction getTime, T interval, bool accumulate = false) :
      interval(interval), accumulate(accumulate), getTime(getTime) {
          t0 = 0;
          t1 = 0;
@@ -37,7 +34,7 @@ class Timer : public std::enable_shared_from_this<Timer<T>> {
      virtual ~Timer() { }
 
      static std::shared_ptr<Timer<T>> create(TimeFunction getTime, T interval, bool accumulate = false) {
-         return std::make_shared<Timer>(Private(), getTime, interval, accumulate);
+         return std::make_shared<Timer>(getTime, interval, accumulate);
      }
 
      T frames() const {
@@ -60,7 +57,7 @@ class Timer : public std::enable_shared_from_this<Timer<T>> {
      }
 
      std::shared_ptr<Timer<T>> relative_timer(T frameInterval = 0, bool accumulate = false) {
-         return make_shared<RelativeTimer<T>>(Private(), this->shared_from_this(),
+         return make_shared<RelativeTimer<T>>(this->shared_from_this(),
                                               frameInterval, accumulate);
      }
 
@@ -170,8 +167,8 @@ class RelativeTimer : public Timer<T> {
      virtual ~RelativeTimer() { }
 
      std::shared_ptr<Timer<T>> copy() override {
-         return std::shared_ptr<RelativeTimer<T>>(reference, this->interval,
-                                                  this->accumulate);
+         return std::make_shared<RelativeTimer<T>>(reference, this->interval,
+                                                   this->accumulate);
      }
 
  private:
@@ -193,11 +190,8 @@ class RelativeTimer : public Timer<T> {
  */
 template<class T>
 class FrameCalculator {
- private:
-     struct Private { explicit Private() = default; };
-
  public:
-     FrameCalculator(Private pvt, std::shared_ptr<Timer<T>> monitor_timer,
+     FrameCalculator(std::shared_ptr<Timer<T>> monitor_timer,
                      std::shared_ptr<Timer<T>> monitoring_timer) :
      monitor_timer(monitor_timer),
      monitoring_timer(monitoring_timer) {
@@ -205,7 +199,7 @@ class FrameCalculator {
      }
 
      static std::shared_ptr<FrameCalculator> create(std::shared_ptr<Timer<T>> monitor_timer, std::shared_ptr<Timer<T>> monitoring_timer) {
-         return std::make_shared<FrameCalculator>(Private(), monitor_timer, monitoring_timer);
+         return std::make_shared<FrameCalculator>(monitor_timer, monitoring_timer);
      }
 
      void update() {
