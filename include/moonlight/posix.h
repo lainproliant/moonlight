@@ -23,11 +23,11 @@ typedef Timer<uint64_t> Timer;
 typedef FrameCalculator<uint64_t> FrameCalculator;
 
 inline std::shared_ptr<Timer> create_timer(uint64_t interval, bool accumulate = false) {
-    return std::make_shared<Timer>(get_ticks, interval, accumulate);
+    return Timer::create(get_ticks, interval, accumulate);
 }
 
-inline std::shared_ptr<FrameCalculator> create_frame_calculator(std::shared_ptr<const Timer> timer) {
-    return std::make_shared<FrameCalculator>(create_timer(1000), timer);
+inline std::shared_ptr<FrameCalculator> create_frame_calculator(std::shared_ptr<Timer> timer) {
+    return FrameCalculator::create(create_timer(1000), timer);
 }
 
 }  // namespace posix
