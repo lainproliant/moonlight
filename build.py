@@ -12,7 +12,7 @@ import os
 import random
 from pathlib import Path
 
-from xeno.build import build, engine, provide, task
+from xeno.build import build, engine, provide, recipe, task
 from xeno.recipes import checkout, install, sh, test
 from xeno.recipes.cxx import ENV, compile
 
@@ -54,10 +54,19 @@ ENV.update(
 
 
 # --------------------------------------------------------------------
+@task
+def fetch_rapidyaml():
+    return sh(
+        "mkdir -p deps/rapidyaml && curl -o {target} https://github.com/biojppm/rapidyaml/releases/download/v0.6.0/rapidyaml-0.6.0.hpp",
+        target="deps/rapidyaml/rapidyaml.h",
+    )
+
+
+# --------------------------------------------------------------------
 @task(keep=True)
 def deps():
     """Fetch third-party repos."""
-    return [checkout(repo) for repo in DEPS]
+    return [fetch_rapidyaml(), *[checkout(repo) for repo in DEPS]]
 
 
 # -------------------------------------------------------------------
@@ -95,7 +104,7 @@ def labs(lab_sources, headers, deps):
 @task(keep=True)
 def large_json_file():
     return sh(
-        "wget -O {target} https://raw.githubusercontent.com/json-iterator/test-data/master/large-file.json",
+        "curl -o {target} https://raw.githubusercontent.com/json-iterator/test-data/master/large-file.json",
         target="./test/data/large-file.json",
     )
 

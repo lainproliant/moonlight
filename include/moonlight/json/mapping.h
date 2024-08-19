@@ -22,7 +22,7 @@
 namespace moonlight {
 namespace json {
 
-//-------------------------------------------------------------------
+// ------------------------------------------------------------------
 class Mapping {
  public:
      typedef std::unique_ptr<Mapping> Pointer;
