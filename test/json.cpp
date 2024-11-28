@@ -123,7 +123,7 @@ int main() {
             cout << "Received expected " << e << endl;
         }
     })
-    .test("Iterate directly over the contents of a heterogenous array.", []() {
+    .test("Iterate directly over the contents of a homogenous array.", []() {
         auto array = json::read<json::Array>("[1,2,3,4,5,6,7]");
         auto vector = array.extract<int>();
         std::vector<int> vec_copy;
