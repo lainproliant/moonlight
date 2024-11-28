@@ -7,7 +7,6 @@
 #ifndef __MOONLIGHT_AUTOMATA_H
 #define __MOONLIGHT_AUTOMATA_H
 
-#include <thread>
 #include <future>
 #include <optional>
 #include <map>
@@ -35,7 +34,8 @@ class StateMachine {
          POP,
          TRANSITION,
          RESET,
-         TERMINATE
+         TERMINATE,
+         FATAL_EXCEPTION
      };
 
      typedef std::function<void(TraceEvent event,
@@ -55,8 +55,8 @@ class StateMachine {
          return machine;
      }
 
-     static StateMachine<S> init_empty() {
-         return StateMachine<S>();
+     static StateMachine<S> init_empty(typename S::Context& context) {
+         return StateMachine<S>(context);
      }
 
      bool update() {
@@ -81,6 +81,7 @@ class StateMachine {
          } catch (...) {
 #ifdef MOONLIGHT_AUTOMATA_DEBUG
              _trace(TraceEvent::TERMINATE);
+             _trace(TraceEvent::FATAL_EXCEPTION);
 #endif
              throw;
          }
@@ -96,44 +97,41 @@ class StateMachine {
 #ifdef MOONLIGHT_AUTOMATA_DEBUG
          _trace(TraceEvent::TERMINATE);
 #endif
-         stack.clear();
+         while (current()) {
+             _pop(false);
+         }
      }
 
      void push(StatePointer state) {
 #ifdef MOONLIGHT_AUTOMATA_DEBUG
          _trace(TraceEvent::PUSH, state);
 #endif
-         state->inject(this, &context());
-         stack.push_back(state);
+         _push(state, true);
      }
 
      void transition(StatePointer state) {
 #ifdef MOONLIGHT_AUTOMATA_DEBUG
          _trace(TraceEvent::TRANSITION, state);
 #endif
-         state->inject(this, &context());
-         stack.pop_back();
-         stack.push_back(state);
+         _pop(false);
+         _push(state, false);
      }
 
      void reset(StatePointer state) {
 #ifdef MOONLIGHT_AUTOMATA_DEBUG
          _trace(TraceEvent::RESET, state);
 #endif
-         state->inject(this, &context());
-         stack.clear();
-         stack.push_back(state);
+         while (current()) {
+             _pop(false);
+         }
+         _push(state, false);
      }
 
      void pop() {
 #ifdef MOONLIGHT_AUTOMATA_DEBUG
          _trace(TraceEvent::POP, stack.size() >= 2 ? stack[stack.size()-2] : nullptr);
 #endif
-         try {
-             stack.pop_back();
-         } catch (...) {
-             THROW(core::RuntimeError, "The stack is empty.");
-         }
+         _pop(true);
      }
 
      StatePointer current() const {
@@ -195,7 +193,8 @@ class StateMachine {
              {TraceEvent::POP, "POP"},
              {TraceEvent::TRANSITION, "TRANSITION"},
              {TraceEvent::RESET, "RESET"},
-             {TraceEvent::TERMINATE, "TERMINATE"}
+             {TraceEvent::TERMINATE, "TERMINATE"},
+             {TraceEvent::FATAL_EXCEPTION, "FATAL_EXCEPTION"}
          };
 
          return names[event];
@@ -230,6 +229,29 @@ class StateMachine {
          snapshot->back()->run();
      }
 
+     void _push(StatePointer state, bool standby) {
+         if (current() && standby) {
+             current()->standby();
+         }
+         state->inject(this, &context());
+         stack.push_back(state);
+         state->init();
+     }
+
+     void _pop(bool resume) {
+         try {
+             current()->exit();
+             stack.pop_back();
+
+         } catch (...) {
+             THROW(core::RuntimeError, "The stack is empty.");
+         }
+
+         if (current() && resume) {
+             current()->resume();
+         }
+     }
+
  private:
      typename S::Context& context_;
      std::vector<StatePointer> stack;
@@ -249,6 +271,12 @@ class State : public std::enable_shared_from_this<State<C>> {
      virtual ~State() { }
 
      virtual void run() = 0;
+
+     virtual void init() { }
+     virtual void standby() { }
+     virtual void resume() { }
+     virtual void exit() { }
+
      void inject(StateMachine<State<C>>* machine, C* context) {
          this->machine_ = machine;
          this->context_ = context;

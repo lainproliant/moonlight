@@ -325,5 +325,101 @@ int main() {
 
         ASSERT_EQUAL(ctx, 6);
     })
+    .test("init/standby/resume/exit hooks for states", []() {
+        struct Context {
+            std::vector<std::string> init_names;
+            std::vector<std::string> standby_names;
+            std::vector<std::string> resume_names;
+            std::vector<std::string> exit_names;
+            std::string current = "?";
+        };
+
+        class State : public automata::State<Context> {
+         public:
+             explicit State(const std::string& name) : _name(name) { }
+
+             const std::string& name() const {
+                 return _name;
+             }
+
+             void init() override {
+                 context().init_names.push_back(name());
+                 std::cout << "INIT " << name() << std::endl;
+             }
+
+             void standby() override {
+                 context().standby_names.push_back(name());
+                 std::cout << "STANDBY " << name() << std::endl;
+             }
+
+             void resume() override {
+                 context().resume_names.push_back(name());
+                 std::cout << "RESUME " << name() << std::endl;
+             }
+
+             void exit() override {
+                 context().exit_names.push_back(name());
+                 std::cout << "EXIT " << name() << std::endl;
+             }
+
+             void run() override {
+                 context().current = name();
+             }
+
+         private:
+             const std::string _name;
+        };
+
+        auto make_state = [](const std::string& name) {
+            return std::make_shared<State>(name);
+        };
+
+        Context context;
+        auto machine = State::Machine::init_empty(context);
+        machine.push(make_state("A"));
+        machine.push(make_state("B"));
+        machine.push(make_state("C"));
+        machine.update();
+
+        ASSERT_EQUAL(context.init_names, {"A", "B", "C"});
+        ASSERT_EQUAL(context.standby_names, {"A", "B"});
+        ASSERT_EQUAL(context.resume_names, {});
+        ASSERT_EQUAL(context.exit_names, {});
+        ASSERT_EQUAL(context.current, "C");
+
+        machine.pop();
+        machine.update();
+
+        ASSERT_EQUAL(context.init_names, {"A", "B", "C"});
+        ASSERT_EQUAL(context.standby_names, {"A", "B"});
+        ASSERT_EQUAL(context.resume_names, {"B"});
+        ASSERT_EQUAL(context.exit_names, {"C"});
+        ASSERT_EQUAL(context.current, "B");
+
+        machine.transition(make_state("D"));
+        machine.update();
+
+        ASSERT_EQUAL(context.init_names, {"A", "B", "C", "D"});
+        ASSERT_EQUAL(context.standby_names, {"A", "B"});
+        ASSERT_EQUAL(context.resume_names, {"B"});
+        ASSERT_EQUAL(context.exit_names, {"C", "B"});
+        ASSERT_EQUAL(context.current, "D");
+
+        machine.pop();
+        machine.update();
+
+        ASSERT_EQUAL(context.init_names, {"A", "B", "C", "D"});
+        ASSERT_EQUAL(context.standby_names, {"A", "B"});
+        ASSERT_EQUAL(context.resume_names, {"B", "A"});
+        ASSERT_EQUAL(context.exit_names, {"C", "B", "D"});
+        ASSERT_EQUAL(context.current, "A");
+
+        machine.terminate();
+
+        ASSERT_EQUAL(context.init_names, {"A", "B", "C", "D"});
+        ASSERT_EQUAL(context.standby_names, {"A", "B"});
+        ASSERT_EQUAL(context.resume_names, {"B", "A"});
+        ASSERT_EQUAL(context.exit_names, {"C", "B", "D", "A"});
+    })
     .run();
 }

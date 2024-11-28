@@ -113,7 +113,6 @@ int main() {
         auto abba = make_enum_abba_grammar();
         auto lex = abba.lexer().throw_on_error(false);
         auto tokens = lex.lex("abaaa");
-        std::cout << "LRS-DEBUG: tokens.size() = " << tokens.size() << std::endl;
         ASSERT_EQUAL(tokens.size(), 2ul);
         ASSERT_EQUAL(tokens[0].type(), Abba::A);
         ASSERT_EQUAL(tokens[1].type(), Abba::B);
