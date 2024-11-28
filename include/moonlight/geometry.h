@@ -284,11 +284,26 @@ public:
     }
 
     Vector2d<T> midpoint() const {
-        return a + (as_vec().magnitude() / 2);
+        return a + as_vec() / 2;
     }
 
     std::vector<Line2d<T>> split(int segments = 2) {
+        std::vector<Vector2d<T>> points;
+        auto vec = as_vec() / segments;
 
+        T segment_len = length() / segments;
+
+        for (int x = 0; x < segments; x++) {
+            points.push_back(a + vec * x);
+        }
+
+        std::vector<Line2d<T>> lines;
+
+        for (int x = 1; x < segments; x++) {
+            lines.push_back(Line2d<T>(points[x-1], points[x]));
+        }
+
+        return lines;
     }
 
     std::string repr() const {
