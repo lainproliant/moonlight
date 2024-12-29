@@ -1,10 +1,18 @@
 /*
- * slice.h
+ * ## slice.h -------------------------------------------------------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Tuesday June 30, 2020
  *
  * Distributed under terms of the MIT license.
+ *
+ * ## Usage ---------------------------------------------------------
+ * This library mimics the functionality of Python's array slicing in C++.
+ * It offers the following function templates:
+ *
+ * - `slice(C, start=None, end=None)`: Slices the given collection.
+ * - `slice_offset(C, offset, clip=false)`: Gets the offset into the iterable
+ *   collection represented by the given offset value.
  */
 
 #ifndef __MOONLIGHT_SLICE_H

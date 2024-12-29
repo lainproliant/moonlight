@@ -1,18 +1,39 @@
 /*
- * linked_map
- *
- * An efficient map aggregate container that preserves the insertion
- * order of associated key/value pairs.
+ * ## linked_map.h: An STL-like map perserving insertion order. -----
  *
  * Author: Lain Musgrove (lainproliant)
  * Date: June 4th, 2013, October 3rd, 2021
  *
  * Distributed under terms of the MIT license.
+ *
+ * ## Usage ---------------------------------------------------------
+ * `linked_map` is an STL-compatible map container that preserves the insertion
+ * order of associated key/value pairs.  By default, `linked_map` uses an
+ * `std::unordered_map` for association and an `std::list` for insertion order
+ * preservation.  This container is used by the `json.h` library in `moonlight`
+ * to preserve the insertion order of items in `json::Object`.
+ *
+ * The main use case of this container is to keep the order of keys stable when
+ * unmarshalling and subsequently marshalling data from the map by iterating
+ * through the map using a forward iterator through the key-value pairs, such as
+ * the `json::Object` example above.  Without this, the order of keys in the
+ * resulting output after loading data into the map would be apparently random.
+ *
+ * In addition to the normal map access methods `at(k)` and `operator[](k)`,
+ * `linked_map` offers `at_offset(x)`, where `x` is an integer offset into the
+ * preserved insertion order.  Like other linear containers, `x` must be less
+ * than `m.size()`.  As items are added and removed from the map container, they
+ * will also be removed from the underlying insertion order sequence such that
+ * the item returned by `at_offset(x)` is not guaranteed to be stable if other
+ * items are removed from the list.  It's also important to note that
+ * `at_offset(x)` is linear-time "O(n)" by default as the default insertion
+ * order sequence type is `std::list`.  If "O(1)" insertion order offset access
+ * time is required, use `std::vector` instead, but note the tradeoff that item
+ * removal will then become "O(n)".
  */
 #ifndef __MOONLIGHT_LINKED_MAP_H
 #define __MOONLIGHT_LINKED_MAP_H
 
-#include <map>
 #include <unordered_map>
 #include <algorithm>
 #include <iterator>

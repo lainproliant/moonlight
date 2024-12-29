@@ -1,12 +1,20 @@
 /*
- * mmap.h
+ * mmap.h: Template methods for working with multimaps. -------------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Tuesday June 30, 2020
  *
  * Distributed under terms of the MIT license.
+ *
+ * ## Usage ---------------------------------------------------------
+ * This library contains some useful template methods for constructing and
+ * working with `std::multimap` and compatible types.
+ *
+ * - `mmap::build(mapping...)`: Offers both initializer-list and variadic forms
+ *   assisting in the creation of in-line multimaps.
+ * - `mmap::collect(mmap, k)`: Collect all of the items in the multimap matching
+ *   the given key `k`.
  */
-
 #ifndef __MOONLIGHT_MMAP_H
 #define __MOONLIGHT_MMAP_H
 

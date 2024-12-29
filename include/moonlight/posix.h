@@ -1,5 +1,5 @@
 /*
- * moonlight/posix.h: POSIX specializations and tools.
+ * ## posix.h: POSIX specializations and tools. -------------------------------
  *
  * Author: Lain Musgrove (lainproliant)
  * Date: Wednesday Jun 19 2019

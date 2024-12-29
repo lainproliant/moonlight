@@ -1,8 +1,122 @@
 /*
- * moonlight/automata.h: Templates for finite-state automata.
+ * ## moonlight/automata.h: Templates for finite-state automata. ----
  *
  * Author: Lain Supe (lainproliant)
  * Date: Tuesday, Jun 12 2018
+ *
+ * ## Usage: Class States -------------------------------------------
+ * The main way to use `automata.h` is to define your state machine in terms of
+ * classes, each class containing the implementation of a discrete state in your
+ * state machine, and a `Context` type which is attached to your state machine
+ * where your machine's side effects will be reflected.
+ *
+ * As an exmaple, if your state machine is for a video game, your `Context` type
+ * might contain window handles, compiled shaders, textures, and other assets
+ * that may be used in different states.  Data that is specific to a particular
+ * state in the state machine should be part of that particular state object,
+ * rather than the shared `Context`.
+ *
+ * First, define a `State` typedef in terms of your `Context` type.  This will
+ * serve as the abstract base class for all of the states in your state machine.
+ *
+ * ```
+ * typedef automata::State<Context> State;
+ * ```
+ *
+ * Next, define your state classes.  Each state needs to possess the following
+ * properties:
+ *
+ * - Is a `public` subclass of `State`.
+ * - Contains an explicit constructor with any parameters needed to the state
+ *   when it is instantiated, if necessary.
+ * - Overrides the pure virtual function `void State::run()`, which will contain
+ *   the implementation of the state's logic/behavior.  The state machine while
+ *   running will run this method continuously
+ *
+ * This state machine model uses a stack internally, meaning you can push and
+ * pop states, preserving previous states while transitioning with a push and
+ * returning to those previous states later with a pop.  The current state is
+ * always the state at the top of the stack.
+ *
+ * Within your `run()` method, the following methods are available for you to
+ * interact with the state machine:
+ *
+ * - `context()`: Fetches a reference to the machine's `Context` instance.
+ * - `machine()`: Fetches a reference to the machine itself.
+ * - `push<T>(...)`: Push a new state `T` onto the machine's stack.
+ * - `pop<T>()`: Pops the current state off of the state machine's stack.  If
+ *   this was the only state on the stack, the machine is now terminated.
+ * - `transition<T>(...)`: Replaces the current state with a new state `T`.
+ * - `reset<T>(...)`: Removes all other states from the machine's stack,
+ *   replacing them with a new `T` state.
+ * - `is_current()`: Returns whether this state is the current state on top of
+ *   the state machine.  This is always true, unless a parent state's `run()` is
+ *   invoked via `call_parent()` or otherwise.
+ * - `terminate()`: Removes all states, including this state, terminating the
+ *   state machine.
+ * - `current()`: Get a pointer to the current state, which should always be
+ *   equal to `this` unless a parent state's `run()` is invoked via
+ *   `call_parent()` or otherwise.
+ * - `parent()`: Get a pointer to the previous state in the state machine's
+ *   stack, or `nullptr` if there is no parent state.
+ * - `call_parent()`: Invokes the `run()` method of the parent state.
+ *   Throws a `core::RuntimeError` if there is no parent state.
+ *
+ * Now that we know how to define our states, let's kick things off by creating
+ * our state machine with the `init<T>(context, ...)` method.  This method sets
+ * up an initial state, associates a reference to the context object with our
+ * machine, and passes any needed parameters to your initial state.  Assuming
+ * you've defined an initial state called `InitialState`:
+ *
+ * ```
+ * Context contex;
+ * auto machine = State::Machine::init<InitialState>(context, 1);
+ * ```
+ *
+ * Now that you've created the machine, you have a few options as to how it
+ * should run:
+ *
+ * - Call the `run_until_complete()` method, which runs the state machine in the
+ *   current thread and blocks until completion.
+ * - Call the `run()` method, which starts the state machine in a new thread and
+ *   returns an `std::future<void>` object which can be used later to wait for
+ *   the state machine to finish.
+ * - Intermittently call `update()`, which runs a single cycle of the state
+ *   machine loop.  This method returns `true` if the machine has more cycles to
+ *   run, or `false` if the machine has finished.
+ *
+ * ## Usage: Lambda States -------------------------------------------
+ * `automata.h` also supports running a state machine where each state is
+ * defined by a closure (i.e. "lambda") associated with a constant value.  This
+ * constant value can be of any comparable type, e.g. it can be an integer
+ * constant, an `std::string` (the default), or an `enum` type.
+ *
+ * Lambda state machine execution mostly works like the above, except
+ * interaction with the machine is through a reference passed to the closure.
+ * In order to prevent unintended side-effects, reference or pointer captures in
+ * the closure are not recommended.
+ *
+ * The closure may accept one or two parameters:
+ *
+ * - `[](auto& m) {...}`: In this form, the parameter `m` is a reference to the
+ *   lambda state machine.
+ * - `[](auto& m, auto c) {...}`: In this form, the parameter `m` is a reference
+ *   to the lambda state machine, and the parameter `c` is a pointer to the
+ *   current state object.
+ *
+ * The lambda state machine provides the following methods:
+ *
+ * - `push(name)`: Push the named state to the top of the state machine stack.
+ * - `pop()`: Pop the current state off of the state machine stack.
+ * - `transition(name)`: Replaces the current state with the named state.
+ * - `reset(name)`: Removes all other states from the machine's stack,
+ *   replacing them with the named state.
+ * - `current()`: Get a pointer to the current state.  Compare with `c` to
+ *   determine if the currently running state is the machine's current state.
+ *
+ * Note there is no method on `m` to get the parent state.  To invoke the parent
+ * state, define your closure in two-parameter form with `c` and call
+ * `c->parent()->run()`.
  */
 #ifndef __MOONLIGHT_AUTOMATA_H
 #define __MOONLIGHT_AUTOMATA_H
@@ -22,8 +136,7 @@ namespace automata {
 
 template<class C, class K> class Lambda;
 
-/**
-*/
+// ------------------------------------------------------------------
 template<class S>
 class StateMachine {
  public:
@@ -259,8 +372,7 @@ class StateMachine {
      std::optional<std::vector<StatePointer>> snapshot = {};
 };
 
-/**
-*/
+// ------------------------------------------------------------------
 template<class C>
 class State : public std::enable_shared_from_this<State<C>> {
  public:
@@ -349,8 +461,7 @@ class State : public std::enable_shared_from_this<State<C>> {
      }
 };
 
-/**
-*/
+// ------------------------------------------------------------------
 template<class C, class K = std::string>
 class Lambda : public State<C> {
  public:

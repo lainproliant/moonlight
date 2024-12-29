@@ -1,10 +1,32 @@
 /*
- * collect.h: Functional tools for collections.
+ * ## collect.h: Functional tools for collections. ------------------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Tuesday June 30, 2020
  *
  * Distributed under terms of the MIT license.
+ *
+ * ## Usage ---------------------------------------------------------
+ * This library provides a variety of functional template methods that work on
+ * many different STL collection types.  These serve as a supplement and
+ * occasional alternative to the STL `<algorithm>` methods.
+ *
+ * The following functions are defined in the `moonlight::coll` namespace:
+ *
+ * - `contains(C, x)`: Determine if the collection `C` contains the value `x`.
+ * - `flatten(C)`: Flattens an arbitrarily nested collection into a single
+ *   non-nested collection.
+ * - `filter(C, f(x))`: Filter the collection into a new collection only
+ *   containing elements for which the `f(x)` predicate is true.
+ * - `sorted(C)`: Return a new collection containing the elements of `C` in
+ *   sorted order.
+ * - `map(C, f(x))`: Return a new collection containing the elements of `C`
+ *   transformed by the function `f(x)`.
+ * - `set(C)`: Copy the elements from `C` into a new `std::set`, effectively
+ *   filtering duplicates from `C` into a new set.
+ * - `zip<R>(A, B)`: Combine the contents of `A` and `B` into a single new
+ *   `std::vector<R>` by constructing new `R` objects using elements `A[x]` and
+ *   `B[x]`, i.e. `R(A[x], B[x])`.
  */
 
 #ifndef __MOONLIGHT_COLLECT_H

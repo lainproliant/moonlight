@@ -1,5 +1,5 @@
 /*
- * color.h
+ * # color.h: Utilities for working in HSV and RGB color space. -----
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Sunday March 14, 2021
@@ -7,6 +7,43 @@
  * HSV/RGB conversion algorithms adapted from <http://dystopiancode.blogspot.com/2012/06/hsv-rgb-conversion-algorithms-in-c.html>
  *
  * Distributed under terms of the MIT license.
+ *
+ * ## Usage ---------------------------------------------------------
+ * This library provides three classes for operating on colors in the HSV and
+ * RGB color spaces:
+ *
+ * - `uRGB`: Representation of an RGB color, where `r`, `g`, and `b` are bytes
+ *   from 0x00 to 0xFF.
+ *   - `uRGB::of(v)` parses a color, either from the first 24bits of an integer,
+ *     or a hexidecimal string optionally starting with an octothorpe ('#').
+ *   - `uRGB::is_valid(s)` determines if the given string is a valid hex color
+ *     string, which in this case must have a leading octothorpe ('#').
+ *   - `uRGB::validate(s)` parses a hex color from the string `s`, validating
+ *     first that it is a valid color hex string via `uRGB::is_valid(s)`.  If it
+ *     is not valid, a `core::ValueError` is thrown.
+ *   - `uRGB::str()` emits a uRGB value as a hex color string with a leading
+ *     octothorpe ('#').
+ *   - `uRGB` can be explicitly converted to `int`, `fRGB`, and `fHSV` via
+ *     a `static_cast`.
+ * - `fRGB`: Representation of an RGB color, where `r`, `g`, and `b` coordinates
+ *   are values from 0.0f to 1.0f.  This mostly exists as an intermediate value
+ *   when converting from `uRGB` to `fHSV` and vise versa.
+ *   - `fRGB` can be explicitly converted to `fRGB` or `fHSV` via a
+ *   `static_cast`.
+ * - `fHSV`: Representation of an HSV color, where `h` is an angle expressed in
+ *   degrees, and `s` and `v` are saturation and value from 0.0f to 1.0f.
+ *
+ * One of the more useful things you can do with this library, and the reason it
+ * was made, was to rotate colors around the color wheel while preserving their
+ * saturation and value.  In this example, we take a reddish RGB color `0xAC0000`
+ * and rotate it 180 degrees to create a like cyan:
+ *
+ * ```
+ * auto hsvRed = static_cast<fHSV>(uRGB::of(0xAC0000));
+ * auto hsvCyan = { hsvRed.h + 180.0f, hsvRed.s, hsvRed.v };
+ * auto rgbCyan = static_cast<uRGB>(hsvCyan);
+ * ASSERT_EQUAL(uRGB.of(0x00ACAC), rgbCyan);
+ * ```
  */
 
 #ifndef __MOONLIGHT_COLOR_H
@@ -22,15 +59,13 @@
 namespace moonlight {
 namespace color {
 
-/**
-*/
+// ------------------------------------------------------------------
 template<class T>
 bool in_range(T start, T end, T value) {
     return value >= start && value <= end;
 }
 
-/**
-*/
+// ------------------------------------------------------------------
 struct fRGB;
 struct uRGB;
 
@@ -65,8 +100,7 @@ struct fHSV {
     }
 };
 
-/**
-*/
+// ------------------------------------------------------------------
 struct uRGB {
     unsigned char r;
     unsigned char g;
@@ -129,8 +163,7 @@ struct uRGB {
     }
 };
 
-/**
-*/
+// ------------------------------------------------------------------
 struct fRGB {
     float r;
     float g;
@@ -157,14 +190,12 @@ struct fRGB {
     }
 };
 
-/**
-*/
+// ------------------------------------------------------------------
 inline fHSV::operator uRGB() const {
     return static_cast<uRGB>(static_cast<fRGB>(*this));
 }
 
-/**
-*/
+// ------------------------------------------------------------------
 inline fHSV::operator fRGB() const {
     fRGB rgb = { 0.0f, 0.0f, 0.0f };
     float c = 0.0f, m = 0.0f, x = 0.0f;
@@ -191,8 +222,7 @@ inline fHSV::operator fRGB() const {
     return rgb;
 }
 
-/**
-*/
+// ------------------------------------------------------------------
 inline uRGB::operator fRGB() const {
     return {
         .r = r / 255.0f,
@@ -201,14 +231,12 @@ inline uRGB::operator fRGB() const {
     };
 }
 
-/**
-*/
+// ------------------------------------------------------------------
 inline uRGB::operator fHSV() const {
     return static_cast<fHSV>(static_cast<fRGB>(*this));
 }
 
-/**
-*/
+// ------------------------------------------------------------------
 inline fRGB::operator uRGB() const {
     return {
         .r = static_cast<unsigned char>(::floor(r * 255.0f)),
@@ -217,8 +245,7 @@ inline fRGB::operator uRGB() const {
     };
 }
 
-/**
-*/
+// ------------------------------------------------------------------
 inline fRGB::operator fHSV() const {
     fHSV hsv = { 0.0f, 0.0f, 0.0f };
     float M = ::fmaxf(r, ::fmaxf(g, b));

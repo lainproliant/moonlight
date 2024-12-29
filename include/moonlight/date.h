@@ -1,10 +1,39 @@
 /*
- * date.h
+ * ## date.h --------------------------------------------------------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Thursday December 10, 2020
  *
  * Distributed under terms of the MIT license.
+ *
+ * ## Dependencies --------------------------------------------------
+ * To install dependencies, run `./build.py deps` at the moonlight project root.
+ *
+ * - Howard Hinnant's `date` library.
+ *   - Add `moonlight/deps/date/include` to your C++ include path.
+ *
+ * ## Usage ---------------------------------------------------------
+ * This library is a wrapper around `std::chrono` and Howard Hinnant's
+ * supplementary `date` library, which adds a lot of extra features on top of
+ * `std::chrono`.  This wrapper provides a variety of classes which make
+ * interacting with date and time values more intuitive.  It is heavily inspired
+ * by Python's `datetime` and Java 8's `java.time`.
+ *
+ * Any operations that would result in the creation of an invalid date or time
+ * object will result in `core::ValueError` being thrown.
+ *
+ * The main classes of this library are the following:
+ *
+ * - `Zone`: Represents a time zone.  Supports conversion to and from local
+ *   time, parsing of time zones by name, and parsing of zone-aware datetimes.
+ * - `Duration`: Represents a duration of time in milliseconds, with methods
+ *   to break this down into larger units of time.  Also offered are
+ *   free-functions `days(n)`, `hours(n)`, `minutes(n)`, and `seconds(n)` for
+ *   constructing respective durations.`
+ * - `Date`: Represents a calendar date.
+ * - `Time`: Represents a time of the day.
+ * - `Datetime`: Represents a calendar date and time of day clarified with a
+ *   `Zone` object, which is UTC by default.
  */
 
 #ifndef __MOONLIGHT_DATE_H

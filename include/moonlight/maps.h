@@ -1,10 +1,23 @@
 /*
- * map.h
+ * ## map.h: Template methods for operating on maps. ----------------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Tuesday June 30, 2020
  *
  * Distributed under terms of the MIT license.
+ *
+ * ## Usage ---------------------------------------------------------
+ * This library contains some useful template methods for operating on maps.
+ *
+ * - `map::invert(m)`: Creates a new map where the keys and values from the
+ *   given map are inverted.  This may result in a smaller map if the values are
+ *   not unique, and only the latest value-as-key in the sequence will be
+ *   present in the inverted map.
+ * - `map::items(m)`: Creates a `gen::Stream<std::pair<K, V>>` of the key-value
+ *   pairs from the map, allowing for further functional composition across the
+ *   items in the map.
+ * - `map::keys(m)`: Creates a `gen::Stream<K>` of the keys from the map.
+ * - `map::values(m)`: Creates a `gen::Stream<V>` of the values from the map.
  */
 
 #ifndef __MOONLIGHT_MAPS_H
@@ -12,9 +25,7 @@
 
 #include <map>
 #include <utility>
-#include <algorithm>
 
-#include "moonlight/exceptions.h"
 #include "moonlight/generator.h"
 
 namespace moonlight {

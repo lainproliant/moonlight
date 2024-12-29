@@ -1,10 +1,33 @@
 /*
- * moonlight/curses.h
+ * ## moonlight/curses.h --------------------------------------------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Saturday February 22, 2020
  *
  * Distributed under terms of the MIT license.
+ *
+ * ## Usage ---------------------------------------------------------
+ * This library is a thin C++ wrapper around `curses`, particularly `ncurses`
+ * with the `panel` extension.  It is still a work in progress, I'd like to add
+ * more features to this when I next need them.
+ *
+ * First, initialize `ncurses` by calling the `curses::init()` method.  This
+ * method makes some assumptions, namely that you intend to use `ncurses` in an
+ * "immediate" mode style, i.e. with unbuffered keyboard input and no terminal
+ * echo.  This is useful for building TUIs and CLI based games.
+ *
+ * You probably also want to call `curses::init_color()`, as this will
+ * initialize color rendering in `ncurses` and define a useful preset of
+ * `curses` color pairs.  If you wish to be able to receive mouse events also
+ * invoke `curses::init_mouse()`.
+ *
+ * One of the main differences between the wrapper and `curses` is that
+ * coordinates are expressed in `x` major order, i.e. `x` and then `y` rather
+ * than `y` and then `x`.  This is mainly communicated via an `XY` struct with
+ * `x` and `y` integer components.
+ *
+ * TODO: Add more documentation around `Window`, `Panel` and how input is
+ * received from the mouse and keyboard.
  */
 
 #ifndef __MOONLIGHT_CURSES_H
@@ -27,27 +50,23 @@ namespace curses {
 
 using moonlight::time::posix::get_ticks;
 
-/**
-*/
+// ------------------------------------------------------------------
 const int MAX_KEYCODE = 410;
 
-/**
-*/
+// ------------------------------------------------------------------
 struct XY {
     int x;
     int y;
 };
 
-/**
-*/
+// ------------------------------------------------------------------
 inline XY screen_size() {
     int x, y;
     getmaxyx(stdscr, y, x);
     return {x, y};
 }
 
-/**
-*/
+// ------------------------------------------------------------------
 inline XY center_on_area(const XY& sz_A, const XY& sz_B) {
     if (sz_A.x > sz_B.x || sz_A.y > sz_B.y) {
         THROW(core::UsageError, "Can't center a smaller size inside another.");
@@ -59,20 +78,17 @@ inline XY center_on_area(const XY& sz_A, const XY& sz_B) {
     };
 }
 
-/**
-*/
+// ------------------------------------------------------------------
 inline XY center_on_screen(const XY& sz) {
     return center_on_area(sz, screen_size());
 }
 
-/**
-*/
+// ------------------------------------------------------------------
 inline void cleanup() {
     endwin();
 }
 
-/**
-*/
+// ------------------------------------------------------------------
 inline void init() {
     initscr();
     atexit(cleanup);
@@ -80,11 +96,9 @@ inline void init() {
     noecho();
     nodelay(stdscr, true);
     keypad(stdscr, true);
-    start_color();
 }
 
-/**
-*/
+// ------------------------------------------------------------------
 inline void init_color() {
     if (has_colors() == FALSE) {
         THROW(core::UsageError, "This terminal does not support color.");
@@ -93,8 +107,7 @@ inline void init_color() {
     use_default_colors();
 }
 
-/**
-*/
+// ------------------------------------------------------------------
 inline void make_color_pairs() {
     init_pair(0, COLOR_BLACK, -1);
     init_pair(1, COLOR_RED, -1);
@@ -133,15 +146,13 @@ inline void make_color_pairs() {
     init_pair(37, COLOR_WHITE, COLOR_BLACK);
 }
 
-/**
-*/
+// ------------------------------------------------------------------
 inline void init_mouse() {
     mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
     std::cout << "\033[?1003h\n" << std::endl;
 }
 
-/**
-*/
+// ------------------------------------------------------------------
 inline int get_keycode(const std::string& named_key) {
     for (int x = 0; x <= MAX_KEYCODE; x++) {
         auto name = keyname(x);
@@ -153,15 +164,13 @@ inline int get_keycode(const std::string& named_key) {
     return ERR;
 }
 
-/**
-*/
+// ------------------------------------------------------------------
 inline std::string get_keycode_name(int keycode) {
     auto name = keyname(keycode);
     return name == nullptr ? "NULL" : name;
 }
 
-/**
-*/
+// ------------------------------------------------------------------
 inline void dbg_print_all_keycodes() {
     for (int x = 0; x <= MAX_KEYCODE; x++) {
         auto name = keyname(x);
@@ -169,20 +178,17 @@ inline void dbg_print_all_keycodes() {
     }
 }
 
-/**
-*/
+// ------------------------------------------------------------------
 inline void show_cursor() {
     curs_set(1);
 }
 
-/**
-*/
+// ------------------------------------------------------------------
 inline void hide_cursor() {
     curs_set(0);
 }
 
-/**
-*/
+// ------------------------------------------------------------------
 class Window {
  public:
      explicit Window(XY sz_) :
@@ -292,8 +298,7 @@ class Window {
      WINDOW* _window;
 };
 
-/**
-*/
+// ------------------------------------------------------------------
 class Panel : public std::enable_shared_from_this<Panel> {
  public:
      Panel(int x, int y) : Panel(XY({x, y})) { }

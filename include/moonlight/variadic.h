@@ -1,5 +1,5 @@
 /*
- * variadic.h
+ * ## variadic.h: SFINAE expansion of variadic template parameters. -
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Tuesday June 30, 2020

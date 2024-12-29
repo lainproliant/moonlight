@@ -10,9 +10,9 @@
 #ifndef __MOONLIGHT_JSON_SERIALIZER_H
 #define __MOONLIGHT_JSON_SERIALIZER_H
 
-#include <sstream>
 #include <cassert>
 #include <string>
+#include "moonlight/json/options.h"
 #include "moonlight/json/array.h"
 #include "moonlight/json/object.h"
 #include "moonlight/collect.h"
@@ -48,24 +48,8 @@ class Serializer {
          }
      }
 
-     bool pretty() const { return _pretty; }
-
-     Serializer& pretty(bool value) {
-         _pretty = value;
-         return *this;
-     }
-
-     Serializer& sort_keys(bool value) {
-         _sort_keys = value;
-         return *this;
-     }
-
-     int indent_width() const {
-         return _indent_width;
-     }
-
-     Serializer& indent_width(int width) {
-         _indent_width = width;
+     Serializer& options(const FormatOptions& options) {
+         _options = options;
          return *this;
      }
 
@@ -77,14 +61,17 @@ class Serializer {
              return;
          }
          for (unsigned int x = 0; x < array.size(); x++) {
-             if (pretty()) _out << "\n";
+             if (_options.pretty) _out << "\n";
              indent(ind + 1);
              serialize(array.get<Value::Pointer>(x)->ref<Value>(), ind + 1);
              if (x + 1 < array.size()) {
                  _out << ',';
+                 if (!_options.pretty && _options.spacing) {
+                     _out << " ";
+                 }
              }
          }
-         if (pretty()) _out << "\n";
+         if (_options.pretty) _out << "\n";
          indent(ind);
          _out << "]";
      }
@@ -105,22 +92,25 @@ class Serializer {
          }
 
          auto keys = obj.keys();
-         if (_sort_keys) {
+         if (_options.sort_keys) {
              keys = collect::sorted(keys);
          }
 
          for (unsigned int x = 0; x < keys.size(); x++) {
              auto val = obj.get<Value::Pointer>(keys[x]);
-             if (pretty()) _out << "\n";
+             if (_options.pretty) _out << "\n";
              indent(ind + 1);
              _out << "\"" << str::literal(keys[x]) << "\":";
-             if (pretty()) _out << ' ';
+             if (_options.pretty || _options.spacing) _out << ' ';
              serialize(val->ref<Value>(), ind + 1);
              if (x + 1 < keys.size()) {
                  _out << ',';
+                 if (!_options.pretty && _options.spacing) {
+                     _out << " ";
+                 }
              }
          }
-         if (pretty()) _out << "\n";
+         if (_options.pretty) _out << "\n";
          indent(ind);
          _out << "}";
      }
@@ -135,17 +125,14 @@ class Serializer {
      }
 
      void indent(unsigned int ind) {
-         for (unsigned int x = 0; x < (ind * indent_width()) && pretty(); x++) {
+         for (unsigned int x = 0; x < (ind * _options.indent) && _options.pretty; x++) {
              _out << ' ';
          }
      }
 
-     bool _pretty = true;
-     bool _sort_keys = false;
-     unsigned int _indent_width = 4;
+     FormatOptions _options;
      std::ostream& _out;
 };
-
 
 }  // namespace serializer
 }  // namespace json

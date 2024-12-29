@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <filesystem>
 #include "moonlight/json.h"
+#include "moonlight/json/mapping.h"
 #include "moonlight/test.h"
 #include "moonlight/date.h"
 

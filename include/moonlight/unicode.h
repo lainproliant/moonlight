@@ -1,12 +1,29 @@
 /*
- * utf8.h
+ * ## utf8.h: Functions for elegant handling of UTF8 encoded text. --
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Tuesday May 28, 2024
+ *
+ * ## Dependencies --------------------------------------------------
+ * To install dependencies, run `./build.py deps` at the moonlight project root.
+ *
+ * - utfcpp
+ *   - Add `moonlight/deps` to your C++ include path.
+ *
+ * ## Usage ---------------------------------------------------------
+ * This header offers wrappers which make handling of UTF8 text a bit easier.
+ *
+ * - `unicode::BufferedInput`: A unicode-aware variant of `file::BufferedInput`
+ *   originally defined in `file.h`.  This class supports peeking through UTF8
+ *   multi-byte sequences as single characters.
+ *
+ * This header also imports the `utf8` namespace from `utfcpp`, of which offers
+ * `utf8::utf32to8()` for converting wide character sequences into UTF8 encoded
+ * byte sequences.
  */
 
-#ifndef __UTF8_H
-#define __UTF8_H
+#ifndef __MOONLIGHT_UNICODE_H
+#define __MOONLIGHT_UNICODE_H
 
 #include "moonlight/file.h"
 #include "utfcpp/source/utf8.h"
@@ -56,7 +73,7 @@ class BufferedInput {
 
          if (c == EOF) {
              _exhausted = true;
-} else {
+         } else {
              _loc.offset ++;
 
              if (c == '\n') {
@@ -190,4 +207,4 @@ class BufferedInput {
 }
 }
 
-#endif /* !__UTF8_H */
+#endif /* !__MOONLIGHT_UNICODE_H */

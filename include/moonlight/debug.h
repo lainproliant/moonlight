@@ -1,10 +1,19 @@
 /*
- * debug.h
+ * ## debug.h: Advanced supplementary debugging functionality. ------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Thursday January 13, 2022
  *
  * Distributed under terms of the MIT license.
+ *
+ * ## Dependencies --------------------------------------------------
+ * This library has runtime dependencies in order to utilize it fully:
+ *
+ * - The executable needs to be compiled with debugging symbols, i.e. `-g`.
+ * - The `addr2line` utility needs to be available in order to locate the
+ *   filename and line offset of stack frames.
+ * - Your compiler must support `abi::__cxa_demangle()` in order to demangle C++
+ *   symbols into their class and member parts.
  */
 
 #ifndef __MOONLIGHT_DEBUG_H
@@ -14,10 +23,8 @@
 #include <unistd.h>
 #include <execinfo.h>
 
-#include <cinttypes>
 #include <cstring>
 #include <filesystem>
-#include <optional>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -35,7 +42,7 @@ namespace debug {
 
 namespace fs = std::filesystem;
 
-/**
+/* ------------------------------------------------------------------
  * @note Don't use this method, use `sys::check()` instead.
  */
 inline bool check(const std::string& command, std::string& output,
@@ -70,7 +77,7 @@ inline bool check(const std::string& command, std::string& output,
     return true;
 }
 
-/**
+/* ------------------------------------------------------------------
  * Parse the output lines from the addr2line tool.
  */
 inline bool parse_a2l_output(const std::string& source_expr, std::string& source_path, int& line_number) {
@@ -87,7 +94,7 @@ inline bool parse_a2l_output(const std::string& source_expr, std::string& source
     return true;
 }
 
-/**
+/* ------------------------------------------------------------------
  * Get the name of the executable file.
  *
  * @returns The executable path, or empty string if it couldn't be determined.
@@ -104,6 +111,7 @@ inline std::string get_executable_path() {
     }
 }
 
+// ------------------------------------------------------------------
 inline fs::path shorten_path(const fs::path& path) {
     const auto cwd = fs::current_path();
     auto new_path = fs::weakly_canonical(path);
@@ -115,7 +123,7 @@ inline fs::path shorten_path(const fs::path& path) {
 
 typedef void* BacktraceFrame;
 
-/**
+/* ------------------------------------------------------------------
  * Retrieve the current stack frames as an array.
  */
 inline std::vector<BacktraceFrame> backtrace_frames(uint64_t skip_frames = 2, int max_frames = 256) {
@@ -128,7 +136,7 @@ inline std::vector<BacktraceFrame> backtrace_frames(uint64_t skip_frames = 2, in
     return frames;
 }
 
-/**
+/* ------------------------------------------------------------------
  * Attempt to demangle the given mangled name.
  *
  * @returns The demangled name, or the unmodified name if demangling failed.
@@ -152,10 +160,10 @@ inline std::string demangle(const std::string& name) {
     return name;
 }
 
-// Forward declaration.
+// Forward declarations ---------------------------------------------
 class Source;
 
-/**
+/* ------------------------------------------------------------------
  * Represents a parsed, potentially demangled backtrace symbol.
  */
 class BacktraceSymbol {
@@ -292,6 +300,7 @@ class BacktraceSymbol {
      size_t _offset;
 };
 
+// ----------------------------------------------------------------------------
 class Source {
  public:
      Source() : Source("", "", -1) { }
@@ -392,6 +401,7 @@ class Source {
      int _line_number;
 };
 
+// ----------------------------------------------------------------------------
 class StackInfo {
  public:
      StackInfo(const BacktraceSymbol& symbol, const Source source)
@@ -414,6 +424,7 @@ class StackInfo {
      Source _source;
 };
 
+// ----------------------------------------------------------------------------
 class StackTrace {
  public:
      StackTrace() { }

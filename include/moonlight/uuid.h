@@ -1,8 +1,24 @@
 /*
- * uuid.h
+ * ## uuid.h: A wrapper around `stduuid` for generating UUIDs. ------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Sunday September 10, 2023
+ *
+ * ## Dependencies --------------------------------------------------
+ * To install dependencies, run `./build.py deps` at the moonlight project root.
+ *
+ * - stduuid
+ *   - Add `moonlight/deps` to your C++ include path.
+ *
+ * ## Usage ---------------------------------------------------------
+ * This header provides methods for generating and datatypes for representing
+ * UUIDs, globally unique identifiers conforming to RFC-9562.  It provides
+ * wrappers around the `stduuid` library.  The following types and classes are
+ * provided:
+ *
+ * - `uuid::UUID`: A type alias for `uuids::uuid`.
+ * - `uuid::Generator`: A function class with `operator()` for generating UUIDs.
+ *   Acts as a container for the random device and seeded generator.
  */
 
 #ifndef __MOONLIGHT_UUID_H

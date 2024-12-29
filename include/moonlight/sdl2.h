@@ -1,5 +1,5 @@
 /*
- * moonlight/sdl2.h: SDL2 specializations and tools.
+ * ## sdl2.h: SDL2 specializations and tools. -----------------------
  *
  * Author: Lain Musgrove (lainproliant)
  * Date: Friday Feb 6 2015,

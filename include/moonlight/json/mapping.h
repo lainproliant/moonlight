@@ -15,8 +15,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "moonlight/traits.h"
-#include "moonlight/json/array.h"
 #include "moonlight/json/object.h"
 
 namespace moonlight {

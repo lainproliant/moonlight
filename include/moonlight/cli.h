@@ -1,8 +1,43 @@
 /*
- * moonlight/cli.h: Useful tools for building command line apps.
+ * ## moonlight/cli.h: Useful tools for building command line apps. -
  *
  * Author: Lain Supe (lainproliant)
  * Date: Thursday, Dec 21 2017
+ *
+ * ## Usage ---------------------------------------------------------
+ * This library provides a simplified alternative to `getopt(3)` in the form of
+ * `cli::parse`.  This function accepts command line arguments, a set of flag
+ * names, and a set of option names, and returns a `cli::CommandLine` object
+ * which can be used to query the result of the parsing of those flags and
+ * options from the given command line arguments.  Arguments can be provided
+ * either as a vector of `std::string` or the `int argc, char** argv` pair that
+ * is passed to `main()`.
+ *
+ * In this example, we are parsing a required "input" option, an optional
+ * "output" option, and a "verbose" flag.  Note that single-character arguments
+ * can be provided in the form `-x` or `--x`, and that multi-character arguments
+ * must be provided in the form `--xyz`, as the argument `-xyz` is interpreted
+ * as specifying "x", "y", and "z" single-character flags.
+ *
+ * ```
+ * auto cli = cli::parse(argc, argv,
+ *                       {"i", "input", "o", "output"},
+ *                       {"v", "verbose"});
+ * bool verbose = cli.check("v", "verbose");
+ * std::string input = cli.require("i", "input");
+ * std::optional<std::string> output = cli.get("o", "output");
+ * ```
+ *
+ * The first parameter in the argument list is assumed to be the program name,
+ * and is available via `get_program_name()` on the `cli` object.
+ *
+ * ## Other Functions -----------------------------------------------
+ * `cli.h` also provides two other useful utility functions:
+ *
+ * - `cli::argv_to_vector(argc, argv)`: Converts `argc` and `argb` from `main()`
+ *   into a `std::vector<std::string>`.
+ * - `cli::getenv(name)`: Gets the value of the given environment variable if
+ *   it exists as an optional, otherwise returns an empty optional.
  */
 #ifndef __MOONLIGHT_CLI_H
 #define __MOONLIGHT_CLI_H
@@ -156,8 +191,7 @@ class CommandLine {
 
                  } else if (collect::contains(opt_names, longopt)) {
                      // This is a longopt option, the next arg is the opt value.
-                     if (x + 1 < argv.size()) {
-                         auto value = argv[++x];
+                     if (x + 1 < argv.size()) { auto value = argv[++x];
                          results.opts[longopt] = value;
                          results.multi_opts.insert(std::pair<std::string, std::string>(longopt, value));
 

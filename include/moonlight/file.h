@@ -1,12 +1,45 @@
 /*
- * file.h
+ * ## file.h: Convenient wrappers for interacting with files. -------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Tuesday June 30, 2020
  *
  * Distributed under terms of the MIT license.
+ *
+ * ## Usage ---------------------------------------------------------
+ * This library offers a variety of useful wrapper functions and classes for
+ * interacting with file IO, temporary files, and buffered input.
+ *
+ * - `file::Location`: A structure to represent a line, column, and byte offset
+ *   in a file, buffer, or input stream.  Extremely useful in parsing contexts.
+ * - `file::open_r(name)`: Opens a file in read-only mode.  Throws a
+ *   `core::RuntimeError` if the file can't be opened for reading.
+ * - `file::open_w(name)`: Opens a file in write-only mode.  Throws a
+ *   `core::RuntimeError` if the file can't be opened for writing.
+ * - `file::open_rw(name)`: Opens a file in read-write mode.  Throws a
+ *   `core::RuntimeError` if the file can't be opened for simultaneous reading
+ *   and writing.
+ * - `file::tempfile_name(prefix="", suffix="")`: Constructs a temporary
+ *   filename path using the given prefix and suffix (optional), prepended with
+ *   the system's temporary file path as provided by
+ *   `std::filesystem::temp_directory_path()`.
+ * - `TemporaryFile`: An RAII wrapper for creating a temporary file using
+ *   `file::tempfile_name()`.  Opens the file in read-write mode by default, and
+ *   deletes the temporary file when the object leaves scope, unless `keep()` is
+ *   called to prevent this.
+ * - `file::to_string(v)`: Reads the full contents of an input file into an
+ *   `std::string`.  `v` can be either an `std::istream&` or a filename which is
+ *   then opened to retrieve its contents and subsequently closed.
+ * - `slurp(name)`: An alias for loading the contents of a file as an
+ *   `std::string`.
+ * - `dump(name, s)`: Writes the given string `s` to the named file.  Will
+ *   overwrite any existing contents in the named file if it exists.
+ * - `BufferedInput`: A useful wrapper around an input stream, providing
+ *   automatically buffered input, look-ahead, and scanning capabilities.
+ *   Provides the current location in the output stream as a `file::Location`
+ *   via `location()`.  Extremely useful in the construction of look-ahead
+ *   parsers that wish to read from an input stream rather than a byte buffer.
  */
-
 #ifndef __MOONLIGHT_FILE_H
 #define __MOONLIGHT_FILE_H
 

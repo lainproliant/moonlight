@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
             for (int v = 1; v <= 4; v++) {
                 tfm::printf("s=%0.2f,v=%0.2f ", s / 4.0f, v / 4.0f);
                 for (int h = 0; h < 60; h++) {
-                    color::fHSV hsv = { static_cast<float>(360.0f * (h / 60.0f)), s / 4.0f, v / 4.0f };
+                    color::fHSV hsv = { (360.0f * (h / 60.0f)), 1.0, 1.0 };
                     auto rgb = static_cast<color::uRGB>(hsv);
                     std::cout << bg::rgb(rgb)(" ");
                 }

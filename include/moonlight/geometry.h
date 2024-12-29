@@ -1,8 +1,12 @@
 /*
- * geometry.h
+ * ## geometry.h: Classes for geometric calculations. ----------------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Sunday August 18, 2024
+ *
+ * ## WARNING --------------------------------------------------------
+ * This library is experimental and not well tested.  More documentation and
+ * testing to come.
  */
 
 #ifndef __MOONLIGHT_GEOMETRY_H
@@ -137,7 +141,6 @@ class Vector2d {
      Vector2d<T> normalize() const {
          return (*this) * (1.0f / magnitude());
      }
-
 
      std::string repr() const {
          std::ostringstream sb;

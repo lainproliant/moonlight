@@ -1,12 +1,124 @@
 /*
- * generator.h
+ * ## generator.h: Implements generators like those in Python. ------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Tuesday May 26, 2020
  *
  * Distributed under terms of the MIT license.
+ *
+ * ## Usage ---------------------------------------------------------
+ * This library implements generators similar to the ones offered in the Python
+ * programming language using a combination of iterator wrappers and mutable
+ * closures acting as generator functions.  The following classes and utility
+ * function templates are provided.
+ *
+ * - `gen::Generator<T>`: An alias for `std::function<std::optional<T>>`
+ *   representing a closure or function object which returns values of type `T`
+ *   until no more values are available.
+ * - `gen::Iterator<T>`: Wraps a `gen::Generator<T>` in a class that behaves
+ *   like an STL-compatible forward iterator, allowing them to be used with
+ *   `<algorithm>` templates and the ranged-for loop.
+ * - `gen::Stream<T>`: An iterator wrapper for functional composition over
+ *   items in a virtual range.
+ * - `gen::Queue<T>`: A queue template for async communication of output from a
+ *   generator running in another thread to one or more consumer threads.
+ * - `gen::Buffer<T>`: An alias for `std::deque<T>` used to buffer streams.
+ * - `gen::begin<T>(g)`: Creates a `gen::Iterator` for the given generator `g`.
+ * - `gen::end<T>()`: Represents the end of any virtual range of type `T`.
+ * - `gen::async(f, ...)`: Creates a `gen::Queue` for processing the results
+ *   of a generator in another thread and communicating the output to one or
+ *   more consumer threads.
+ * - `gen::iterate(begin, end)`: Wraps a given pair of STL-compatible `begin`
+ *   and `end` iterators as a virtual range by creating a generator which yields
+ *   the items between `begin` and `end`.
+ * - `gen::wrap(begin, end)`: Wraps the given pair of STL-compatible `begin` and
+ *   `end` iterators into a `gen::Iterator`.
+ * - `gen::stream(v)`: Creates a `gen::Stream` from the given value `v`, which
+ *   may be a generator or a collection.
+ * - `gen::one(v)`: Alias for `Stream::singleton(v)`.
+ * - `gen::nothing()`: Alias for `Stream::empty()`.
+ *
+ * The class `gen::Stream<T>` facilitates high-order functional composition of
+ * generators, streams, and collections.  This class wraps `gen::Iterator<T>`
+ * and provides functional operations similar to those in `java.util.Stream` in
+ * Java.  Streams support the `+` and `+=` operators for logical concatenation.
+ * The following methods are available on `gen::Stream`:
+ *
+ * - `Stream::singleton(v)`: Creates a stream consisting of only one value.
+ * - `Stream::lazy_singleton(f)`: Creates a lazy single element stream from the
+ *   given factory function.  The value of the single object in the stream will
+ *   not be determined until the stream is accessed.
+ * - `Stream::lazy(f)`: Generates a lazy stream from the given factory function, which
+ *   won't be created until it is accessed.
+ * - `Stream<T>::empty()`: Creates an empty stream.
+ * - `advance(n)`: Advance the stream forward `n` items which are skipped.
+ * - `begin()`: The beginning of the stream's virtual range.
+ * - `end()`: The end of the stream's virtual range.
+ * - `trim_left(n)`: Trim `n` items off of the left of the virtual range.
+ * - `trim_right(n)`: Trim `n` items off of the right of the virtual range.
+ *   This requires the creation of an arbitrarily large buffer, since the size
+ *   of the virtual range is unknown until its end is reached through iteration.
+ * - `trim(left, right)`: Trim the given amount off of the left and right sides
+ *   of the virtual range.  This may require the creation of an arbitrarily
+ *   large buffer if `right` is non-zero, since the size of the virtual range is
+ *   unknown until its end is reached through iteration.
+ * - `buffer(bufsize, squash?)`: Buffer the stream `bufsize` items forward.  The
+ *   resulting stream elements are all references to a `gen::Buffer`.  If
+ *   `squash?` is true, items are removed from the beginning of the buffer each
+ *   step until it is empty and the buffer may be smaller than `bufsize`.
+ *   Otherwise and by default, the buffered sequence ends when the scalar
+ *   sequence ends and the buffer is not allowed to be smaller than `bufsize`
+ *   unless the stream's virtual range happens to be.
+ * - `last()`: Scans to the very last item in the stream and returns it.
+ * - `limit(n)`: Create a new stream which will only emit the next `n` elements
+ *   of this stream.
+ * - `sorted()`: Sorts all of the elements in the stream, then streams from the
+ *   resulting sorted collection.  This requires the full virtual range to
+ *   be buffered in memory.
+ * - `transform_split<R=T>(f)`: Streams a new stream-of-streams resulting from
+ *   applying `f` to each element in this stream, where `f` generates a new
+ *   stream of results for each element in this stream.  The template parameter
+ *   `R` may be provided or implied, allowing the stream to be transformed into
+ *   a stream-of-streams of a different type.
+ * - `transform<R=T>(f)`: Transform each element in the stream using the given
+ *   function, which must return an optional of the stream type.  Items for
+ *   which the function returns an empty optional are not included in the new
+ *   stream, which can be used to filter the stream while transforming.
+ *   The template parameter `R` may be provided or implied, allowing the stream
+ *   to be transformed into a stream of a different type.
+ * - `for_each(f)`: Call the given function for each element in the stream.  `f`
+ *   may optionally be a function returning a `bool`, which should return `true`
+ *   to indicate that the loop should continue and `false` to indicate that it
+ *   should be terminated early.
+ * - `filter(f)`: A wrapper around `transform<T>()` using `f` as a predicate
+ *   function to indicate which items should be filtered from the resulting
+ *   stream.
+ * - `unique(f)`: Filters the stream into a new stream containing only unique items
+ *   using an `std::set<T>` as a seive.
+ * - `collect<C=std::vector>()`: Collects all of the items in the stream into an collection
+ *   of the given type `C`.
+ * - `map_collect<M>(f)`: Collects all of the items in the stream into a map of
+ *   type `M` using the given mapping function `f` to determine the resulting key
+ *   and mapped value.
+ * - `all(f)`: Determine if all of the items in the collection match a given
+ *   predicate.  This will exhaust the stream until an item which does not match
+ *   the predicate is found.
+ * - `any(f)`: Determine if any of the items in the stream match a predicate.
+ *   This will exhaust the stream until an item which matches the predicate is
+ *   found.
+ * - `none(f)`: Determine if none of the items in the stream match a predicate.
+ *   This will exhaust the stream until an item which does not match the
+ *   predicate is found.
+ * - `reduce<R=T>(f, init=R())`: Reduce the items in the stream into a single
+ *   value using the given reducer function and initial value, which is default
+ *   constructed from the result type by default.
+ * - `sum<R=T>()`: Calculates a sum from all of the items in the stream.  The
+ *   result type may be a scalar or any other type.  Also useful for
+ *   concatenating a stream-of-streams into a single stream.
+ * - `join(sep)`: Joins all of the items in the stream together as a single
+ *   string with the given separator.
+ * - `is_empty()`: Determine if the stream is currently empty.
  */
-
 #ifndef __MOONLIGHT_GENERATOR_H
 #define __MOONLIGHT_GENERATOR_H
 
@@ -31,7 +143,7 @@ namespace gen {
 template<class T>
 using Generator = std::function<std::optional<T>()>;
 
-/**
+/* ------------------------------------------------------------------
  * A template class allowing the results of a Generator lambda to be
  * wrapped in a standard library compatible iterator type and used with
  * constructs like algorithm templates and the ranged-for loop.
@@ -116,7 +228,7 @@ class Iterator {
      std::optional<T> _value;
 };
 
-/**
+/* ------------------------------------------------------------------
  * A queue template for asynchronously communicating the output
  * of a generator running in another thread with one or more
  * consumer threads.
@@ -359,7 +471,7 @@ class Stream {
      }
 
      /**
-      * Trim `n` items off of the left off of the virtual range.
+      * Trim `n` items off of the left of the virtual range.
       */
      gen::Stream<T> trim_left(unsigned int n);
 

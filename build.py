@@ -7,7 +7,6 @@
 #
 # Distributed under terms of the MIT license.
 # -------------------------------------------------------------------
-
 import os
 import random
 from pathlib import Path

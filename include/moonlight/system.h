@@ -1,10 +1,18 @@
 /*
- * system.h
+ * ## system.h: Utilites for OS and environment interaction. --------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Tuesday June 30, 2020
  *
  * Distributed under terms of the MIT license.
+ *
+ * ## Usage ---------------------------------------------------------
+ * This header contains a few common system utility function sused in other
+ * parts of `moonlight`.
+ *
+ * - `sys::getenv(name)`: Get an env variable value if defined.  Use `cli::getenv` instead.
+ * - `sys::check(cmd)`: Fetch the output from a given shell command.  Throws
+ *   `core::RuntimeError` if the command yielded a non-zero return code.`
  */
 
 #ifndef __MOONLIGHT_SYSTEM_H
@@ -12,7 +20,6 @@
 
 #include <cstdlib>
 #include <optional>
-#include <sstream>
 #include <string>
 
 #include "moonlight/exceptions.h"

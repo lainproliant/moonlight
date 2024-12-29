@@ -1,5 +1,5 @@
 /*
- * make.h
+ * ## make.h: A simple wrapper around `std::make_shared`. -----------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Tuesday June 30, 2020

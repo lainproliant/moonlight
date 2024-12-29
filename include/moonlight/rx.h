@@ -1,10 +1,30 @@
 /*
- * rx.h
+ * ## rx.h: Wrappers around <rx> and the SRELL regex library. -------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Friday December 9, 2022
  *
  * Distributed under terms of the MIT license.
+ *
+ * ## Usage ---------------------------------------------------------
+ * This library provides an abstraction wrapper around `<rx>`: the `Expression`
+ * class representing a compiled regular experession and its operations, and the
+ * `Capture` class representing a regular expression match and its capture
+ * groups.
+ *
+ * The following free-functions are defined:
+ *
+ * - `rx::def(s, flags=ECMAScript)`: Compiles a regular expression, using
+ *   ECMAScript syntax by default.
+ * - `rx::idef`: Same as `rx::def`, but also with the `icase` flag by default
+ *   making the regular expression captures case-insensitive.
+ * - `rx::match(expr, s)`: Returns `true` if the given string `s` is matched by
+ *   the regular expression, `false` otherwise.
+ * - `rx::capture(expr, s)`: Matches the given string `s` and return a `Capture`
+ *   object, which contains any capture groups matched.
+ * - `rx::replace(expr, s, fmt)`: Replaces occurrences of the regex `expr` in
+ *   `s` with a string based on the `std::regex_replace` format `fmt`, which
+ *   varies depending on the regex format (ECMAScript by default).
  */
 
 #ifndef __MOONLIGHT_RX_H

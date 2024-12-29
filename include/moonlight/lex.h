@@ -1,11 +1,84 @@
 /*
- * lex.h
+ * ## lex.h: A regular-expression state machine lexer. ----------------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Saturday January 30, 2021
  *
  * Distributed under terms of the MIT license.
  */
+
+// ## Usage ---------------------------------------------------------
+// This library provides a framework for parsing text input as a series of
+// tokens using regular expressions and a stack-based state machine.  First,
+// define a `lex::Grammar` as your "root grammar" where parsing will begin.
+// Then, instantiate any sub-grammars, which will contain regular expression
+// matches for tokens that are only matched if a certain root grammar match
+// occurs first.  Sub-grammars may be arbitrarily nested and can contain cycles.
+//
+// Use the `def(rule, name)` method on your grammars to define rules.  The rules
+// will determine what happens when a token is matched, and the `name` parameter
+// determines the name of the token that will be created for this match.  The
+// following rule types are available for the `def()` method:
+//
+// - `lex::ignore(rx)`: Matches a regular expression and ignores it, yielding no
+//   token and simply consuming the matching input.
+// - `lex::match(rx)`: Matches a regular expression and yields a token.
+// - `lex::push(rx, grammar)`: Matches a regular expression, yielding a token
+//   and then pushes a sub-grammar onto the state stack.  Further token matches
+//   will use rules from this grammar.
+// - `lex::pop(rx)`: Matches a regular expression, yielding a token and then
+//   popping the current grammar from the state stack, returning to the previous
+//   grammar in the stack.  If a rule would pop out of the root grammar and
+//   there is still more input to process, a `lex::UnexpectedEndOfContentError`
+//   will be thrown.
+//
+// In addition to `def()`, some special case rules can be specified for the
+// grammar itself:
+//
+// - `else_pop()`: Pops the current grammar from the stack if no other rules
+//   in the grammar are matched.
+// - `else_push(grammar)`: Pushes a sub-grammar onto the state stack if no other
+//   rules in the grammar are matched.
+//
+// You can also provide a logical name for your grammar via `named(name)`, and
+// you can inherit all of the rules from another grammar using
+// `inherit(grammar)`.
+//
+// When defining your grammar, you have the option to specify which type is used
+// to represent the token type.  By default, this is `std::string`, but you can
+// also specify a different type when creating your root grammar with
+// `lex::Grammar<T=std::string>()`.
+//
+// The following example shows the definition of a recursive grammar for a
+// Scheme-like language:
+//
+// ```
+// auto root = lex::Grammar();
+// auto sexpr = root.sub();
+// auto ignore_whitespace = lex::ignore("\\s");
+//
+// sexpr
+// .def(ignore_whitespace)
+// .def(lex::match("`"), "quote")
+// .def(lex::match("[0-9]*.?[0-9]+"), "number")
+// .def(lex::match("[-!?+*/A-Za-z_!][-!?+*/A-za-z_0-9!]*"), "word")
+// .def(lex::match("[\\+-/=]"), "operator")
+// .def(lex::push("\\(", sexpr), "open-paren")
+// .def(lex::pop("\\)"), "close-paren");
+//
+// root
+// .def(ignore_whitespace)
+// .def(lex::push("\\(", sexpr), "open-paren")
+// ```
+//
+// Once you've created your grammar, use it to create a `lex::Lexer` for your
+// grammar, then use that to parse your input source.  Note that this library
+// will load the entire input source into memory before it starts parsing.
+//
+// ```
+// auto lex = root.lexer();
+// std::vector<lex::Token> tokens = lex.lex(file::to_string("input.scheme"));
+// ```
 
 #ifndef __MOONLIGHT_LEX_H
 #define __MOONLIGHT_LEX_H

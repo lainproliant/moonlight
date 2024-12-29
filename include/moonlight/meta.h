@@ -1,5 +1,5 @@
 /*
- * meta.h
+ * ## meta.h: Template metaprogramming tools. -----------------------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Tuesday April 6, 2021

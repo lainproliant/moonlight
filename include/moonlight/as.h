@@ -1,10 +1,22 @@
 /*
- * as.h - Helpful dynamic pointer conversions.
+ * ## as.h - Helpful dynamic pointer conversions. -------------------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Wednesday October 12, 2022
  *
  * Distributed under terms of the MIT license.
+ *
+ * ## Usage ---------------------------------------------------------
+ * `as.h` contains wrappers around raw and shared pointer dynamic type casts,
+ * defined in the global namespace.
+ *
+ * `as<B>(p)` dynamically casts a raw or shared pointer of one type, `A`, to a
+ * raw pointer of another type `B`, using RTTI to determine if this cast is safe
+ * to perform.
+ *
+ * `as_shared<B>(p)` dynamically casts a shared pointer of one type, `A`, to a
+ * shared pointer of another type `B`, using RTTI to determine if this cast is
+ * safe to perform.
  */
 
 #ifndef __MOONLIGHT_AS_H

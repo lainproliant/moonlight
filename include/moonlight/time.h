@@ -1,9 +1,43 @@
 /*
- * moonlight/time.h: A timer and relative time wrappers.
+ * ## time.h: A timer and relative time wrappers. -------------------
  *
  * Author: Lain Musgrove (lainproliant)
  * Date: Sunday Jan 25 2014,
  *       Wednesday Jun 19 2019
+ *
+ * ## Usage ---------------------------------------------------------
+ * This header provides an optionally accumulating timer which can be defined in
+ * terms of any function which provides a numeric time value that increases with
+ * time.  The following headers in `moonlight` provide pre-defined
+ * specializations of `Timer`:
+ *
+ * - `posix.h`: Defines `posix::Timer`, which is based on `clock_gettime(2)` and
+ *   the monotonic system clock.`
+ * - `sdl2.h`: Defines `sdl2::Timer`, defined by `SDL_GetTicks`.
+ * - `sdl3.h`: Defines `sdl3::Timer`, defined by `SDL_GetTicks64`.
+ *
+ * The `Timer` class when constructed is provided with an interval, espressed in
+ * the base units of the numeric time function.  The timer is said to "tick"
+ * each time this interval elapses.  First, call `start()` to unpause the timer.
+ * Then, the typical usage pattern is to call `update()` on the timer as
+ * frequently as possible, which will return `false` if a tick has not yet
+ * elapsed and `true` if a tick has elapsed.  You can later pause the timer
+ * again by calling `pause()`.  Calls to `update()` will not yield ticks while
+ * the timer is paused.  You can also call the `wait_time()` method to determine
+ * how many base units of time remain before the next tick will elapse, which
+ * can inform how long you should sleep to save CPU cycles.
+ *
+ * If `accumulate` is set to `true` on Timer creation, the timer will keep track
+ * of how long it actually took for the `update()` method to be called to
+ * reflect each tick, and add that to an accumulator which will deduct that
+ * amount of time from the time that must elapse before the next tick is
+ * registered.
+ *
+ * Timers can be shared using an `std::shared_ptr`.  The `Timer` class offers
+ * `copy()`, which will create an `std::shared_ptr` copy of the timer which will
+ * operate separately from the original timer.  It also offers
+ * `relative_timer()`, which will create an new timer who's base units of time
+ * are defined in terms of the ticks of this timer.
  */
 #ifndef __MOONLIGHT_TIME_H
 #define __MOONLIGHT_TIME_H

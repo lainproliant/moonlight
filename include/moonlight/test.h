@@ -1,9 +1,59 @@
 /*
- * moonlight/test.h: A very simple to use unit testing framework
- *    built around lambda expressions.
+ * ## test.h: A unit testing framework built around closures. -------
  *
  * Author: Lain Supe (lainproliant)
  * Date: Thu October 9, 2014
+ *
+ * ## Usage ---------------------------------------------------------
+ * `moonlight::test` is a simple to use unit testing framework built around
+ * lambda expressions, i.e. closures.  The quickest way to get started writing
+ * your unit tests is to build a `test::TestSuite` object using its builder
+ * function `test()`, then call `run()` to run the tests.  See the example below:
+ *
+ * ```
+ * int main() {
+ *      return TestSuite("My Unit Tests")
+ *      .test("add two numbers", []() {
+ *          ASSERT_EQUAL(2, 1 + 1);
+ *      })
+ *      .test("concatenate two strings", []() {
+ *          std::string strA = "hello ";
+ *          std::string strB = "world!";
+ *          std::string result = "hello, world!";
+ *          ASSERT_EQUAL(result, strA + strB);
+ *      })
+ *      .run();
+ * }
+ * ```
+ *
+ * The following methods are defined on `TestSuite`:
+ * - `test(name, f())`: Defines a test in the suite with the given name.  When
+ *   tests are run, they are run in a random order regardless of the order in
+ *   which they were defined.
+ * - `run()`: Runs the unit tests in the suite in random order, returning the
+ *   number of failed tests.
+ *
+ * The following assertion macros are defined for use in tests, which throw
+ * `core::AssertionFailure` if the assertions are false.
+ *
+ * - `ASSERT_EQUAL(a, b)`: Asserts that the two objects `a` and `b` are equal.
+ *   This macro allows comparison between a wide variety of objects and iterable
+ *   collections.
+ * - `ASSERT_NOT_EQUAL(a, b)` Asserts that `a` and `b` are not equal.
+ * - `ASSERT_EP_EQUAL(a, b, e)`: Asserts that `a` and `b` are equal within the
+ *   given epislon variance `e`.  Use this to compare doubles or floats if the
+ *   default `DBL_EPSILON` and `FLT_EPSILON` used by `ASSERT_EQUAL` are not
+ *   suitable for the comparison.
+ * - `FAIL(msg)`: Use this macro to trigger an assertion failure in your test
+ *   with the given explanation message.
+ *
+ * There are a few different ways in which you can compose your different test
+ * suites.  For smaller sets of tests, it may be appropriate to just define all
+ * of your tests in a single test suite.  For larger code bases, like
+ * `moonlight` itself, I have chosen to define each test suite in context of
+ * each header in the `./test` source directory each in their own source files.
+ * Then, `build.py` manages compiling and running the test suites, and contains
+ * logic to randomize the order in which the test suites are run.
  */
 #ifndef __MOONLIGHT_TEST_H
 #define __MOONLIGHT_TEST_H

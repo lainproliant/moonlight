@@ -1,13 +1,20 @@
 /*
- * shlex.h
- *
- * An interpretation of a subset of the functionality of the
- * shlex Python module.
+ * ## shlex.h: A shell lexer inspired by Python's `shlex`. ----------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Monday June 7, 2021
  *
  * Distributed under terms of the MIT license.
+ *
+ * ## Usage ---------------------------------------------------------
+ * This library is an interpretation of a subset of the functionality of the
+ * `shlex` Python module.  The following free-functions are provided:
+ *
+ * - `shlex::split(s)`: Splits a given shell format string into its constituent
+ *   parts, ala `argv`.
+ * - `shlex::join(v)`: Joins an array of strings together in shell format as a
+ *   single `std::string`.
+ * - `shlex.quote(s)`: Quotes any shell-escape characters in the given string.
  */
 
 #ifndef __MOONLIGHT_SHLEX_H

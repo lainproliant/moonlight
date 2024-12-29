@@ -1,5 +1,5 @@
 /*
- * tty.h
+ * ## tty.h: Methods for querying tty attributes of output streams. -
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Thursday March 11, 2021
@@ -8,6 +8,18 @@
  * This code is in the public domain and was sourced from https://www.ginac.de/~kreckel/fileno/.
  *
  * Other code distributed under terms of the MIT license.
+ *
+ * ## Usage ---------------------------------------------------------
+ * This header defines several methods for querying the tty attributes of
+ * `std::basic_ios` streams.  This can be useful to determine whether your
+ * program is writing to a virtual terminal or a pipe, for example.
+ *
+ * The following methods are defined:
+ *
+ * - `tty::fileno(stream)`: Gets the underlying file descriptor number for the
+ *   given stream.
+ * - `tty::is_tty(stream)`: Determine if the given `std::basic_ios` stream is
+ *   associated with a tty (virtual terminal).
  */
 
 #ifndef __MOONLIGHT_TTY_H

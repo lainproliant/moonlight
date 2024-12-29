@@ -1,19 +1,31 @@
 /*
- * nanoid.h
- *
- * A simple C++ implementation of NanoID.
- *
- * Based on:
- *
- * - The C header-only NanoID library by Akshay (nerdypepper)
- * 		- https://github.com/NerdyPepper/nanoid
- * - The more robust C++ nanoid_cpp library by Mykola Morozov
- *      - https://github.com/mcmikecreations/nanoid_cpp
+ * ## nanoid.h: a simple C++ implementation of NanoID. --------------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Saturday February 19, 2022
  *
  * Distributed under terms of the MIT license.
+ *
+ * ## Credits -------------------------------------------------------
+ * This library is based on the following efforts:
+ * - The C header-only NanoID library by Akshay (nerdypepper)
+ * 		- https://github.com/NerdyPepper/nanoid
+ * - The more robust C++ nanoid_cpp library by Mykola Morozov
+ *      - https://github.com/mcmikecreations/nanoid_cpp
+ *
+ * ## Usage ---------------------------------------------------------
+ * This library exposes a single template function, `nanoid::generate`.  This
+ * function generates a small uniformly-random unique ID as an `std::string`.
+ * By default, this ID will be generated using `std::random_device`,
+ * `std::uniform_int_distribution<int>`, and are 21 characters long.  The
+ * following alternative pre-built alphabets are also provided:
+ *
+ * - `DEFAULT_ALPHABET`: All alpha-numerics plus `-` and `_`.
+ * - `NUMBERS`
+ * - `UPPERCASE`
+ * - `LOWERCASE`
+ * - `ALPHANUMERIC`
+ * - `NO_LOOK_ALIKES`: An abridged alphabet with no look alike characters.
  */
 
 #ifndef __MOONLIGHT_NANOID_H

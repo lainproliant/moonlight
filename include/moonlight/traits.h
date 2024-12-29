@@ -1,10 +1,37 @@
 /*
- * traits.h
+ * ## traits.h: Various SFINAE traits for compile-time checks. -------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Friday September 24, 2021
  *
  * Distributed under terms of the MIT license.
+ *
+ * ## Usage ----------------------------------------------------------
+ * This header contains various template functions which can be used in
+ * constexpr contexts in compile time to determine various attributes about
+ * types.  These functions take advantage of the C++ concept known as SFINAE
+ * (Substitution Failure Is Not An Error), which deduces properties of types
+ * based on the template parameter substitution behavior of the compiler.
+ *
+ * The following template traits are defined:
+ *
+ * - `is_streamable<T>()`: Determine if the given type supports being streamed
+ *   to an `std::ostream` output stream via `operator<<`.
+ * - `is_iterable_type<T>()`: Determine if the given type supports forward
+ *   iteration via `std::begin()` and `std::end()`.  If true, that means that
+ *   this type can be iterated via standard `<algorithm>` style templates and
+ *   the ranged-for loop.
+ * - `is_map_type<T>()`: Determine if the given type is an `std::map`-like
+ *   container that defines a `T::key_type`, a `T::mapped_type`, and an
+ *   `operator[]` which accepts the `T::key_type` and returns a reference to
+ *   `T::mapped_type`.
+ * - `is_shared_ptr<T>()`: Determine if the given type is based on
+ *   `std::shared_ptr`.
+ * - `is_raw_pointer<T>()`: Determine if the given type is a raw pointer.
+ * - `type_name<T>()`: A `constexpr` that yields the given type's name as an
+ *   `std::string`.
+ * - `type_name_view<T>()`: A `constexpr` that yields an `std::string_view` into
+ *   the given type's name.
  */
 
 #ifndef __MOONLIGHT_TRAITS_H

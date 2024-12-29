@@ -10,17 +10,14 @@
 #ifndef __MOONLIGHT_JSON_OBJECT_H
 #define __MOONLIGHT_JSON_OBJECT_H
 
-#include <iostream>
 #include <memory>
 #include <algorithm>
-#include <set>
 #include <utility>
 #include <vector>
 #include <string>
 
 #include "moonlight/json/core.h"
 #include "moonlight/linked_map.h"
-#include "moonlight/maps.h"
 #include "moonlight/generator.h"
 #include "moonlight/traits.h"
 
@@ -109,6 +106,11 @@ class Object : public Value {
          }
          _ns.insert({name, Value::of(value)});
          return *this;
+     }
+
+     template<class T>
+     Object& with(const std::string& name, const T& value) {
+         return set(name, value);
      }
 
      template<class T>

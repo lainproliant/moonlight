@@ -1,10 +1,40 @@
 /*
- * string.h
+ * ## string.h ------------------------------------------------------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Tuesday June 30, 2020
  *
  * Distributed under terms of the MIT license.
+ *
+ * ## Usage ---------------------------------------------------------
+ * This library brings convenient methods for strings that are often offered in
+ * other languages to C++.  The following templates and free-functions are
+ * offered:
+ *
+ * - `str::coerce(v)`: Attempts to convert the given value to a string using
+ *   `operator<<`.  If this isn't possible, the type name of the value enclosed
+ *   in angle brackets `<type>` is emitted instead.
+ * - `str::cat(v, ...)`: Joins one or more elements together as a single string.
+ *   Non-string values are coerced to strings using `operator<<`.
+ * - `str::startswith(s, prefix)`: Determine if `s` begins with `prefix`.
+ * - `str::endswith(s, suffix)`: Determine if `s` ends with `suffix`.
+ * - `str::join(C, token="")`: Join an iterable into a token delimited string.
+ * - `str::split(s)`: Split the given string into a list of strings using the
+ *   given delimiter.
+ * - `str::chr(c)`: Creates a string with a single character.
+ * - `str::trim_left(s)`: Trim all whitespace from the left of a string.
+ * - `str::trim_right(s)`: Trim all whitespace from the right of a string.
+ * - `str::trim(s)`: Trim all whitespace from the left or right of a string.
+ * - `str::trim_prefix(pfx, s)`: Trim a prefix from the beginning of a string if
+ *   it exists there.
+ * - `str::map(s, f(c))`: Apply a function to each character in a string to
+ *   create a new string.
+ * - `str::to_upper(s)`: Convert all characters in a string to uppercase.
+ * - `str::to_lower(s)`: Convert all characters in a string to lowercase.
+ * - `str::literal(s)`: Format the given string as a C string literal, minus the
+ *   enclosing double quotes.
+ * - `str::literalize(s)`: Format the given string as a C literal enclosed in
+ *   double quotes.
  */
 
 #ifndef __MOONLIGHT_STRING_H

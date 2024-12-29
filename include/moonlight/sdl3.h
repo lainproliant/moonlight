@@ -1,5 +1,5 @@
 /*
- * sdl3.h
+ * ## sdl3.h: SDL3 specializations and tools. -----------------------
  *
  * Author: Lain Musgrove (lain.proliant@gmail.com)
  * Date: Thursday November 28, 2024
