@@ -561,6 +561,13 @@ class Stream {
      }
 
      /**
+      * Generate all items in the stream until there are none left but ignore them.
+      */
+     void drain() {
+         for (auto iter = begin(); iter != end(); iter++) { }
+     }
+
+     /**
       * Streams a new stream of streams resulting from applying the function `f` to each
       * element in this stream, where `f` generates a stream of results for each element.
       */

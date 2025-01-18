@@ -72,6 +72,10 @@ inline std::string coerce(const std::string& value) {
     return value;
 }
 
+inline std::string coerce(const char* value) {
+    return std::string(value);
+}
+
 inline void _cat(std::ostringstream& sb) {
     (void) sb;
 }

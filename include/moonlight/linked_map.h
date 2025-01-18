@@ -208,14 +208,18 @@ class LinkedMap {
          if (_list.size() >= offset) {
              throw std::out_of_range("Offset is beyond the end of the container.");
          }
-         return _list.at(offset).second;
+         auto iter = _list.begin();
+         std::advance(iter, offset);
+         return iter->second;
      }
 
      const mapped_type& at_offset(size_t offset) const {
          if (_list.size() >= offset) {
              throw std::out_of_range("Offset is beyond the end of the container.");
          }
-         return _list.at(offset).second;
+         auto iter = _list.begin();
+         std::advance(iter, offset);
+         return iter->second;
      }
 
      template<class T>

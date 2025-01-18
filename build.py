@@ -16,6 +16,8 @@ from xeno.recipes import checkout, install, sh, test
 from xeno.recipes.cxx import ENV, compile
 
 # -------------------------------------------------------------------
+PERFORMANCE = "-O3"
+
 DEPS = [
     "https://github.com/c42f/tinyformat",
     "https://github.com/HowardHinnant/date",
@@ -38,15 +40,15 @@ INCLUDES = [
 ENV.update(
     append="CFLAGS,LDFLAGS",
     CFLAGS=[
+        PERFORMANCE,
         "-Wall",
         "-fpermissive",  # needed for g++ to respect "always_false<T>"
         *INCLUDES,
         "-DMOONLIGHT_ENABLE_STACKTRACE",
         "-DMOONLIGHT_STACKTRACE_IN_DESCRIPTION",
         "--std=c++2a",
-        "-O3",
     ],
-    LDFLAGS=["-O3", "-lpthread", "-lutil"],
+    LDFLAGS=[PERFORMANCE, "-lpthread", "-lutil", "-lsqlite3"],
     PREFIX=os.environ.get("PREFIX", "/usr/local"),
     DESTDIR=os.environ.get("DESTDIR", ""),
 )
