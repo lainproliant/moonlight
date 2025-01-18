@@ -27,9 +27,9 @@ void create_test_tables(sql::Client::Pointer sql) {
 
 void print_scoreboard(sql::Client::Pointer sql) {
     std::cout << "----------" << std::endl;
-    sql->query("select * from scoreboard order by score desc").for_each([](sql::Row::Pointer row) {
+    sql->query("select * from scoreboard order by score desc").for_each([](auto row) {
         std::cout << row->at("id").as_int() << " "
-                  << row->at("name").as_str() << " -> "
+                  << row->at(1).as_str() << " -> "
                   << row->at("score").as_float() << std::endl;
     });
 }

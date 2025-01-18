@@ -39,6 +39,7 @@
 #include <iterator>
 #include <list>
 #include <utility>
+#include <vector>
 
 namespace moonlight {
 
@@ -205,7 +206,7 @@ class LinkedMap {
      }
 
      mapped_type& at_offset(size_t offset) {
-         if (_list.size() >= offset) {
+         if (offset >= _list.size()) {
              throw std::out_of_range("Offset is beyond the end of the container.");
          }
          auto iter = _list.begin();
@@ -214,7 +215,7 @@ class LinkedMap {
      }
 
      const mapped_type& at_offset(size_t offset) const {
-         if (_list.size() >= offset) {
+         if (offset >= _list.size()) {
              throw std::out_of_range("Offset is beyond the end of the container.");
          }
          auto iter = _list.begin();
@@ -369,11 +370,11 @@ class LinkedMap {
 };
 
 //-------------------------------------------------------------------
-// Template alias for backwards compatibility.
-template<class K, class V,
-class L = std::list<std::pair<K, V>>,
-      class M = std::unordered_map<K, typename L::iterator>>
-      using linked_map = LinkedMap<K, V, L, M>;
+template<class K,
+         class V,
+         class L = std::list<std::pair<K, V>>,
+         class M = std::unordered_map<K, typename L::iterator>>
+using linked_map = LinkedMap<K, V, L, M>;
 
 }  // namespace moonlight
 
