@@ -13,6 +13,8 @@
 #define __MOONLIGHT_GEOMETRY_H
 
 #include <cfloat>
+#include <unordered_map>
+#include <set>
 #include <cmath>
 #include <numeric>
 #include <optional>
@@ -340,6 +342,7 @@ public:
 // ------------------------------------------------------------------
 template<class T = int>
 class Size2d {
+public:
     Size2d() : w(0), h(0) { }
     Size2d(const T& width, const T& height) : w(width), h(height) { }
 
@@ -528,6 +531,13 @@ class Rect {
          }
 
          return bind_points(pts);
+     }
+
+     Vector2d<T> relative_point(const Vector2d<T>& pt) const {
+         return {
+             pt.x - pos.x,
+             pt.y - pos.y
+         };
      }
 
      bool contains_point(const Vector2d<T>& pt) const {
@@ -887,6 +897,175 @@ public:
     }
 
     std::vector<Vector2d<T>> pts;
+};
+
+// ------------------------------------------------------------------
+template<class ID>
+class CollisionTree {
+public:
+    struct Entry {
+        ID id;
+        Rect<float> aabb;
+    };
+
+    struct Intersection {
+        ID id;
+        Rect<float> aabb;
+        Rect<float>::Intersection intersect;
+    };
+
+    CollisionTree(const Rect<float>& rect, int level = 0,
+                  int max_level = 5, int max_objects = 10)
+    : _rect(rect), _level(level), _max_level(max_level), _max_objects(max_objects) { }
+
+    virtual ~CollisionTree() { }
+
+    void insert(const ID& id, const Rect<float>& aabb) {
+        insert({id, aabb});
+    }
+
+    void insert(const Entry& entry) {
+        _entries.insert({entry.id, entry});
+
+        for (auto& quadrant : _quadrants()) {
+            if (entry.aabb.intersects_rect(quadrant.rect())) {
+                quadrant.insert(entry);
+            }
+        }
+    }
+
+    const Rect<float>& rect() const {
+        return _rect;
+    }
+
+    const std::vector<CollisionTree<ID>>& quadrants() const {
+        return _quadrants;
+    }
+
+    bool contains(const ID& id) const {
+        return _entries.contains(id);
+    }
+
+    std::set<ID> candidate_ids(const ID& id) const {
+        if (! contains(id)) {
+            return {};
+        }
+
+        std::set<ID> results;
+
+        if (_quadrants.empty()) {
+            for (auto it = _entries.begin(); it != _entries.end(); it++) {
+                results.insert(it->first);
+            }
+
+        } else {
+            for (const auto& quadrant : _quadrants) {
+                for (ID id : quadrant.candidates(id)) {
+                    results.insert(id);
+                }
+            }
+        }
+
+        results.erase(id);
+        return results;
+    }
+
+    std::vector<Entry> candidate_entries(const ID& id) const {
+        std::vector<Entry> results;
+
+        for (const auto& candidate_id : candidates(id)) {
+            results.push_back(_entries.at(candidate_id));
+        }
+
+        return results;
+    }
+
+    std::vector<Entry> intersection_entries(const ID& id) const {
+        const auto candidates = candidate_entries(id);
+        if (candidates.empty()) {
+            return {};
+        }
+
+        std::vector<Entry> results;
+        const auto entry = _entries.at(id);
+
+        for (const auto& candidate : candidates) {
+            if (entry.aabb.intersects_rect(candidate.aabb)) {
+                results.push_back(candidate);
+            }
+        }
+
+        return results;
+    }
+
+    std::vector<Intersection> intersections(const ID& id) const {
+        std::vector<Intersection> results;
+        const auto entries = intersection_entries(id);
+        if (entries.empty()) {
+            return {};
+        }
+
+        const auto entry = _entries.at(id);
+
+        for (const auto intersect_entry : entries) {
+            const auto rectA = entry.aabb;
+            const auto rectB = intersect_entry.aabb;
+
+            if (rectA.contains_point(rectB.center())) {
+
+            } else if (rectB.contains_point(rectA.center())) {
+
+            }
+
+            const auto midline = Line2d<float>{
+                intersect_entry.aabb.center(),
+                entry.aabb.center()
+            };
+        }
+
+        return results;
+    }
+
+    void clear() {
+        _quadrants.clear();
+        _entries.clear();
+    }
+
+protected:
+    void split() {
+        auto sz = _rect.sz / 2.0;
+        const std::vector<Rect<float>> quadrects = {
+            {_rect.pos,                               sz},
+            {_rect.pos + Vector2d<float>{0.0, sz.w},  sz},
+            {_rect.pos + Vector2d<float>{sz.h, 0.0},  sz},
+            {_rect.pos + Vector2d<float>{sz.w, sz.h}, sz}
+        };
+
+        _quadrants.clear();
+
+        for (const auto& quadrect : quadrects) {
+            _quadrants.push_back(
+                CollisionTree<ID>(quadrect, _level + 1, _max_level, _max_objects));
+        }
+
+        for (const auto& entry : _entries) {
+            for (const auto& quadrant : _quadrants) {
+                if (entry.aabb.intersects_rect(quadrant.rect())) {
+                    quadrant.insert(entry);
+                }
+            }
+        }
+    }
+
+    void collapse() {
+        _quadrants.clear();
+    }
+
+private:
+    int _level, _max_level, _max_objects;
+    Rect<float> _rect;
+    std::unordered_map<ID, Entry> _entries;
+    std::vector<CollisionTree<ID>> _quadrants;
 };
 
 }
