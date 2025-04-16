@@ -12,6 +12,7 @@
 #include <optional>
 #include <functional>
 
+#include "moonlight/json.h"
 #include "moonlight/generator.h"
 #include "moonlight/test.h"
 
@@ -47,6 +48,23 @@ std::function<std::optional<int>()> sleepy_range(int a, int b) {
 
     return lambda;
 }
+
+struct Person {
+    std::string name;
+    std::string address;
+
+    json::Object to_json() const {
+        return json::Object()
+        .set("name", name)
+        .set("address", address);
+    }
+};
+
+const std::vector<Person> PEOPLE = {
+    {.name="Lain", .address="Silverdale, WA"},
+    {.name="Jenna", .address="Bremerton, WA"},
+    {.name="Boz", .address="Pet Lodge"},
+};
 
 int main() {
     return TestSuite("moonlight generator tests")
@@ -233,6 +251,18 @@ int main() {
         std::cout << sA << std::endl;
         std::cout << sC << std::endl;
         ASSERT_EQUAL(sA, sC);
+    })
+    .test("Transform an array into JSON.", []() {
+        auto obj = json::Object()
+        .set("addresses", gen::stream(PEOPLE).transform<json::Object>([](auto& v) { return v.to_json(); }));
+
+        auto address_list = obj.get<json::Array>("addresses");
+        ASSERT_EQUAL(address_list.get<json::Object>(0).get<std::string>("name"), "Lain");
+        ASSERT_EQUAL(address_list.get<json::Object>(1).get<std::string>("name"), "Jenna");
+        ASSERT_EQUAL(address_list.get<json::Object>(2).get<std::string>("name"), "Boz");
+
+        std::cout << json::to_string(obj) << std::endl;
+        std::cout << json::to_string(address_list) << std::endl;
     })
     .run();
 }

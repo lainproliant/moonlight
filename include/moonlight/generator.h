@@ -598,11 +598,10 @@ class Stream {
      template<class R = T>
      gen::Stream<R> transform(std::function<std::optional<R>(const T&)> f) const {
          auto iter = begin();
-         std::optional<R> result;
 
          return gen::Stream<R>([=, this]() mutable -> std::optional<R> {
              while (iter != end()) {
-                 result = f(*iter);
+                 auto result = f(*iter);
                  iter++;
                  if (result.has_value()) {
                      return result.value();
