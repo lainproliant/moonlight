@@ -348,6 +348,10 @@ class Duration {
          return Duration(_ms - d._ms);
      }
 
+     Duration operator*(int factor) const {
+         return Duration(_ms * factor);
+     }
+
      Duration& operator+=(const Duration& d) {
          _ms += d._ms;
          _bk = breakdown();
@@ -356,6 +360,12 @@ class Duration {
 
      Duration& operator-=(const Duration& d) {
          _ms -= d._ms;
+         _bk = breakdown();
+         return *this;
+     }
+
+     Duration& operator*=(int factor) {
+         _ms *= factor;
          _bk = breakdown();
          return *this;
      }
