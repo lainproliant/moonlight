@@ -215,6 +215,7 @@ EXCEPTION_TYPE(TypeError);
 EXCEPTION_TYPE(FrameworkError);
 
 #define THROW(excType, ...) throw excType(__VA_ARGS__, LOCATION)
+#define THROW_BECAUSE(excType, cause, ...) throw ((excType(__VA_ARGS__, LOCATION).caused_by(cause)))
 #define FAIL(...) THROW(moonlight::core::AssertionFailure, __VA_ARGS__)
 
 }  // namespace core
