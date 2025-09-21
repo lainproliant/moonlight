@@ -11,8 +11,10 @@
 #include <iostream>
 
 int main() {
+    moonlight::nanoid::IDFactory nanoid;
+
     for (int x = 0; x < 100; x++) {
-        std::cout << moonlight::nanoid::generate(x) << std::endl;
+        std::cout << nanoid.generate(x) << std::endl;
     }
     return 0;
 }

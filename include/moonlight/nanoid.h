@@ -14,8 +14,10 @@
  *      - https://github.com/mcmikecreations/nanoid_cpp
  *
  * ## Usage ---------------------------------------------------------
- * This library exposes a single template function, `nanoid::generate`.  This
- * function generates a small uniformly-random unique ID as an `std::string`.
+ * This library exposes a single template class, `nanoid::IDFactory`.  This
+ * class generates a small uniformly-random unique ID as an `std::string` via
+ * its `generate()` method.
+ *
  * By default, this ID will be generated using `std::random_device`,
  * `std::uniform_int_distribution<int>`, and are 21 characters long.  The
  * following alternative pre-built alphabets are also provided:
@@ -49,19 +51,26 @@ const std::string NO_LOOK_ALIKES = "2346789ABCDEFGHJKLMNPQRTUVWXYZabcdefghijkmnp
 
 const size_t DEFAULT_SIZE = 21;
 
-template<class RandomFactory = std::random_device>
-inline std::string generate(size_t size = DEFAULT_SIZE, const std::string& alphabet = DEFAULT_ALPHABET) {
-    std::string id;
+template<class RF = std::random_device>
+class IDFactory {
+public:
+    IDFactory() : rd(), rng(rd()) { }
 
-    RandomFactory rd;
-    std::uniform_int_distribution<int> dist(0, alphabet.size() - 1);
+    std::string generate(size_t size = DEFAULT_SIZE, const std::string& alphabet = DEFAULT_ALPHABET) {
+        std::string id;
+        std::uniform_int_distribution<int> dist(0, alphabet.size() - 1);
 
-    while (id.size() < size) {
-        id.push_back(alphabet[dist(rd)]);
+        while (id.size() < size) {
+            id.push_back(alphabet[dist(rng)]);
+        }
+
+        return id;
     }
 
-    return id;
-}
+private:
+    RF rd;
+    std::mt19937 rng;
+};
 
 }  // namespace nanoid
 }  // namespace moonlight

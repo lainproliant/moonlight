@@ -133,7 +133,8 @@ inline std::fstream open_rw(const std::string& filename,
 
 //-------------------------------------------------------------------
 inline std::string tempfile_name(const std::string& prefix = "", const std::string& suffix = "", int length = 10) {
-    return std::filesystem::temp_directory_path() / (prefix + nanoid::generate(length) + suffix);
+    auto nanoid = nanoid::IDFactory();
+    return std::filesystem::temp_directory_path() / (prefix + nanoid.generate(length) + suffix);
 }
 
 //-------------------------------------------------------------------
